@@ -19,7 +19,7 @@ namespace dammIds {
     }
 } // trace namespace
 
-const Trace emptyTrace; ///< an empty trace for const references to point to
+Trace emptyTrace; ///< an empty trace for const references to point to
 
 /*
  * Plots are static, class-wide variable, so every trace instance has
@@ -32,9 +32,7 @@ Plots Trace::histo(OFFSET, RANGE);
  * moving sum windows of width risetime separated by a length gaptime.
  * Filter is calculated from channels lo to hi.
  */
-void Trace::TrapezoidalFilter(Trace &filter, 
-			      const TrapezoidalFilterParameters &parms,
-			      unsigned int lo, unsigned int hi) const
+void Trace::TrapezoidalFilter(Trace &filter, const TrapezoidalFilterParameters &parms, unsigned int lo, unsigned int hi) const
 {
     // don't let the filter work outside of its reasonable range
     lo = max(lo, (unsigned int)parms.GetSize());
@@ -43,8 +41,7 @@ void Trace::TrapezoidalFilter(Trace &filter,
     
     //! check if we're going to do something bad here
     for (unsigned int i = lo; i < hi; i++) {
-	int leftSum = accumulate(begin() + i - parms.GetSize(),
-				 begin() + i - parms.GetRiseSamples() - parms.GetGapSamples(), 0);
+	int leftSum = accumulate(begin() + i - parms.GetSize(),  begin() + i - parms.GetRiseSamples() - parms.GetGapSamples(), 0);
 	int rightSum = accumulate(begin() + i - parms.GetRiseSamples(), begin() + i, 0);
 	filter.push_back(rightSum - leftSum);
     }
@@ -64,8 +61,7 @@ double Trace::DoBaseline(unsigned int lo, unsigned int numBins)
 
     double sum = accumulate(begin() + lo, begin() + hi, 0.0);
     double mean = sum / numBins;
-    double sq_sum = inner_product(begin() + lo, begin() + hi,
-                                  begin() + lo, 0.0);
+    double sq_sum = inner_product(begin() + lo, begin() + hi, begin() + lo, 0.0);
     double std_dev = sqrt(sq_sum / numBins - mean * mean);
 
     SetValue("baseline", mean);
@@ -122,12 +118,10 @@ double Trace::DoQDC(unsigned int lo, unsigned int numBins)
     return(qdc);
 }
 
-unsigned int Trace::FindMaxInfo(void)
+unsigned int Trace::FindMaxInfo(std::string tDelay)
 {
-    unsigned int hi = constants.GetConstant("traceDelay") /
-	(pixie::adcClockInSeconds*1e9);
-    unsigned int lo = hi - (constants.GetConstant("trapezoidalWalk") / 
-			    (pixie::adcClockInSeconds*1e9) ) - 3;
+    unsigned int hi = constants.GetConstant(tDelay) / (pixie::adcClockInSeconds*1e9);
+    unsigned int lo = hi - (constants.GetConstant("trapezoidalWalk") / (pixie::adcClockInSeconds*1e9) ) - 3;
     
     if(size() < hi)
         return U_DELIMITER;

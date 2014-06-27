@@ -37,9 +37,7 @@ bool TraceAnalyzer::Init(void)
 
 using namespace dammIds::trace;
 
-TraceAnalyzer::TraceAnalyzer() : 
-    userTime(0.), systemTime(0.),
-    histo(OFFSET, RANGE) 
+TraceAnalyzer::TraceAnalyzer() : userTime(0.), systemTime(0.), histo(OFFSET, RANGE) 
 {
     name = "Trace";
     // start at -1 so that when incremented on first trace analysis,
@@ -48,9 +46,7 @@ TraceAnalyzer::TraceAnalyzer() :
     clocksPerSecond = sysconf(_SC_CLK_TCK);
 }
 
-TraceAnalyzer::TraceAnalyzer(int offset, int range) : 
-    userTime(0.), systemTime(0.),
-    histo(offset, range) 
+TraceAnalyzer::TraceAnalyzer(int offset, int range) : userTime(0.), systemTime(0.), histo(offset, range) 
 {
     name = "Trace";
     // start at -1 so that when incremented on first trace analysis,
@@ -62,16 +58,13 @@ TraceAnalyzer::TraceAnalyzer(int offset, int range) :
 /** Output time processing traces */
 TraceAnalyzer::~TraceAnalyzer() 
 {
-    cout << name << " analyzer : " 
-	 << userTime << " user time, "
-	 << systemTime << " system time" << endl;
+    cout << name << " analyzer : " << userTime << " user time, " << systemTime << " system time" << endl;
 }
 
 /**
  * Function to quickly analyze a trace online.
  */
-void TraceAnalyzer::Analyze(Trace &trace,
-			    const string &detType, const string &detSubtype)
+void TraceAnalyzer::Analyze(Trace &trace, const string &detType, const string &detSubtype)
 {
     times(&tmsBegin); // begin timing process
     numTracesAnalyzed++;

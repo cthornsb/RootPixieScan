@@ -57,21 +57,6 @@ void ScintROOT::FillRoot(const TimingDataMap &detMap)
     }// end for(DataMap::
 }
 
-bool ScintROOT::AddBranch(TTree *tree)
-{
-    if (tree) {
-	string branchDef = "multiplicity/i:dummy/i:aveBaseline[10]/D:discrimination[10]/D:highResTime[10]/D:maxpos[10]/D:maxval[10]/D:phase[10]/D:stdDevBaseline[10]/D:tqdc[10]/D:location[10]/i";
-	TBranch *scintBranch = 
-	    tree->Branch("Beta", &beta, branchDef.c_str());
-	
-	TBranch *scintBranch1 = 
-	    tree->Branch("Liquid", &liquid, branchDef.c_str());
-	
-	return (scintBranch != NULL);
-    } 
-    return false;
-}
-
 void ScintROOT::FillBranch(void)
 {
     FillRoot(liquidMap);
@@ -79,4 +64,34 @@ void ScintROOT::FillBranch(void)
 
     if (!HasEvent())
 	beta = liquid = DataRoot();
+}
+
+//********** InitRoot ***********
+bool VandleProcessor::InitRoot(TTree* master_tree){
+	std::cout << " VandleProcessor: Initializing\n";
+	if(outputInit){
+		std::cout << " VandleProcessor: Warning! Output already initialized\n";
+		return false;
+	}
+	if(!master_tree){
+		std::cout << " VandleProcessor: Warning! Encountered a null TTree pointer\n";
+		return false;
+	}
+	
+	// Link the tree and create the branch
+	the_tree = master_tree;
+	the_branch = the_tree->Branch("Beta", &structure, "multiplicity/i:dummy/i:aveBaseline[10]/D:discrimination[10]/D:highResTime[10]/D:maxpos[10]/D:maxval[10]/D:phase[10]/D:stdDevBaseline[10]/D:tqdc[10]/D:location[10]/i");
+	outputInit = true;
+	return true;
+}
+
+// Fill the root variables with processed data
+bool VandleProcessor::RootPacker(unsigned int location_, vmlData* current_data, unsigned int multiplicity_){
+
+}
+
+bool VandleProcessor::InitDamm(){
+}
+
+bool VandleProcessor::DammPacker(){
 }

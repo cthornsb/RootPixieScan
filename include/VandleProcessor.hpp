@@ -6,27 +6,30 @@
 #define __VANDLEPROCESSOR_HPP_
 
 #include "EventProcessor.hpp"
-#include "TimingInformation.hpp"
 
 class TFile;
 
-class VandleProcessor : public EventProcessor, 
-			public TimingInformation
-{
+struct VandleDataStructure{
+    double tof, lqdc, rqdc, tsLow, tsHigh;
+    double lMaxVal, rMaxVal, qdc, energy;
+    unsigned int multiplicity, location; 
+};
+
+class VandleProcessor : public EventProcessor{
  public:
-    VandleProcessor(TFile*); // no virtual c'tors
+    VandleProcessor(); // no virtual c'tors
     VandleProcessor(const int VML_OFFSET, const int RANGE);
     VandleProcessor(const int RP_OFFSET, const int RANGE, int i);
     virtual void DeclarePlots(void);
     virtual bool Process(RawEvent &event);
-    VMLMap vmlMap;
-    DataRoot vandle;
-    /// All processors with AddBranch() information
-    vector<EventProcessor *> vecProcess;
-    virtual bool Init(RawEvent& rawev);
-    bool AddBranch(TTree *tree);
-    UInt_t   multiplicity;
-    UInt_t   vmllocation;
+    virtual bool InitRoot();
+    virtual bool WriteRoot(TFile*);
+    bool PackRoot(unsigned int, const vmlData*, unsigned int);
+    bool InitDamm();
+    bool PackDamm();
+        
+    VMLMap vmlMap; 
+    VandleDataStructure structure;
 
  protected:
     //define the maps
@@ -38,25 +41,14 @@ class VandleProcessor : public EventProcessor,
  
  private:
     virtual bool RetrieveData(RawEvent &event);
-    
-    virtual double CorrectTOF(const double &TOF, 
-			      const double &corRadius, 
-			      const double &z0) {return((z0/corRadius)*TOF);};
-
     virtual void AnalyzeData(RawEvent& rawev);
-    virtual void BuildBars(const TimingDataMap &endMap, 
-                           const std::string &type, 
-			   BarMap &barMap);
     virtual void ClearMaps(void);
     virtual void CrossTalk(void);
-    virtual void FillMap(const vector<ChanEvent*> &eventList, 
-                         const std::string type,
-			 TimingDataMap &eventMap);
     virtual void Tvandle(void);
-    virtual void WalkBetaVandle(const TimingInformation::TimingDataMap &beta, 
-                                const TimingInformation::BarData &bar);
-    //virtual void FillRoot(const VMLMap & endMap, const string &barType);
-    virtual void FillRoot(const vmlData &tempData, UInt_t location);
+    virtual void BuildBars(const TimingDataMap &endMap, const std::string &type, BarMap &barMap);    
+    virtual void FillMap(const vector<ChanEvent*> &eventList, const std::string type, TimingDataMap &eventMap);    
+    virtual void WalkBetaVandle(const TimingInformation::TimingDataMap &beta, const TimingInformation::BarData &bar);
+    virtual double CorrectTOF(const double &TOF, const double &corRadius, const double &z0) {return((z0/corRadius)*TOF);};
 
     bool hasDecay;
     double decayTime;
@@ -66,4 +58,5 @@ class VandleProcessor : public EventProcessor,
     typedef std::map<CrossTalkKey, double> CrossTalkMap;
     std::map<CrossTalkKey, double> crossTalk;
 }; //Class VandleProcessor
+
 #endif // __VANDLEPROCESSOR_HPP_

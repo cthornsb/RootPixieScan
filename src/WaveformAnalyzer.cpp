@@ -27,25 +27,20 @@ WaveformAnalyzer::WaveformAnalyzer() : TraceAnalyzer(OFFSET,RANGE)
     name = "Waveform";
 }
 
-
 //********** DeclarePlots **********
 void WaveformAnalyzer::DeclarePlots(void) const
 {
 }
 
-
 //********** Analyze **********
-void WaveformAnalyzer::Analyze(Trace &trace,
-			       const string &detType, 
-			       const string &detSubtype)
+void WaveformAnalyzer::Analyze(Trace &trace, const string &detType, const string &detSubtype)
 {
     TraceAnalyzer::Analyze(trace, detType, detSubtype);
     
-    if(detType == "vandleSmall" || detType == "vandleBig" 
-       || detType == "scint" || detType == "pulser" 
-       || detType == "tvandle") {
-
-	unsigned int maxPos = trace.FindMaxInfo();
+    if(detType == "vandleSmall" || detType == "vandleBig" || detType == "scint" || detType == "pulser" || detType == "tvandle") {
+    	unsigned int maxPos;
+    	if(detSubtype == "liquid"){ maxPos = trace.FindMaxInfo("traceDelayLiquid"); }
+    	else{ maxPos = trace.FindMaxInfo("traceDelayVandle"); }
 
 	if(trace.HasValue("saturation")) {
 	    EndAnalyze();
@@ -54,17 +49,13 @@ void WaveformAnalyzer::Analyze(Trace &trace,
 
 	unsigned int waveformLow = GetConstant("waveformLow");
 	unsigned int waveformHigh = GetConstant("waveformHigh");
-	unsigned int startDiscrimination = 
-	    GetConstant("startDiscrimination");
-
-	double qdc = trace.DoQDC(maxPos-waveformLow, 
-				 waveformHigh+waveformLow);
+	unsigned int startDiscrimination = GetConstant("startDiscrimination");
+	double qdc = trace.DoQDC(maxPos-waveformLow, waveformHigh+waveformLow);
 
 	trace.InsertValue("qdcToMax", qdc/trace.GetValue("maxval"));
 
 	if(detSubtype == "liquid")
-	    trace.DoDiscrimination(startDiscrimination, 
-	 			   waveformHigh - startDiscrimination);
+	    trace.DoDiscrimination(startDiscrimination, waveformHigh - startDiscrimination);
     } //if(detType
     EndAnalyze();
 }

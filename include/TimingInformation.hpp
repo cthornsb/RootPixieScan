@@ -35,7 +35,7 @@ class TimingInformation
     {
 	TimingData(void);
 	TimingData(ChanEvent *chan);
-    	const Trace &trace;
+    	Trace &trace;
 	
 	bool dataValid;
 	
@@ -54,40 +54,6 @@ class TimingInformation
 	int numAboveThresh;
     };
     
-#ifdef useroot
-    struct DataRoot //--- this struct is going into root tree
-    {
-	static const size_t maxMultiplicity = 9;
-
-	DataRoot(void);
-
-	UInt_t   multiplicity;
-	UInt_t   dummy;
-
-	/*Double_t tof[maxMultiplicity];
-	Double_t lqdc[maxMultiplicity];
-	Double_t rqdc[maxMultiplicity];
-	Double_t tsLow[maxMultiplicity];
-	Double_t tsHigh[maxMultiplicity];
-	Double_t lMaxVal[maxMultiplicity];
-	Double_t rMaxVal[maxMultiplicity];
-	Double_t qdc[maxMultiplicity];
-	Double_t energy[maxMultiplicity];
-	UInt_t location[maxMultiplicity]; //--- from key*/
-	Double_t tof;
-	Double_t lqdc;
-	Double_t rqdc;
-	Double_t tsLow;
-	Double_t tsHigh;
-	Double_t lMaxVal;
-	Double_t rMaxVal;
-	Double_t qdc;
-	Double_t energy;
-	UInt_t location; //--- from key
-    };
-
-#endif
-
     struct BarData
     {
 	BarData(const TimingData& Right, const TimingData& Left, 

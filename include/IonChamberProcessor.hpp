@@ -31,11 +31,7 @@ class IonChamberProcessor : public EventProcessor
   virtual bool Process(RawEvent &event);
   virtual void DeclarePlots(void);
   // nice and simple raw derived class
-
-#ifdef useroot
-  bool AddBranch(TTree *tree);
-  void FillBranch(void);
-#endif // USEROOT  
+ 
 };
 
 #endif // __IONCHAMBERPROCSSEOR_HPP_

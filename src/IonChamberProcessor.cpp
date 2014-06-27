@@ -182,7 +182,7 @@ void IonChamberProcessor::Data::Clear(void)
 }
 
 #ifdef useroot
-bool IonChamberProcessor::AddBranch(TTree *tree)
+/*bool IonChamberProcessor::AddBranch(TTree *tree)
 {
   if (tree) {
     TBranch *branch = tree->Branch(name.c_str(), &data,
@@ -196,6 +196,6 @@ void IonChamberProcessor::FillBranch(void)
 {
   if (!HasEvent())
     data.Clear();
-}
+}*/
 
 #endif // USEROOT

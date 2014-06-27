@@ -52,14 +52,9 @@ class DetectorDriver {
     static DetectorDriver* instance;
 
     vector<EventProcessor *> vecProcess; /**< vector of processors to handle each event */
-    
-    vector<TraceAnalyzer *> vecAnalyzer; /**< object which analyzes traces of channels to extract
-				   energy and time information */
-    set<string> knownDetectors; /**< list of valid detectors that can 
-				   be used as detector types */
-    
+    vector<TraceAnalyzer *> vecAnalyzer; /**< object which analyzes traces of channels to extract energy and time information */
+    set<string> knownDetectors; /**< list of valid detectors that can be used as detector types */
     pair<double, time_t> pixieToWallClock; /**< rough estimate of pixie to wall clock */ 
-
 
     virtual void DeclareHistogram1D(int dammId, int xSize, const char* title) {
         histo.DeclareHistogram1D(dammId, xSize, title);
@@ -70,7 +65,7 @@ class DetectorDriver {
 
  public:    
     static DetectorDriver* get();
-    vector<Calibration> cal;    /**<the calibration vector*/ 
+    vector<Calibration> cal; /**<the calibration vector*/ 
 
     Plots histo;
     TFile *masterFile;

@@ -18,15 +18,10 @@ class VandleROOT : public VandleProcessor
     void FillBranch();
     void vmlMapCpy(const VMLMap vmlMap1);
     const VMLMap vmlMap2;
-    TFile *topFile; //< Pointer to master root file (DetectorDriver)
-    TTree *tree; //< ROOT tree where event branches are filled
 
  private:
-    DataRoot vandle;
-
     bool isSmall;
     bool isBig;
 
-    virtual void FillRoot(const VMLMap & endMap, const string &barType);
 }; // class VandleROOT
 #endif // __VANDLEROOT_HPP_

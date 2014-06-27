@@ -34,8 +34,7 @@ class TraceAnalyzer {
     std::string name;         ///< name of the analyzer
 
     Plots histo;
-    virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, 
-                      const char* name="h") {
+    virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
     }
     virtual void DeclareHistogram1D(int dammId, int xSize, const char* title) {
@@ -52,8 +51,7 @@ class TraceAnalyzer {
     
     virtual bool Init(void);
     virtual void DeclarePlots(void);
-    virtual void Analyze(Trace &trace, const std::string &type, 
-                         const std::string &subtype);
+    virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
     void EndAnalyze(Trace &trace);
     void EndAnalyze(void);
     void SetLevel(int i) {level=i;}

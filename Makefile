@@ -53,7 +53,7 @@ ifeq ($(ACQ2_LIBDIR),)
 ifneq ($(ACQ2_DIR),) 
 ACQ2_LIBDIR = $(ACQ2_DIR)
 else
-ACQ2_LIBDIR = /usr/acq2n/lib
+ACQ2_LIBDIR = /usr/hhirf-intel64
 endif
 endif
 endif
@@ -189,8 +189,8 @@ VANDLEPROCESSORO = VandleProcessor.o
 
 #ROOT Objects
 #SCINTROOTO       = ScintROOT.o
-ROOTPROCESSORO   = RootProcessor.o
-VANDLEROOTO      = VandleROOT.o
+#ROOTPROCESSORO   = RootProcessor.o
+#VANDLEROOTO      = VandleROOT.o
 
 ifdef REVISIOND
 READBUFFDATAO    = ReadBuffData.RevD.o
@@ -292,9 +292,6 @@ $(CXX_OBJDIR)/%.o: %.cpp
 #----------- link all created objects together
 #----------- to create pixie_ldf_c program
 $(PIXIE): $(FORT_OBJS_W_DIR) $(CXX_OBJS_W_DIR) $(LIBS)
-	$(LINK.o) $^ -o $@ $(LDLIBS)
-
-Test: $(FORT_OBJS_W_DIR) $(CXX_OBJS_W_DIR) $(LIBS)
 	$(LINK.o) $^ -o $@ $(LDLIBS)
 
 #----------- remove all objects, core and .so file

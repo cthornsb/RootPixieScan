@@ -66,12 +66,6 @@
 #include "TraceExtractor.hpp"
 #include "WaveformAnalyzer.hpp"
 
-#ifdef useroot
-#include "RootProcessor.hpp"
-#include "ScintROOT.hpp"
-#include "VandleROOT.hpp"
-#endif
-
 using namespace std;
 using namespace dammIds::raw;
 
@@ -108,12 +102,11 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     cout << " DetectorDriver: Opening file 'master.root'\n";
     masterFile = new TFile("master.root", "RECREATE"); // Will overwrite!
     cout << " DetectorDriver: Loading Processors\n";
-    vecProcess.push_back(new LiquidProcessor(masterFile));
-    vecProcess.push_back(new VandleProcessor(masterFile));
-#ifdef useroot
+    vecProcess.push_back(new LiquidProcessor());
+    vecProcess.push_back(new VandleProcessor());
+
     //vecProcess.push_back(new VandleROOT());
     //vecProcess.push_back(new RootProcessor());
-#endif
 }
 
 /*!
@@ -127,7 +120,8 @@ DetectorDriver::~DetectorDriver()
 
     // Iterate over processors
     for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
-        (*it)->Close(); // This, effectively, writes the processor trees to the root file
+        std::cout << " DetectorDriver: Writing '" << (*it)->GetName() << "' to root file... ";
+        if(!(*it)->WriteRoot(masterFile)){ std::cout << "failed\n"; }
 	delete *it;
     }
 
@@ -151,16 +145,15 @@ DetectorDriver::~DetectorDriver()
 int DetectorDriver::Init(RawEvent& rawev)
 {
     // initialize the trace analysis routine
-    for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin();
-	 it != vecAnalyzer.end(); it++) {
+    for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
 	(*it)->Init();
 	(*it)->SetLevel(20); //! Plot traces
     }
 
     // initialize processors in the event processing vector
-    for (vector<EventProcessor *>::iterator it = vecProcess.begin();
-         it != vecProcess.end(); it++) {
-        (*it)->Init(rawev);	
+    for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
+    	(*it)->Init(rawev); // Initialize EventProcessor
+    	(*it)->InitRoot(); // Initialize processor to use root output
     }
 
     /*
@@ -221,16 +214,14 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     // have each processor in the event processing vector handle the event
     /* First round is preprocessing, where process result must be guaranteed
      * to not to be dependent on results of other Processors. */
-    for (vector<EventProcessor*>::iterator iProc = vecProcess.begin();
-	 iProc != vecProcess.end(); iProc++) {
+    for (vector<EventProcessor*>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if ( (*iProc)->HasEvent() ) {
             (*iProc)->PreProcess(rawev);
         }
     }
     /* In the second round the Process is called, which may depend on other
      * Processors. */
-    for (vector<EventProcessor *>::iterator iProc = vecProcess.begin();
-	 iProc != vecProcess.end(); iProc++) {
+    for (vector<EventProcessor *>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if ( (*iProc)->HasEvent() ) {
             (*iProc)->Process(rawev);
         }
@@ -374,7 +365,7 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 
     /*
       update the detector summary
-    */    
+    */
     rawev.GetSummary(type)->AddEvent(chan);
     DetectorSummary *summary;
     

@@ -41,30 +41,26 @@ class Trace : public std::vector<int>
     unsigned int baselineLow; 
     unsigned int baselineHigh;
 
-    std::vector<double> waveform;
-
     std::map<std::string, double> doubleTraceData;
-    std::map<std::string, int>    intTraceData;
+    std::map<std::string, int> intTraceData;
 
     /** This field is static so all instances of Trace class have access to 
      * the same plots and plots range. */
     static Plots histo; 
 
  public:
-     
-    Trace() : std::vector<int>()
-	{baselineLow = baselineHigh = U_DELIMITER; };
+    std::vector<double> waveform;
+    
+    Trace() : std::vector<int>() {baselineLow = baselineHigh = U_DELIMITER; };
     // an automatic conversion
     Trace(const std::vector<int> &x) : std::vector<int>(x) {
         baselineLow = baselineHigh = U_DELIMITER;
     }
 
-    void TrapezoidalFilter(Trace &filter, const TFP &parms,
-			   unsigned int lo = 0) const {
+    void TrapezoidalFilter(Trace &filter, const TFP &parms, unsigned int lo = 0) const {
         TrapezoidalFilter( filter, parms, lo, size() );
     }
-    void TrapezoidalFilter(Trace &filter, const TFP &parms,
-			   unsigned int lo, unsigned int hi) const;
+    void TrapezoidalFilter(Trace &filter, const TFP &parms, unsigned int lo, unsigned int hi) const;
 
     void InsertValue(std::string name, double value) {
         doubleTraceData.insert(make_pair(name,value));
@@ -112,7 +108,7 @@ class Trace : public std::vector<int>
     double DoDiscrimination(unsigned int lo, unsigned int numBins);
     double DoQDC(unsigned int lo, unsigned int numBins);
     
-    unsigned int FindMaxInfo(void);
+    unsigned int FindMaxInfo(std::string);
     
     void Plot(int id);           //< plot trace into a 1D histogram
     void Plot(int id, int row);  //< plot trace into row of a 2D histogram
@@ -131,11 +127,8 @@ class TrapezoidalFilterParameters
     
     double tau;
  public:
-    TrapezoidalFilterParameters(int gap, int rise, double t = NAN) :
-	gapSamples(gap), riseSamples(rise), tau(t) {};
-    TrapezoidalFilterParameters(const TFP &x) :
-	gapSamples(x.gapSamples), riseSamples(x.riseSamples),
-	tau(x.tau) {};
+    TrapezoidalFilterParameters(int gap, int rise, double t = NAN) : gapSamples(gap), riseSamples(rise), tau(t) {};
+    TrapezoidalFilterParameters(const TFP &x) : gapSamples(x.gapSamples), riseSamples(x.riseSamples), tau(x.tau) {};
     const TFP& operator=(const TFP &right) {
 	gapSamples = right.gapSamples;
 	riseSamples = right.riseSamples;
@@ -145,11 +138,10 @@ class TrapezoidalFilterParameters
     }
     Trace::size_type GetGapSamples(void) const  {return gapSamples;}
     Trace::size_type GetRiseSamples(void) const {return riseSamples;}
-    Trace::size_type GetSize(void) const  
-	{return 2*riseSamples + gapSamples;}
-    double GetTau(void) const      {return tau;}
+    Trace::size_type GetSize(void) const {return 2*riseSamples + gapSamples;}
+    double GetTau(void) const {return tau;}
 };
 
-extern const Trace emptyTrace;
+extern Trace emptyTrace;
 
 #endif // __TRACE_H_

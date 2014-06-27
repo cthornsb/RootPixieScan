@@ -8,9 +8,7 @@
 #include "EventProcessor.hpp"
 #include "TimingInformation.hpp"
 
-class PulserProcessor : public EventProcessor, 
-			public TimingInformation
-{
+class PulserProcessor : public EventProcessor{
  public:
     PulserProcessor(); // no virtual c'tors
     virtual void DeclarePlots(void);

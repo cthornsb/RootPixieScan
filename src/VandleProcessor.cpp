@@ -104,9 +104,8 @@ using namespace std;
 using namespace dammIds::vandle;
 
 //*********** VandleProcessor **********
-VandleProcessor::VandleProcessor(TFile *topFile_): EventProcessor(OFFSET, RANGE, topFile_, "Vandle") //--- These values directly affect the plotted IDS
+VandleProcessor::VandleProcessor(): EventProcessor(OFFSET, RANGE, "Vandle") //--- These values directly affect the plotted IDS
 {
-    std::cout << " VandleProcessor: Initializing\n";
     associatedTypes.insert("scint"); 
     associatedTypes.insert("vandleSmall"); 
     associatedTypes.insert("vandleBig");
@@ -114,12 +113,12 @@ VandleProcessor::VandleProcessor(TFile *topFile_): EventProcessor(OFFSET, RANGE,
 }
 
 VandleProcessor::VandleProcessor(const int VML_OFFSET, const int RANGE):
-    EventProcessor(VML_OFFSET, RANGE)//--- These values directly effect the plotted IDS
+    EventProcessor(VML_OFFSET, RANGE)//--- These values directly affect the plotted IDS
 {
 }
 
 VandleProcessor::VandleProcessor(const int RP_OFFSET, const int RANGE, int i): 
-    EventProcessor(RP_OFFSET, RANGE)//--- These values directly effect the plotted IDS
+    EventProcessor(RP_OFFSET, RANGE)//--- These values directly affect the plotted IDS
 {
 }
 
@@ -256,14 +255,9 @@ bool VandleProcessor::Process(RawEvent &event)
     if (!EventProcessor::Process(event)) //start event processing
 	return false;
     plot(D_PROBLEMS, 30); //DEBUGGING
-
     if(RetrieveData(event)){
         AnalyzeData(event);
         //CrossTalk();
-
-        tree->Fill();
-        if(tree->GetEntries() % 1000 == 0){ tree->AutoSave(); }
-        if(tree->GetEntries() % 10000 == 0){ std::cout << " " << tree->GetEntries() << " entries\n"; }
 
         EndProcess();
         return true;
@@ -320,8 +314,8 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	Tvandle();
 
     //Analyze the VANDLE bars if any are present.
-    for (BarMap::iterator itBar = barMap.begin(); //--- returns BarMap iterator to begining key (and corresponding data)
-	 itBar !=  barMap.end(); itBar++) { //--- iterates to another key in barMap as long as its not the last one
+    //--- returns BarMap iterator to begining key (and corresponding data), iterates to another key in barMap as long as its not the last one
+    for (BarMap::iterator itBar = barMap.begin(); itBar !=  barMap.end(); itBar++) {
 	if(!(*itBar).second.event) //--- second refers to the event boolean of BarData struct
 	    continue;
 	
@@ -342,18 +336,14 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	
 	double timeDiff = bar.timeDiff;
 
-	plot(DD_DEBUGGING0, bar.qdcPos*resMult+resOffset,
-	     timeDiff*resMult+resOffset);
-	plot(DD_TIMEDIFFBARS+idOffset,
-	     timeDiff*resMult+resOffset, barLoc);
-	plot(DD_TQDCAVEVSTDIFF+idOffset, 
-	     timeDiff*resMult+resOffset, bar.qdc);
-	
+	plot(DD_DEBUGGING0, bar.qdcPos*resMult+resOffset, timeDiff*resMult+resOffset);
+	plot(DD_TIMEDIFFBARS+idOffset, timeDiff*resMult+resOffset, barLoc);
+	plot(DD_TQDCAVEVSTDIFF+idOffset,  timeDiff*resMult+resOffset, bar.qdc);
 	WalkBetaVandle(startMap, bar);
 
 	//Loop over the starts in the event
-	for(TimingDataMap::iterator itStart = startMap.begin(); //--- each event has multiple starts
-	    itStart != startMap.end(); itStart++) { //--- find the ONE start
+	//--- each event has multiple starts, find the ONE start
+	for(TimingDataMap::iterator itStart = startMap.begin(); itStart != startMap.end(); itStart++) {
 	    if(!(*itStart).second.dataValid) //--- that ONE start may or may not be valid
 		continue;
 
@@ -371,18 +361,17 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    double energy = CalcEnergy(corTOF, calibration.z0);
 
 	    //--- have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
-       	    static const vector<ChanEvent*> & validEvents = 
-	  	rawev.GetSummary("valid")->GetList();
+       	    static const vector<ChanEvent*> & validEvents =  rawev.GetSummary("valid")->GetList();
 
    	    double timeLow, timeHigh;
 	    for(vector<ChanEvent*>::const_iterator itValid = validEvents.begin();
 		itValid != validEvents.end(); itValid++) { //--- is it output type?
 		if ((*itValid)->GetChanID().GetTag("output")) {
 			timeLow = (*itValid)->GetQdcValue(0);
-			timeHigh = (*itValid)->GetQdcValue(1); } }
-	    //cout << "TS " << timeLow << " " << timeHigh << endl;
-	    VMLMap::iterator itVML = 
-		vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh))).first;
+			timeHigh = (*itValid)->GetQdcValue(1); 
+		} 
+            }
+	    VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh))).first;
 
 	    bar.timeOfFlight.insert(make_pair(startLoc, TOF));
 	    bar.corTimeOfFlight.insert(make_pair(startLoc, corTOF));
@@ -435,15 +424,11 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	} // for(TimingDataMap::iterator itStart
     } //(BarMap::iterator itBar
 
-//******************************************************************************************************88//
-    multiplicity=1;
-    for(VMLMap::const_iterator itTempA = vmlMap.begin();  //---loops over vml map, creating root structure
-        itTempA != vmlMap.end(); itTempA++) {
-         vmllocation = (*itTempA).first;
-         vmlData vmldata = (*itTempA).second; //--- filled from barMap
-         FillRoot(vmldata,vmllocation);
-         tree->Fill();
-         multiplicity++;  
+    unsigned int multiplicity = 1;
+    for(VMLMap::const_iterator itTempA = vmlMap.begin(); itTempA != vmlMap.end(); itTempA++) {
+        //---loops over vml map, creating root structure         
+        PackRoot((*itTempA).first, &(*itTempA).second, multiplicity); //--- filled from barMap
+        multiplicity++;
     } //vmlMAP
 } //void VandleProcessor::AnalyzeData
 
@@ -697,58 +682,56 @@ void VandleProcessor::WalkBetaVandle(const TimingInformation::TimingDataMap &bet
     }
 }
 
-/** Add branches to the tree from the event processors in the driver */
-bool VandleProcessor::Init(RawEvent& rawev)
-{
-    DetectorDriver* driver = DetectorDriver::get();
-    if (!topFile || !tree) {
-        cout << " VandleProcessor: Failed to create ROOT objects\n";
-        return false;
-    }
-
-    const vector<EventProcessor *>& drvProcess = driver->GetProcessors();
-    for (vector<EventProcessor *>::const_iterator it = drvProcess.begin(); it != drvProcess.end(); it++) {
-        if ((*it)->AddBranch(tree)) {
-            vecProcess.push_back(*it);
-            set_union( (*it)->GetTypes().begin(), (*it)->GetTypes().end(), associatedTypes.begin(), associatedTypes.end(), 
-                       inserter(associatedTypes, associatedTypes.begin()) );
-        }	  
-    } 
-    return EventProcessor::Init(rawev);
-}
-
-//********** AddBranch **********
-bool VandleProcessor::AddBranch(TTree *tree)
-{
-    if (tree) {
-        std::cout << " VandleProcessor: Adding branches\n";
-	string branchDef = "multiplicity/i:dummy/i:tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:location/i";
-	TBranch *vandleBranch  = tree->Branch("Vandle", &vandle, branchDef.c_str());
-	/*TBranch *vandleBranch = tree->Branch("VandleSmallRight", &smallRight, branchDef.c_str()); 
-	TBranch *vandleBranch1 = tree->Branch("VandleSmallLeft", &smallLeft, branchDef.c_str());
-	TBranch *vandleBranch2  = tree->Branch("VandleBigRight", &bigRight, branchDef.c_str()); 
-	TBranch *vandleBranch3 = tree->Branch("VandleBigLeft", &bigLeft, branchDef.c_str());*/
+// Initialize for root output
+bool VandleProcessor::InitRoot(){
+	std::cout << " VandleProcessor: Initializing\n";
+	if(outputInit){
+		std::cout << " VandleProcessor: Warning! Output already initialized\n";
+		return false;
+	}
 	
-	return ( vandleBranch != NULL );
-    } 
-    return false;
+	// Create the branch
+	local_tree = new TTree(name.c_str(),name.c_str());
+	local_branch = local_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i");
+	outputInit = true;
+	return true;
 }
 
-void VandleProcessor::FillRoot(const vmlData &tempData, UInt_t location)
-{
-    vandle = DataRoot(); //--- initiallizes data root variable arrays to 0, check to see if need new
-    DataRoot *data; //--- creates DataRoot structure called data
+// Fill the root variables with processed data
+bool VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_data, unsigned int multiplicity_){
+	if(!outputInit){ return false; }
+	// Integers
+	structure.location = location_;
+	structure.multiplicity = multiplicity_;
+	
+	// Doubles
+	structure.tof = current_data->tof; 
+	structure.lqdc = current_data->lqdc;
+	structure.rqdc = current_data->rqdc;
+	structure.tsLow = current_data->tsLow;
+	structure.tsHigh = current_data->tsHigh;
+        structure.lMaxVal = current_data->lMaxVal;
+        structure.rMaxVal = current_data->rMaxVal;
+        structure.qdc = current_data->qdc;
+        structure.energy = current_data->energy;
+        local_tree->Fill();
+        return true;
+}
 
-    data = & vandle; //--- sets data values to 0
-    data->tof = tempData.tof;
-    data->lqdc = tempData.lqdc;
-    data->rqdc = tempData.rqdc;
-    data->tsLow = tempData.tsLow;
-    data->tsHigh = tempData.tsHigh;
-    data->lMaxVal = tempData.lMaxVal;
-    data->rMaxVal = tempData.rMaxVal;
-    data->qdc = tempData.qdc;
-    data->energy = tempData.energy;
-    data->location = location;
-    data->multiplicity = multiplicity;
+// Write the local tree to file
+// Should only be called once per execution
+bool VandleProcessor::WriteRoot(TFile* masterFile){
+	if(!masterFile || !local_tree){ return false; }
+	masterFile->cd();
+	local_tree->Write();
+	std::cout << local_tree->GetEntries() << " entries\n";
+	return true;
+}
+
+bool VandleProcessor::InitDamm(){
+	return false;
+}
+
+bool VandleProcessor::PackDamm(){
+	return false;
 }

@@ -12,15 +12,17 @@
 #include <sys/times.h>
 #include "Plots.hpp"
 #include "TreeCorrelator.hpp"
+#include "TimingInformation.hpp"
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TBranch.h"
 
 // forward declarations
 class DetectorSummary;
 class RawEvent;
 
-class EventProcessor {
+class EventProcessor : public TimingInformation{
  private:
     // things associated with timing
     tms tmsBegin;
@@ -34,8 +36,9 @@ class EventProcessor {
     std::set<std::string> associatedTypes; //--- set of type string
     bool initDone;
     bool didProcess;
-    TFile *topFile; //< Pointer to master root file (DetectorDriver)
-    TTree *tree; //< ROOT tree where event branches are filled
+    bool outputInit;
+    TTree *local_tree;
+    TBranch *local_branch;
 
     // map of associated detector summary
     std::map<std::string, const DetectorSummary *> sumMap;
@@ -57,13 +60,11 @@ class EventProcessor {
  public:
     EventProcessor();
     EventProcessor(int offset, int range);
-    EventProcessor(TFile*, std::string);
-    EventProcessor(int offset, int range, TFile*, std::string);
+    EventProcessor(std::string);
+    EventProcessor(int offset, int range, std::string);
     virtual ~EventProcessor();
-    virtual void Close();
-    void SetTopFile(TFile* topFile_){ topFile = topFile_; }
 
-    // declare associated damm plots (called by drrsub_)
+    // Declare associated damm plots (called by drrsub_)
     virtual void DeclarePlots(void);
     virtual const std::set<std::string>& GetTypes(void) const {
       return associatedTypes; 
@@ -71,7 +72,7 @@ class EventProcessor {
     virtual bool DidProcess(void) const {
       return didProcess;
     }
-    // return true on success
+    // Return true on success
     virtual bool HasEvent(void) const;
     virtual bool Init(RawEvent& event);
     virtual bool PreProcess(RawEvent &event);   
@@ -80,10 +81,11 @@ class EventProcessor {
     std::string GetName(void) const {
       return name;
     }
-#ifdef useroot
-    virtual bool AddBranch(TTree *tree);
-    virtual void FillBranch(void);
-#endif
+
+    virtual bool InitRoot();
+    virtual bool WriteRoot(TFile*);
+    
+    std::string GetName(){ return name; }
 };
 
 #endif // __EVENTPROCESSOR_HPP_

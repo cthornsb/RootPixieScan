@@ -23,7 +23,7 @@ private:
     std::string name;                  /**< name associated with this summary */
     std::string type;                  /**< detector type associated with this summary */
     std::string subtype;               /**< detector subtype associated with this summary */
-    std::string tag;               /**< detector tag associated with this summary */
+    std::string tag;                   /**< detector tag associated with this summary */
     std::vector<ChanEvent*> eventList; /**< list of events associated with this detector group */
     ChanEvent* maxEvent;               /**< event with maximum energy deposition */
 public:
@@ -34,17 +34,11 @@ public:
 
     void SetName(const std::string& a) {name = a;} /**< Set the detector type name */
     
-    const ChanEvent* GetMaxEvent(void) const 
-    {return maxEvent;}          /**< Get the max event */
-    ChanEvent* GetMaxEvent(bool fake)
-    {return maxEvent;}          /**< Get the max event with possibility to alter */
-    int GetMult() const 
-    {return eventList.size();} /**< Get the multiplicity */
-    const std::string& GetName() const          
-    {return name;}              /**< Get the detector type name */
-    const std::vector<ChanEvent*>& GetList() const 
-    {return eventList;}         /**< Get the list of all channels in the
-				   rawevent that are of this detector type */
+    const ChanEvent* GetMaxEvent(void) const {return maxEvent;} /**< Get the max event */
+    ChanEvent* GetMaxEvent(bool fake) {return maxEvent;} /**< Get the max event with possibility to alter */
+    int GetMult() const {return eventList.size();} /**< Get the multiplicity */
+    const std::string& GetName() const {return name;} /**< Get the detector type name */
+    const std::vector<ChanEvent*>& GetList() const {return eventList;} /**< Get the list of all channels in the rawevent that are of this detector type */
 };
 
 #endif

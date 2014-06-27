@@ -14,13 +14,8 @@ class TTree;
 class ScintROOT : public ScintProcessor
 {
  public:
-    bool AddBranch (TTree *tree);
-    void FillBranch(void);
 
  private:
-    DataRoot beta;
-    DataRoot liquid;
 
-    virtual void FillRoot(const TimingDataMap &endMap);
 }; // class ScintROOT
 #endif //__SCINTROOT_HPP_

@@ -74,41 +74,6 @@ TimingInformation::TimingData::TimingData(ChanEvent *chan) : trace(chan->GetTrac
 	dataValid = false;
 }
 
-#ifdef useroot
-//********** DataRoot **********
-TimingInformation::DataRoot::DataRoot(void) //--- initiallizes DataRoot variable arrays
-{
-    multiplicity = 0;
-    dummy = numeric_limits<int>::quiet_NaN();
-
- /*   for (size_t i = 0; i < maxMultiplicity; i++) {
-	tof[i]    	= numeric_limits<double>::quiet_NaN();
-	lqdc[i] 	= numeric_limits<double>::quiet_NaN();
-	rqdc[i]    	= numeric_limits<double>::quiet_NaN();
-	tsLow[i]        = numeric_limits<double>::quiet_NaN();
-	tsHigh[i]       = numeric_limits<double>::quiet_NaN();
-	lMaxVal[i]	= numeric_limits<double>::quiet_NaN();
-	rMaxVal[i]	= numeric_limits<double>::quiet_NaN();
-	qdc[i]		= numeric_limits<double>::quiet_NaN();
-	energy[i]	= numeric_limits<double>::quiet_NaN();
-//	location[i]     = numeric_limits<int>::quiet_NaN();
-	location[i]     = -9;
-    }
-*/
-	tof		= numeric_limits<double>::quiet_NaN();
-	lqdc		= numeric_limits<double>::quiet_NaN();
-	rqdc		= numeric_limits<double>::quiet_NaN();
-	tsLow		= numeric_limits<double>::quiet_NaN();
-	tsHigh		= numeric_limits<double>::quiet_NaN();
-	lMaxVal		= numeric_limits<double>::quiet_NaN();
-	rMaxVal		= numeric_limits<double>::quiet_NaN();
-	qdc		= numeric_limits<double>::quiet_NaN();
-	energy   	= numeric_limits<double>::quiet_NaN();
-	location        = numeric_limits<int>::quiet_NaN();
-
-}
-#endif
-
 //********** BarData **********
 TimingInformation::BarData::BarData(const TimingData &Right, const TimingData &Left, const TimingCal &cal, const string &type) 
 {

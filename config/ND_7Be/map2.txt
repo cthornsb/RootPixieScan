@@ -1,4 +1,4 @@
-BBBB# New version of map file
+# New version of map file
 # subtype, location, and tags can be omitted
 # module and channel designations may contain:
 #   *   to indicate all unused possibilites
