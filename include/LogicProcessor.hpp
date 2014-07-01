@@ -10,6 +10,16 @@
 
 #include "EventProcessor.hpp"
 
+struct LogicDataStructure{
+    double tdiff;
+    unsigned int location;
+    bool is_start;
+};
+
+struct RuntimeDataStructure{
+    double energy;
+};
+
 class LogicProcessor : public EventProcessor {
 private:
     void BasicProcessing(RawEvent &event);
@@ -41,6 +51,15 @@ protected:
     double TimeOn(size_t loc, double t) const {
 	return (LogicStatus(loc) ? (t-lastStartTime.at(loc)) : 0.);
     }
+    virtual bool InitRoot();
+    virtual bool WriteRoot(TFile*);
+    bool PackRoot(double);
+    //bool PackRoot(double, unsigned int, bool);
+    bool InitDamm();
+    bool PackDamm();
+    
+    RuntimeDataStructure structure;
+    //LogicDataStructure structure;
 };
 
 #endif // __LOGICPROCESSOR_HPP_

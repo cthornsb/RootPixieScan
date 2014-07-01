@@ -6,17 +6,26 @@
 #define __SCINTPROCESSOR_HPP_
 
 #include "EventProcessor.hpp"
-#include "Trace.hpp"
 
-class ScintProcessor : public EventProcessor,
-		       public TimingInformation
+struct ScintDataStructure{
+    // Add some variables later
+};
+
+class ScintProcessor : public EventProcessor
 {
 public:
     ScintProcessor(); // no virtual c'tors
+    virtual void DeclarePlots(void);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual void DeclarePlots(void);
-    // nice and simple raw derived class
+    virtual bool InitRoot();
+    virtual bool WriteRoot(TFile*);
+    bool PackRoot();
+    bool InitDamm();
+    bool PackDamm();
+    
+    ScintDataStructure scint;
+    
 private:
    virtual void LiquidAnalysis(RawEvent &event);
    unsigned int counter;

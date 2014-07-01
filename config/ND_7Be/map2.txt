@@ -11,8 +11,8 @@
 MOD    CH      TYPE	   SUBTYPE	LOCATION	TAGS
 0	0	scint beta 				uncal start
 0 	14-15 	scint liquid				uncal
-1	0	logic logic				uncal
-1	1 	logic logic				uncal
+1	0	logic trigger				uncal
+1	1 	logic trigger				uncal
 1	4-11	scint liquid				uncal
 1	12-15e	vandleSmall	left			uncal
 1	12-15o	vandleSmall	right			uncal

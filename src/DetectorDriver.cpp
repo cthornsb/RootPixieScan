@@ -102,11 +102,10 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     cout << " DetectorDriver: Opening file 'master.root'\n";
     masterFile = new TFile("master.root", "RECREATE"); // Will overwrite!
     cout << " DetectorDriver: Loading Processors\n";
-    vecProcess.push_back(new LiquidProcessor());
-    vecProcess.push_back(new VandleProcessor());
-
-    //vecProcess.push_back(new VandleROOT());
-    //vecProcess.push_back(new RootProcessor());
+    vecProcess.push_back(new BetaProcessor()); // For beam scintillator
+    vecProcess.push_back(new LiquidProcessor()); // For UofM liquid array
+    vecProcess.push_back(new LogicProcessor()); // For scalers
+    vecProcess.push_back(new VandleProcessor()); // For Vandle bar array
 }
 
 /*!

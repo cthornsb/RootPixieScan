@@ -56,43 +56,31 @@ private:
     friend int ReadBuffData(pixie::word_t *, unsigned long *, std::vector<ChanEvent *> &);
 public:
     static double pixieEnergyContraction; ///< energies from pixie16 are contracted by this number
-    void SetEnergy(double a)    {energy = a;}    /**< Set the raw energy in case we want
-						    to extract it from the trace ourselves */
+    void SetEnergy(double a) {energy = a;} /**< Set the raw energy in case we want to extract it from the trace ourselves */
     void SetCalEnergy(double a) {calEnergy = a;} /**< Set the calibrated energy */
-    void SetTime(double a)      {time = a;}      /**< Set the raw time */
+    void SetTime(double a) {time = a;} /**< Set the raw time */
     void SetCorrectedTime(double a) {correctedTime = a;} /**< Set the corrected time */
-    void SetCalTime(double a)   {calTime = a;}   /**< Set the calibrated time */
+    void SetCalTime(double a) {calTime = a;} /**< Set the calibrated time */
     void SetHighResTime(double a) {highResTime =a;} /**< Set the high resolution time */
-    double GetEnergy() const      {return energy;}      /**< Get the raw energy */
-    double GetCalEnergy() const   {return calEnergy;}   /**< Get the calibrated energy */
+    double GetEnergy() const {return energy;} /**< Get the raw energy */
+    double GetCalEnergy() const {return calEnergy;} /**< Get the calibrated energy */
     double GetCorrectedTime() const {return correctedTime;} /**< Get the corrected time */
-    double GetTime() const        {return time;}        /**< Get the raw time */
-    double GetCalTime() const     {return calTime;}    /**< Get the calibrated time */
+    double GetTime() const {return time;} /**< Get the raw time */
+    double GetCalTime() const {return calTime;} /**< Get the calibrated time */
     double GetHighResTime() const {return highResTime;} /**< Get the high-resolution time */
-    double GetEventTime() const   {return eventTime;}  /**< Get the event time */
+    double GetEventTime() const {return eventTime;} /**< Get the event time */
     const Trace& GetTrace() const {return trace;} /**< Get a reference to the trace */
     Trace& GetTrace() {return trace;} /** Get a reference which can alter the trace */
-    unsigned long GetTrigTime() const    
-    {return trigTime;}    /**< Return the channel trigger time */
-    unsigned long GetEventTimeLo() const
-    {return eventTimeLo;} /**< Return the lower 32 bits of event time */
-    unsigned long GetEventTimeHi() const
-    {return eventTimeHi;} /**< Return the upper 32 bits of event time */
-    unsigned long GetRunTime0() const
-    {return runTime0;}    /**< Return the lower bits of run time */
-    unsigned long GetRunTime1() const
-    {return runTime1;}    /**< Return the middle bits of run time */
-    unsigned long GetRunTime2() const
-    {return runTime2;}    /**< Return the higher bits of run time */
-    bool IsPileup() const {
-	return pileupBit;
-    }
-    bool IsSaturated() const { /**< Return whether the trace is saturated */
-	return saturatedBit;
-    }
+    unsigned long GetTrigTime() const {return trigTime;}    /**< Return the channel trigger time */
+    unsigned long GetEventTimeLo() const {return eventTimeLo;} /**< Return the lower 32 bits of event time */
+    unsigned long GetEventTimeHi() const {return eventTimeHi;} /**< Return the upper 32 bits of event time */
+    unsigned long GetRunTime0() const {return runTime0;} /**< Return the lower bits of run time */
+    unsigned long GetRunTime1() const {return runTime1;} /**< Return the middle bits of run time */
+    unsigned long GetRunTime2() const {return runTime2;} /**< Return the higher bits of run time */
+    bool IsPileup() const { return pileupBit; }
+    bool IsSaturated() const { return saturatedBit; } /**< Return whether the trace is saturated */
     const Identifier& GetChanID() const; /**< Get the channel identifier */
-    int GetID() const;                   /**< Get the channel id defined as
-					    pixie module # * 16 + channel number */
+    int GetID() const; /**< Get the channel id defined as pixie module # * 16 + channel number */
     unsigned long GetQdcValue(int i) const; /**< Get an onboard QDC value */
 
     ChanEvent();

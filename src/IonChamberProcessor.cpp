@@ -29,7 +29,6 @@ namespace dammIds
     const int D_ENERGYSUM     = 0;
     const int D_ENERGYTHREE_GROUPX = 10; // + starting det
     const int D_ENERGYTWO_GROUPX   = 20; // + starting det
-    
     const int D_DTIME_DETX    = 30; // + detector num
     const int D_RATE_DETX     = 40; // + detector num
     // 2d spectra
@@ -44,30 +43,27 @@ IonChamberProcessor::IonChamberProcessor() : EventProcessor(OFFSET, RANGE)
     associatedTypes.insert("ion_chamber"); // associate with the scint type
 
     for (size_t i=0; i < noDets; i++) {
-      lastTime[i] = -1;
-      //     timeDiffs.clear();
-      timeDiffs[i].clear();
+        lastTime[i] = -1;
+        timeDiffs[i].clear();
     }
 }
 
 void IonChamberProcessor::DeclarePlots(void)
 {
-  DeclareHistogram1D(D_ENERGYSUM, SE, "ion chamber energy");
+    /*DeclareHistogram1D(D_ENERGYSUM, SE, "ion chamber energy");
 
-  for (size_t i=0; i < noDets - 2; i++) {
-    DeclareHistogram1D(D_ENERGYTHREE_GROUPX + i, SE, "ion chamber 3sum");
-  }
-  for (size_t i=0; i < noDets - 1; i++) {
-    DeclareHistogram1D(D_ENERGYTWO_GROUPX + i, SE, "ion chamber 2sum");
-  }
-  for (size_t i=0; i < noDets; i++) {
-    DeclareHistogram1D(D_DTIME_DETX + i, SE, "dtime for det i, 100 ns");
-    DeclareHistogram1D(D_RATE_DETX + i, SE, "calc rate for det i, Hz");
-    DeclareHistogram2D(DD_ESUM__ENERGY_DETX + i, 
-		       SA, SA, "ion seg i v sum");
-    DeclareHistogram2D(DD_EBACK__ENERGY_DETX + i,
-		       SA, SA, "ion seg i v ion 234");
-  }
+    for (size_t i=0; i < noDets - 2; i++) {
+      DeclareHistogram1D(D_ENERGYTHREE_GROUPX + i, SE, "ion chamber 3sum");
+    }
+    for (size_t i=0; i < noDets - 1; i++) {
+       DeclareHistogram1D(D_ENERGYTWO_GROUPX + i, SE, "ion chamber 2sum");
+    }
+    for (size_t i=0; i < noDets; i++) {
+        DeclareHistogram1D(D_DTIME_DETX + i, SE, "dtime for det i, 100 ns");
+        DeclareHistogram1D(D_RATE_DETX + i, SE, "calc rate for det i, Hz");
+        DeclareHistogram2D(DD_ESUM__ENERGY_DETX + i, SA, SA, "ion seg i v sum");
+        DeclareHistogram2D(DD_EBACK__ENERGY_DETX + i,  SA, SA, "ion seg i v ion 234");
+    }*/
 }
 
 bool IonChamberProcessor::Process(RawEvent &event)
@@ -85,89 +81,86 @@ bool IonChamberProcessor::Process(RawEvent &event)
 
     data.mult = icEvents.size();
 
-    for (vector<ChanEvent*>::const_iterator it = icEvents.begin();
-	 it != icEvents.end(); it++) {
-      // make the energy sum      
-      size_t loc = (*it)->GetChanID().GetLocation();
-      double ecal = (*it)->GetCalEnergy();
+    for (vector<ChanEvent*>::const_iterator it = icEvents.begin(); it != icEvents.end(); it++) {
+        // make the energy sum      
+        size_t loc = (*it)->GetChanID().GetLocation();
+        double ecal = (*it)->GetCalEnergy();
 
-      data.raw[loc] += (*it)->GetEnergy();
-      data.cal[loc] += ecal;
+        data.raw[loc] += (*it)->GetEnergy();
+        data.cal[loc] += ecal;
 
-      esum += ecal;
-      etwo[loc] += ecal;
-      ethree[loc] += ecal;
-      if (loc >= 1) {
-	etwo[loc-1] += ecal;
-	ethree[loc-1] += ecal;
-      }
-      if (loc >= 2) {
-	ethree[loc-2] += ecal;
-      }
+        esum += ecal;
+        etwo[loc] += ecal;
+        ethree[loc] += ecal;
+        if (loc >= 1) {
+            etwo[loc-1] += ecal;
+	    ethree[loc-1] += ecal;
+        }
+        if (loc >= 2) {
+	    ethree[loc-2] += ecal;
+        }
     }
     plot(D_ENERGYSUM, esum / 6);
     for (size_t i=0; i < noDets - 1; i++) {
-      plot(D_ENERGYTWO_GROUPX + i, etwo[i] / 2);
+        plot(D_ENERGYTWO_GROUPX + i, etwo[i] / 2);
     }
     for (size_t i=0; i < noDets - 2; i++) {
-      plot(D_ENERGYTHREE_GROUPX + i, ethree[i] / 3);
+        plot(D_ENERGYTHREE_GROUPX + i, ethree[i] / 3);
     }
 
     // once more to do the plots
-    for (vector<ChanEvent*>::const_iterator it = icEvents.begin();
-	 it != icEvents.end(); it++) {
-      size_t loc = (*it)->GetChanID().GetLocation();
-      double ecal = (*it)->GetCalEnergy();
-      if (loc > noDets) {
-	// unexpected location
-	continue;
-      }
+    for (vector<ChanEvent*>::const_iterator it = icEvents.begin(); it != icEvents.end(); it++) {
+        size_t loc = (*it)->GetChanID().GetLocation();
+        double ecal = (*it)->GetCalEnergy();
+        if (loc > noDets) {
+	    // unexpected location
+	    continue;
+        }
 
-      // messy for right now
-      if (icEvents.size() == noDets) {
-	plot(DD_ESUM__ENERGY_DETX + loc, esum / 6, ecal);
-	switch(loc) {
-	case 0:
-	case 1:
-	case 5:
-	  plot(DD_EBACK__ENERGY_DETX + loc, ethree[2]/ 3, ecal);
-	  break;
-	case 2:
-	case 3:
-	case 4:
-	  plot(DD_EBACK__ENERGY_DETX + loc, (ethree[2] - ecal)/2, ecal);
-	  break;
-	}
+        // messy for right now
+        if (icEvents.size() == noDets) {
+	    plot(DD_ESUM__ENERGY_DETX + loc, esum / 6, ecal);
+	    switch(loc) {
+	        case 0:
+	        case 1:
+	        case 5:
+	            plot(DD_EBACK__ENERGY_DETX + loc, ethree[2]/ 3, ecal);
+	            break;
+	        case 2:
+	        case 3:
+	        case 4:
+	            plot(DD_EBACK__ENERGY_DETX + loc, (ethree[2] - ecal)/2, ecal);
+	            break;
+            }
 
-      }
-      if (lastTime[loc] != -1) {
-	double dtime = (*it)->GetTime() - lastTime[loc];
-	plot(D_DTIME_DETX + loc, dtime / 10);
+        }
+        if (lastTime[loc] != -1) {
+            double dtime = (*it)->GetTime() - lastTime[loc];
+	    plot(D_DTIME_DETX + loc, dtime / 10);
 	
-	if (dtime > minTime)
-	  timeDiffs[loc].push_back( dtime );
-	if (timeDiffs[loc].size() >= timesToKeep) {
-	  timeDiffs[loc].pop_front();
+	    if (dtime > minTime)
+	        timeDiffs[loc].push_back( dtime );
+	    if (timeDiffs[loc].size() >= timesToKeep) {
+	        timeDiffs[loc].pop_front();
 
-	  // now calculate the rate as the inverse of the mean
-	  //  of the assumed Poissonic distribution
-	  // since there is some dead time only take times greater than a
-	  //  specific safe value (thanks to memorylessness of distribution)
+	        // now calculate the rate as the inverse of the mean
+	        //  of the assumed Poissonic distribution
+	        // since there is some dead time only take times greater than a
+	        //  specific safe value (thanks to memorylessness of distribution)
 	  
-	  double sum = 0.;
-	  int count = 0;
+	        double sum = 0.;
+	        int count = 0;
 
-	  for (deque<double>::const_iterator dit = timeDiffs[loc].begin();
-	       dit < timeDiffs[loc].end(); dit++) {
-	    sum += *dit - minTime;
-	    count++;
-	  }
-	  double mean = double(sum / count);
-	  plot(D_RATE_DETX + loc, (double)(1 / mean / clockInSeconds));
-	}
+	        for (deque<double>::const_iterator dit = timeDiffs[loc].begin(); dit < timeDiffs[loc].end(); dit++) {
+	            sum += *dit - minTime;
+	            count++;
+	        }
+	        double mean = double(sum / count);
+	        plot(D_RATE_DETX + loc, (double)(1 / mean / clockInSeconds));
+            }
 
-      } 
-      lastTime[loc] = (*it)->GetTime();      
+        } 
+        lastTime[loc] = (*it)->GetTime();      
     }
     EndProcess(); // update the processing time
     return true;
@@ -175,27 +168,51 @@ bool IonChamberProcessor::Process(RawEvent &event)
 
 void IonChamberProcessor::Data::Clear(void)
 {
-  for (size_t i=0; i < noDets; i++) {
-    raw[i] = cal[i] = 0;
-  }
-  mult = 0;
+    for (size_t i=0; i < noDets; i++) {
+        raw[i] = cal[i] = 0;
+    }
+    mult = 0;
 }
 
-#ifdef useroot
-/*bool IonChamberProcessor::AddBranch(TTree *tree)
-{
-  if (tree) {
-    TBranch *branch = tree->Branch(name.c_str(), &data,
-				   "raw[6]/D:cal[6]:mult/I");
-    return (branch != NULL);
-  }  
-  return false;
+// Initialize for root output
+bool IonChamberProcessor::InitRoot(){
+	std::cout << " IonChamberProcessor: Initializing\n";
+	if(outputInit){
+		std::cout << " IonChamberProcessor: Warning! Output already initialized\n";
+		return false;
+	}
+	
+	// Create the branch
+	local_tree = new TTree(name.c_str(),name.c_str());
+	local_branch = local_tree->Branch("IonChamber", &structure, "");
+	outputInit = true;
+	return true;
 }
 
-void IonChamberProcessor::FillBranch(void)
-{
-  if (!HasEvent())
-    data.Clear();
-}*/
+// Fill the root variables with processed data
+bool IonChamberProcessor::PackRoot(){
+	if(!outputInit){ return false; }
+	// Integers
+	//structure.location = location_;
 
-#endif // USEROOT
+        local_tree->Fill();
+        return true;
+}
+
+// Write the local tree to file
+// Should only be called once per execution
+bool IonChamberProcessor::WriteRoot(TFile* masterFile){
+	if(!masterFile || !local_tree){ return false; }
+	masterFile->cd();
+	local_tree->Write();
+	std::cout << local_tree->GetEntries() << " entries\n";
+	return true;
+}
+
+bool IonChamberProcessor::InitDamm(){
+	return false;
+}
+
+bool IonChamberProcessor::PackDamm(){
+	return false;
+}
