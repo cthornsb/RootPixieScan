@@ -119,9 +119,9 @@ bool LiquidProcessor::Process(RawEvent &event) {
                 const int resOffset = 2000;
                 if(start.dataValid) {
                     // This calls Mike Febbraro's code from "PulseAnalysis.h"
-                    // Probably slow, we should only call when we have a valid start
-                    Analysis->Baseline_restore(liquid.trace, 20, 4);
-                    if(Analysis->PSD_Integration(liquid.trace, 20, 60, 0, 4, L, S) == 0){ goodCount++; }
+                    // Probably slow, we should only call when we have a valid start. CRT
+                    Analysis->Baseline_restore(liquid.trace, 1, 3);
+                    if(Analysis->PSD_Integration(liquid.trace, 10, 50, 1, L, S)){ goodCount++; }
                     else{ badCount++; }
                 
                     double tofOffset;
@@ -160,16 +160,16 @@ bool LiquidProcessor::InitRoot(){
 	
 	// Create the branch
 	local_tree = new TTree(name.c_str(),name.c_str());
-	local_branch = local_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:loc/i");
+	local_branch = local_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i");
 	outputInit = true;
 	return true;
 }
 
 // Fill the root variables with processed data
-bool LiquidProcessor::PackRoot(unsigned int loc_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
+bool LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
 	if(!outputInit){ return false; }
 	// Integers
-	structure.loc = loc_;
+	structure.location = location_;
 	
 	// Doubles
 	structure.TOF = TOF_;
@@ -177,7 +177,6 @@ bool LiquidProcessor::PackRoot(unsigned int loc_, double TOF_, double S_, double
 	structure.L = L_;
 	structure.liquid_tqdc = ltqdc_;
 	structure.start_tqdc = stqdc_;
-	structure.TOF = TOF_;
         local_tree->Fill();
         return true;
 }

@@ -19,7 +19,7 @@ class TFile;
 struct LiquidDataStructure{
     double TOF, S, L;
     double liquid_tqdc, start_tqdc;
-    unsigned int loc;
+    unsigned int location;
 };
 
 class LiquidProcessor : public EventProcessor{
