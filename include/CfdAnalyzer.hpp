@@ -9,14 +9,12 @@
 #include "Trace.hpp"
 #include "TraceAnalyzer.hpp"
 
-class CfdAnalyzer : public TraceAnalyzer,
-		    public TimingInformation
+class CfdAnalyzer : public TraceAnalyzer, public TimingInformation
 {
  public:
     CfdAnalyzer();
-    virtual void DeclarePlots(void) const;
-    virtual void Analyze(Trace &, const std::string &, 
-			 const std::string &);
+    virtual bool InitDamm();
+    virtual void Analyze(Trace &, const std::string &, const std::string &);
     virtual ~CfdAnalyzer() {};
 };
 

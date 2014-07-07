@@ -11,7 +11,7 @@
 */
 
 #ifndef __DETECTORDRIVER_HPP_
-#define __DETECTORDRIVER_HPP_ 1
+#define __DETECTORDRIVER_HPP_
 
 #include <set>
 #include <string>
@@ -67,8 +67,10 @@ class DetectorDriver {
     static DetectorDriver* get();
     vector<Calibration> cal; /**<the calibration vector*/ 
 
+    bool use_root, use_damm;
     Plots histo;
     TFile *masterFile;
+    
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
     }

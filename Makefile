@@ -47,19 +47,18 @@ HHIRF_DIR = /usr/hhirf-intel64
 endif
 
 ifneq ($(LIBS_IN_HHIRF),)
-ACQ2_LIBDIR = $(HHIRF_DIR)
+    ACQ2_LIBDIR = $(HHIRF_DIR)
 else
-ifeq ($(ACQ2_LIBDIR),)
-ifneq ($(ACQ2_DIR),) 
-ACQ2_LIBDIR = $(ACQ2_DIR)
-else
-ACQ2_LIBDIR = /usr/hhirf-intel64
-endif
-endif
+    ifeq ($(ACQ2_LIBDIR),)
+        ifneq ($(ACQ2_DIR),) 
+            ACQ2_LIBDIR = $(ACQ2_DIR)
+        else
+            ACQ2_LIBDIR = /usr/hhirf-intel64
+        endif
+    endif
 endif
 
-LIBS = $(HHIRF_DIR)/scanorlib.a $(HHIRF_DIR)/orphlib.a \
-       $(ACQ2_LIBDIR)/acqlib.a  $(ACQ2_LIBDIR)/ipclib.a
+LIBS = $(HHIRF_DIR)/scanorlib.a $(HHIRF_DIR)/orphlib.a  $(ACQ2_LIBDIR)/acqlib.a  $(ACQ2_LIBDIR)/ipclib.a
 
 OutPutOpt     = -o # keep whitespace after "-o"
 
@@ -188,18 +187,16 @@ VALIDPROCESSORO  = ValidProcessor.o
 VANDLEPROCESSORO = VandleProcessor.o
 
 #ROOT Objects
-#SCINTROOTO       = ScintROOT.o
-#ROOTPROCESSORO   = RootProcessor.o
-#VANDLEROOTO      = VandleROOT.o
+ROOTDICTO = RootDict.o
 
 ifdef REVISIOND
 READBUFFDATAO    = ReadBuffData.RevD.o
 else
-ifdef REVISIONF
-READBUFFDATAO    = ReadBuffData.RevD.o
-else
-READBUFFDATAO    = ReadBuffData.o
-endif
+    ifdef REVISIONF
+        READBUFFDATAO    = ReadBuffData.RevD.o
+    else
+        READBUFFDATAO    = ReadBuffData.o
+    endif
 endif
 
 #----- list of objects
@@ -222,6 +219,9 @@ CXX_OBJS += $(BETAPROCESSORO) $(DSSDPROCESSORO) $(GEPROCESSORO) \
 	$(LOGICPROCESSORO) $(MCPPROCESSORO) $(MTCPROCESSORO) \
 	$(NEUTRONPROCESSORO) $(POSITIONPROCESSORO) $(PULSERPROCESSORO) \
 	$(SSDPROCESSORO) $(VALIDPROCESSORO) $(VANDLEPROCESSORO)
+
+#Root Objects
+CXX_OBJS += $(ROOTDICTO)
 
 ifdef PULSEFIT
 CXX_OBJS += $(FITTINGANALYZERO)
@@ -297,7 +297,7 @@ $(PIXIE): $(FORT_OBJS_W_DIR) $(CXX_OBJS_W_DIR) $(LIBS)
 #----------- remove all objects, core and .so file
 clean:
 	@echo "Cleaning up..."
-	@rm -f $(CXX_OBJDIR)/*.o $(PIXIE) core *~ src/*~ include/*~ scan/*~
+	@rm -f $(FORT_OBJDIR)/*.o $(CXX_OBJDIR)/*.o $(PIXIE) core *~ src/*~ include/*~ scan/*~
 #$(FORT_OBJDIR)/*.o 
 tidy:
 	@echo "Tidying up..."

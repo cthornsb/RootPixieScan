@@ -21,17 +21,19 @@ class Trace;
 
 class TraceAnalyzer {
  private:
-
     // things associated with timing
     tms tmsBegin;             ///< time at which the analyzer began
     double userTime;          ///< user time used by this class
     double systemTime;        ///< system time used by this class
     double clocksPerSecond;   ///< frequency of system clock
+    
+    void _initialize();
 
  protected:
     int level;                ///< the level of analysis to proceed with
     int numTracesAnalyzed;    ///< rownumber for DAMM spectrum 850
     std::string name;         ///< name of the analyzer
+    bool use_root, use_damm;
 
     Plots histo;
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
@@ -46,16 +48,20 @@ class TraceAnalyzer {
 
  public:
     TraceAnalyzer();
-    TraceAnalyzer(int offset, int range);
+    TraceAnalyzer(std::string);
+    TraceAnalyzer(int, int);
+    TraceAnalyzer(int, int, std::string);
     virtual ~TraceAnalyzer();
     
     virtual bool Init(void);
-    virtual void DeclarePlots(void);
+    virtual bool CheckInit();
+    virtual bool InitDamm();
     virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
     void EndAnalyze(Trace &trace);
     void EndAnalyze(void);
     void SetLevel(int i) {level=i;}
-    int  GetLevel() {return level;}
+    int GetLevel() {return level;}
+    std::string GetName(){ return name; }
 };
 
 #endif // __TRACEANALYZER_HPP_

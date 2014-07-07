@@ -9,25 +9,20 @@
 #include <vector>
 
 #include "EventProcessor.hpp"
-
-struct BetaDataStructure{
-    double energy;
-    unsigned int multiplicity;
-};
-
+#include "RootDataStructures.h"
 
 class BetaProcessor : public EventProcessor
 {
 public:
     BetaProcessor();
-    virtual void DeclarePlots(void);
+    virtual bool InitDamm();
+    virtual bool InitRoot();
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual bool InitRoot();
+    virtual void Zero();    
+    virtual bool FillRoot();
     virtual bool WriteRoot(TFile*);
-    bool PackRoot(std::vector<double>&, unsigned int);
-    bool InitDamm();
-    bool PackDamm();
+    void PackRoot(std::vector<double>&, unsigned int);
     
     BetaDataStructure structure;
 };

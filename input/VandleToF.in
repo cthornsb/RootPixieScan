@@ -1,0 +1,16 @@
+#str	name	Plotter
+#str	fname	master.root
+#str	tname	Vandle
+#str	bname	Vandle
+#str	xname	tof
+#str	xtype	double
+#str	yname	location
+#str	ytype	int
+#str	draw	COLZ
+#int	xbins	1000
+#int	ybins	42
+#float	xmin	-1540.27
+#float	xmax	3895.56
+#float	ymin	0
+#float	ymax	41
+#endfile

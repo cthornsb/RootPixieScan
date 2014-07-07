@@ -12,7 +12,7 @@ class WaveformAnalyzer : public TraceAnalyzer, public TimingInformation
 {
  public:
     WaveformAnalyzer(); 
-    virtual void DeclarePlots(void) const;
+    virtual bool InitDamm();
     virtual void Analyze(Trace &, const std::string &, const std::string &);
     virtual ~WaveformAnalyzer() {};
 };

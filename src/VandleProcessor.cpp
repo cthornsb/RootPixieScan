@@ -122,13 +122,18 @@ VandleProcessor::VandleProcessor(const int RP_OFFSET, const int RANGE, int i):
 {
 }
 
-//********** Declare Plots **********
-void VandleProcessor::DeclarePlots(void)
+//********** Damm stuff **********
+bool VandleProcessor::InitDamm()
 {
+    std::cout << " VandleProcessor: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " VandleProcessor: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
     bool hasSmall   = true;
     bool hasBig     = false;
-    bool hasTvandle = false;
-    const unsigned int numSmallEnds = S7;
+    //const unsigned int numSmallEnds = S7;
     const unsigned int numBigEnds   = S7;
 
     //Plots used for debugging
@@ -213,33 +218,6 @@ void VandleProcessor::DeclarePlots(void)
        // DeclareHistogram2D(DD_TOFBARS_VETO+dammIds::BIG_OFFSET, SC, S9, "Bar vs CorTOF - Gamma Veto"); 
     }//if (hasBig)
 
-    if(hasTvandle) {
-	using namespace dammIds::tvandle;
-	DeclareHistogram2D(DD_TQDCBARS+dammIds::TVANDLE_OFFSET, SD, S1,"QDC");
-	DeclareHistogram2D(DD_MAXIMUMBARS+dammIds::TVANDLE_OFFSET, SC, S1, "Max");
-	DeclareHistogram1D(D_TIMEDIFF, SE, "Time Difference");
-	DeclareHistogram2D(DD_PVSP, SE, SE,"Phase vs. Phase");
-	DeclareHistogram2D(DD_MAXRIGHTVSTDIFF, SA, SD,"Max Right vs. Time Diff");
-	DeclareHistogram2D(DD_MAXLEFTVSTDIFF, SA, SD, "Max Left vs. Time Diff");
-	DeclareHistogram2D(DD_MAXLVSTDIFFGATE, SA, SD, "Max Left vs. Time Diff - gated on max right");
-	DeclareHistogram2D(DD_MAXLVSTDIFFAMP, SA, SD, "Max Left vs. Time Diff - amp diff");
-	DeclareHistogram2D(DD_MAXLCORGATE, SA, SD, "Max Left vs. Cor Time Diff");
-	DeclareHistogram2D(DD_QDCVSMAX, SC, SD,"QDC vs Max - Right");
-	DeclareHistogram2D(DD_SNRANDSDEV, S8, S2, "SNR and SDEV R01/L23");
-    }//if(hasTvandle);
-    
-    //Debugging histograms - The titles do not necessarily reflect the contents
-    DeclareHistogram2D(DD_DEBUGGING0, SA, SA, "TOFL vs. TDIFF");
-    DeclareHistogram2D(DD_DEBUGGING1, S9, SD, "TOFR vs. TDIFF");
-    DeclareHistogram2D(DD_DEBUGGING2, SD, SD, "CorTOF vs. TDIFF");
-    // DeclareHistogram2D(DD_DEBUGGING3, S9, SC, "TestTOF vs. TDIFF");
-
-    DeclareHistogram2D(DD_DEBUGGING4, S9, SC, "TOFL vs. QDCRATIO");
-    DeclareHistogram2D(DD_DEBUGGING5, SC, SC, "TOFR vs. QDCRATIO");
-    DeclareHistogram2D(DD_DEBUGGING6, SC, SC, "TOF vs. QDCRATIO");
-    DeclareHistogram2D(DD_DEBUGGING7, SC, SC, "CorTOF vs. QDCRATIO");
-    DeclareHistogram2D(DD_DEBUGGING8, SC, SC, "testTOF vs. QDCRATIO");
-
     //Histograms for the CrossTalk Subroutine
     // DeclareHistogram1D(D_CROSSTALK, SC, "CrossTalk Between Two Bars");
     // DeclareHistogram2D(DD_GATEDTQDCAVEVSTOF, SC, SD, "<E> vs. TOF0 (0.5ns/bin) - Gated");
@@ -247,14 +225,33 @@ void VandleProcessor::DeclarePlots(void)
     // DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
     // DeclareHistogram1D(, SD, "Muons");
     // DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
+    
+    use_damm = true;
+    return true;
 }// Declare Plots
+
+// Initialize for root output
+bool VandleProcessor::InitRoot(){
+    std::cout << " VandleProcessor: Initializing root output\n";
+    if(use_root){
+        std::cout << " VandleProcessor: Warning! Root output already initialized\n";
+        return false;
+    }
+	
+    // Create the branch
+    local_tree = new TTree(name.c_str(),name.c_str());
+    local_branch = local_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i:valid/O");
+
+    use_root = true;
+    return true;
+}
 
 //********** Process **********
 bool VandleProcessor::Process(RawEvent &event) 
 {
     if (!EventProcessor::Process(event)) //start event processing
 	return false;
-    plot(D_PROBLEMS, 30); //DEBUGGING
+    if(use_damm){ plot(D_PROBLEMS, 30); } //DEBUGGING
     if(RetrieveData(event)){
         AnalyzeData(event);
         //CrossTalk();
@@ -285,7 +282,7 @@ bool VandleProcessor::RetrieveData(RawEvent &event)
     startEvents.insert(startEvents.end(), liquidStarts.begin(), liquidStarts.end());
 
     if(smallEvents.empty() && bigEvents.empty() && tvandleEvents.empty()) {
-        plot(D_PROBLEMS, 27); //DEBUGGING
+        if(use_damm){ plot(D_PROBLEMS, 27); } //DEBUGGING
 	return(false);
     }
      
@@ -299,7 +296,7 @@ bool VandleProcessor::RetrieveData(RawEvent &event)
     BuildBars(smallMap, "small", barMap); // Turned on! CRT
     
     if(barMap.empty() && tvandleMap.empty()) {
-	plot(D_PROBLEMS, 25); //DEBUGGING
+	if(use_damm){ plot(D_PROBLEMS, 25); } //DEBUGGING
 	return(false);
     }
 
@@ -336,9 +333,11 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	
 	double timeDiff = bar.timeDiff;
 
-	plot(DD_DEBUGGING0, bar.qdcPos*resMult+resOffset, timeDiff*resMult+resOffset);
-	plot(DD_TIMEDIFFBARS+idOffset, timeDiff*resMult+resOffset, barLoc);
-	plot(DD_TQDCAVEVSTDIFF+idOffset,  timeDiff*resMult+resOffset, bar.qdc);
+        if(use_damm){
+	    plot(DD_DEBUGGING0, bar.qdcPos*resMult+resOffset, timeDiff*resMult+resOffset);
+	    plot(DD_TIMEDIFFBARS+idOffset, timeDiff*resMult+resOffset, barLoc);
+	    plot(DD_TQDCAVEVSTDIFF+idOffset,  timeDiff*resMult+resOffset, bar.qdc);
+	}
 	WalkBetaVandle(startMap, bar);
 
 	//Loop over the starts in the event
@@ -377,59 +376,57 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    bar.corTimeOfFlight.insert(make_pair(startLoc, corTOF));
 	    bar.energy.insert(make_pair(startLoc, energy));
 	    
-	    if(corTOF >= 5) // cut out the gamma prompt
-		plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
-	    plot(DD_TOFBARS+idOffset, TOF*resMult+resOffset, barPlusStartLoc);
-            plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
-	    plot(DD_MAXRVSTOF+idOffset, TOF*resMult+resOffset, bar.rMaxVal);
-	    plot(DD_MAXLVSTOF+idOffset, TOF*resMult+resOffset, bar.lMaxVal);
-	    plot(DD_TQDCAVEVSTOF+idOffset, TOF*resMult+resOffset, bar.qdc);
+	    if(use_damm){
+	        if(corTOF >= 5) // cut out the gamma prompt
+		    plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
+	        plot(DD_TOFBARS+idOffset, TOF*resMult+resOffset, barPlusStartLoc);
+                plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
+	        plot(DD_MAXRVSTOF+idOffset, TOF*resMult+resOffset, bar.rMaxVal);
+	        plot(DD_MAXLVSTOF+idOffset, TOF*resMult+resOffset, bar.lMaxVal);
+	        plot(DD_TQDCAVEVSTOF+idOffset, TOF*resMult+resOffset, bar.qdc);
 
-	    plot(DD_CORTOFBARS, corTOF*resMult+resOffset, barPlusStartLoc); 
-	    plot(DD_CORTOFVSTDIFF+idOffset, timeDiff*resMult + resOffset, corTOF*resMult+resOffset);
-	    plot(DD_MAXRVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.rMaxVal);
-	    plot(DD_MAXLVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.lMaxVal);
-	    plot(DD_TQDCAVEVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.qdc);
+	        plot(DD_CORTOFBARS, corTOF*resMult+resOffset, barPlusStartLoc); 
+	        plot(DD_CORTOFVSTDIFF+idOffset, timeDiff*resMult + resOffset, corTOF*resMult+resOffset);
+	        plot(DD_MAXRVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.rMaxVal);
+	        plot(DD_MAXLVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.lMaxVal);
+	        plot(DD_TQDCAVEVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.qdc);
 	    
-	    if(startLoc == 0) {
-		plot(DD_MAXSTART0VSTOF+idOffset, 
-		     TOF*resMult+resOffset, (*itStart).second.maxval);
-		plot(DD_MAXSTART0VSCORTOF+idOffset, 
-		     corTOF*resMult+resOffset, (*itStart).second.maxval);
-	    } else if (startLoc == 1) {
- 	        plot(DD_MAXSTART1VSCORTOF+idOffset, 
-		     corTOF*resMult+resOffset, (*itStart).second.maxval);
-		plot(DD_MAXSTART1VSCORTOF+idOffset, 
-		     corTOF*resMult+resOffset, (*itStart).second.maxval);
-	    }
+	        if(startLoc == 0) {
+                    plot(DD_MAXSTART0VSTOF+idOffset, TOF*resMult+resOffset, (*itStart).second.maxval);
+                    plot(DD_MAXSTART0VSCORTOF+idOffset, corTOF*resMult+resOffset, (*itStart).second.maxval);
+                } else if (startLoc == 1) {
+                    plot(DD_MAXSTART1VSCORTOF+idOffset, corTOF*resMult+resOffset, (*itStart).second.maxval);
+                    plot(DD_MAXSTART1VSCORTOF+idOffset, corTOF*resMult+resOffset, (*itStart).second.maxval);
+                }
+            }
 
 	    //Now we will do some Ge related stuff
 	    static const DetectorSummary *geSummary = rawev.GetSummary("ge");
 	    
-	    if (geSummary) {
+	    if (geSummary && use_damm) {
 	        if (geSummary->GetMult() > 0) {
 		    const vector<ChanEvent *> &geList = geSummary->GetList();
-		    for (vector<ChanEvent *>::const_iterator itGe = geList.begin();
-			 itGe != geList.end(); itGe++) {
+		    for (vector<ChanEvent *>::const_iterator itGe = geList.begin(); itGe != geList.end(); itGe++) {
 		        double calEnergy = (*itGe)->GetCalEnergy();
 			plot(DD_GAMMAENERGYVSTOF+idOffset, TOF, calEnergy);
 		    }   
 		} else {
 		    // vetoed stuff
-		    plot(DD_TQDCAVEVSTOF_VETO+idOffset, TOF, 
-			 bar.qdc);
+		    plot(DD_TQDCAVEVSTOF_VETO+idOffset, TOF, bar.qdc);
 		    plot(DD_TOFBARS_VETO+idOffset, TOF, barPlusStartLoc);
 		}
 	    } 
 	} // for(TimingDataMap::iterator itStart
     } //(BarMap::iterator itBar
 
-    unsigned int multiplicity = 1;
-    for(VMLMap::const_iterator itTempA = vmlMap.begin(); itTempA != vmlMap.end(); itTempA++) {
-        //---loops over vml map, creating root structure         
-        PackRoot((*itTempA).first, &(*itTempA).second, multiplicity); //--- filled from barMap
-        multiplicity++;
-    } //vmlMAP
+    if(use_root){
+        unsigned int multiplicity = 1;
+        for(VMLMap::const_iterator itTempA = vmlMap.begin(); itTempA != vmlMap.end(); itTempA++) {
+            //---loops over vml map, creating root structure         
+            PackRoot((*itTempA).first, &(*itTempA).second, multiplicity); //--- filled from barMap
+            multiplicity++;
+        } // over vmlMAP
+    } // if use_root
 } //void VandleProcessor::AnalyzeData
 
 
@@ -442,19 +439,21 @@ void VandleProcessor::BuildBars(const TimingDataMap &endMap, const string &type,
 	TimingDataMap::const_iterator itEndB = itEndA;
 	itEndB++;
 	
-	if(itEndB == endMap.end()) { //Handle some shit
-	  plot(D_PROBLEMS, 0);  //--- is it the end?
-	  break;
-	}
-	if((*itEndA).first.first != (*itEndB).first.first) {
-	  itEndA = itEndB;
-	  plot(D_PROBLEMS, 2); //--- are the 2 events at the same location?
-	  continue;
-	}
-	if(!(*itEndA).second.dataValid || !(*itEndB).second.dataValid){
-	  plot(D_PROBLEMS, 4);
-	  itEndA = itEndB; //--- are they both valid events
-	  continue;
+	if(use_damm){
+	    if(itEndB == endMap.end()) {
+	      plot(D_PROBLEMS, 0);  //--- is it the end?
+	      break;
+	    }
+	    if((*itEndA).first.first != (*itEndB).first.first) {
+	      itEndA = itEndB;
+	      plot(D_PROBLEMS, 2); //--- are the 2 events at the same location?
+	      continue;
+	    }
+	    if(!(*itEndA).second.dataValid || !(*itEndB).second.dataValid){
+	      plot(D_PROBLEMS, 4);
+	      itEndA = itEndB; //--- are they both valid events
+	      continue;
+	    }
 	}
 	
 	IdentKey barKey((*itEndA).first.first, type); //--- makes first part of pair of barKey same as endMap
@@ -526,7 +525,7 @@ void VandleProcessor::CrossTalk(void)
     const int resMult = 2; //set resolution of histograms
     const int resOffset = 200; // set offset of histograms
     
-    if(itBars != crossTalk.end())
+    if(itBars != crossTalk.end() && use_damm)
 	plot(D_CROSSTALK, (*itBars).second * resMult + resOffset);
     
     //Carbon Recoil Stuff
@@ -555,29 +554,21 @@ void VandleProcessor::CrossTalk(void)
     //bool onBar = (tdiffA + tdiffB <= 0.75 && tdiffA + tdiffB >= 0.25);
     bool muon = (qdcA > 7500 && qdcB > 7500);
     
-    double muonTOF = 
-	(*itBarA).second.timeAve - (*itBarB).second.timeAve;
+    double muonTOF = (*itBarA).second.timeAve - (*itBarB).second.timeAve;
 
-    plot(3950, tdiffA*resMult+100, tdiffB*resMult+100);
+    if(use_damm){ 
+        plot(3950, tdiffA*resMult+100, tdiffB*resMult+100);
     
-    if(muon){
-	plot(3951, tdiffA*resMult+100, tdiffB*resMult+100);
-	plot(3952, muonTOF*resMult*10 + resOffset);
+        if(muon){
+	    plot(3951, tdiffA*resMult+100, tdiffB*resMult+100);
+	    plot(3952, muonTOF*resMult*10 + resOffset);
+        }
     }
-
-//     plot(DD_TOFBARBVSBARA, tofA*resMult+resOffset, 
-//  	 tofB*resMult+resOffset);
-    
-//     if((tofB > tofA) && (tofB < (tofA+150))) {
-//  	plot(DD_GATEDTQDCAVEVSTOF, tofA*resMult+resOffset, 
-//  	     (*itBarA).second.qdc);
-//     }
 } //void VandleProcessor::CrossTalk
 
 
 //********** FillMap **********
-void VandleProcessor::FillMap(const vector<ChanEvent*> &eventList, 
-			      const string type, TimingDataMap &eventMap) //--- maps filled by vectors with events stored in them
+void VandleProcessor::FillMap(const vector<ChanEvent*> &eventList, const string type, TimingDataMap &eventMap) //--- maps filled by vectors with events stored in them
 {
     unsigned int OFFSET = 0;
     if(type == "big")
@@ -585,26 +576,25 @@ void VandleProcessor::FillMap(const vector<ChanEvent*> &eventList,
     else if(type == "tvandle")
 	OFFSET = dammIds::TVANDLE_OFFSET;
 
-    for(vector<ChanEvent*>::const_iterator it = eventList.begin(); //--- const_iterator is random access iterator (serves as a pointer), called it, that points to begining of eventList
-	it != eventList.end(); it++) { //--- there is an event at eventList.begin() but not at eventList.end()
+    for(vector<ChanEvent*>::const_iterator it = eventList.begin(); it != eventList.end(); it++) { //--- there is an event at eventList.begin() but not at eventList.end()
 	unsigned int location = (*it)->GetChanID().GetLocation(); //--- from the vector eventList
 	string subType = (*it)->GetChanID().GetSubtype();
-	
 	IdentKey key(location, subType); //--- the key is the location and subtype of the eventList
 	
-	TimingDataMap::iterator itTemp = 
-	    eventMap.insert(make_pair(key, TimingData(*it))).first; //--- inserts into map the key and value, which in turn are a pair, first refers to map::insert
+	TimingDataMap::iterator itTemp = eventMap.insert(make_pair(key, TimingData(*it))).first; //--- inserts into map the key and value, which in turn are a pair, first refers to map::insert
 	
 	if(type == "start")
 	    continue;
     	
-	if((*itTemp).second.dataValid && (*itTemp).first.second == "right") {
-	    plot(DD_TQDCBARS + OFFSET, (*itTemp).second.tqdc, location*2); //--- 0 + 30/70 (seems to be 30)
-	    plot(DD_MAXIMUMBARS + OFFSET, (*itTemp).second.maxval, location*2); //--- 1 + 30/70 (seems to be 30)
-	} 
-	else if((*itTemp).second.dataValid && (*itTemp).first.second == "left") {
-	    plot(DD_TQDCBARS + OFFSET, (*itTemp).second.tqdc, location*2+1); //--- 0 + 30/70 (seems to be 30)
-	    plot(DD_MAXIMUMBARS + OFFSET, (*itTemp).second.maxval, location*2+1); //--- 1 + 30/70 (seems to be 30)
+    	if(use_damm){
+	    if((*itTemp).second.dataValid && (*itTemp).first.second == "right") {
+	        plot(DD_TQDCBARS + OFFSET, (*itTemp).second.tqdc, location*2); //--- 0 + 30/70 (seems to be 30)
+	        plot(DD_MAXIMUMBARS + OFFSET, (*itTemp).second.maxval, location*2); //--- 1 + 30/70 (seems to be 30)
+	    } 
+	    else if((*itTemp).second.dataValid && (*itTemp).first.second == "left") {
+	        plot(DD_TQDCBARS + OFFSET, (*itTemp).second.tqdc, location*2+1); //--- 0 + 30/70 (seems to be 30)
+	        plot(DD_MAXIMUMBARS + OFFSET, (*itTemp).second.maxval, location*2+1); //--- 1 + 30/70 (seems to be 30)
+	    }
 	}
     }//for(vector<chanEvent
 }
@@ -613,6 +603,7 @@ void VandleProcessor::FillMap(const vector<ChanEvent*> &eventList,
 void VandleProcessor::Tvandle(void) 
 {
     //Needs cleaned heavily!!
+    //Method is never called, I'm not going to clean it. CRT
     using namespace dammIds::tvandle;
     TimingData right = (*tvandleMap.find(make_pair(0,"right"))).second;
     TimingData left  = (*tvandleMap.find(make_pair(0,"left"))).second;
@@ -682,24 +673,16 @@ void VandleProcessor::WalkBetaVandle(const TimingInformation::TimingDataMap &bet
     }
 }
 
-// Initialize for root output
-bool VandleProcessor::InitRoot(){
-	std::cout << " VandleProcessor: Initializing\n";
-	if(outputInit){
-		std::cout << " VandleProcessor: Warning! Output already initialized\n";
-		return false;
-	}
-	
-	// Create the branch
-	local_tree = new TTree(name.c_str(),name.c_str());
-	local_branch = local_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i");
-	outputInit = true;
-	return true;
+// "Zero" the root structure
+void VandleProcessor::Zero(){
+	structure.tof = 0.0; structure.lqdc = 0.0; structure.rqdc = 0.0;
+	structure.tsLow = 0.0; structure.tsHigh = 0.0; structure.lMaxVal = 0.0;
+	structure.rMaxVal = 0.0; structure.qdc = 0.0; structure.energy = 0.0;
+	structure.location = 0; structure.multiplicity = 0; structure.valid = false;
 }
 
 // Fill the root variables with processed data
-bool VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_data, unsigned int multiplicity_){
-	if(!outputInit){ return false; }
+void VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_data, unsigned int multiplicity_){
 	// Integers
 	structure.location = location_;
 	structure.multiplicity = multiplicity_;
@@ -714,8 +697,17 @@ bool VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_da
         structure.rMaxVal = current_data->rMaxVal;
         structure.qdc = current_data->qdc;
         structure.energy = current_data->energy;
-        local_tree->Fill();
-        return true;
+        
+        // Bools
+        structure.valid = true;
+}
+
+// Fill the local tree with processed data (to be called from detector driver)
+bool VandleProcessor::FillRoot(){
+	if(!use_root){ return false; }
+	local_tree->Fill();
+	this->Zero();
+	return true;
 }
 
 // Write the local tree to file
@@ -726,12 +718,4 @@ bool VandleProcessor::WriteRoot(TFile* masterFile){
 	local_tree->Write();
 	std::cout << local_tree->GetEntries() << " entries\n";
 	return true;
-}
-
-bool VandleProcessor::InitDamm(){
-	return false;
-}
-
-bool VandleProcessor::PackDamm(){
-	return false;
 }

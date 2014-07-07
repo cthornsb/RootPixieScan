@@ -39,8 +39,14 @@ LogicProcessor::LogicProcessor(void) :
     plotSize = SA;
 }
 
-void LogicProcessor::DeclarePlots(void)
+bool LogicProcessor::InitDamm()
 {
+    std::cout << " LogicProcessor: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " LogicProcessor: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
     const int counterBins = S4;
     const int timeBins = SC;
 
@@ -57,6 +63,26 @@ void LogicProcessor::DeclarePlots(void)
     for (int i=1; i < MAX_LOGIC; i++) {
 	DeclareHistogram2D(DD_RUNTIME_LOGIC+i, plotSize, plotSize, "runtime logic [1ms]");
     }
+    
+    use_damm = true;
+    return true;
+}
+
+// Initialize for root output
+bool LogicProcessor::InitRoot(){
+    std::cout << " LogicProcessor: Initializing root output\n";
+    if(use_root){
+        std::cout << " LogicProcessor: Warning! Root output already initialized\n";
+        return false;
+    }
+	
+    // Create the branch
+    local_tree = new TTree(name.c_str(),name.c_str());
+    //local_branch = local_tree->Branch("Logic", &structure, "tdiff/D:location/i:start/O");
+    local_branch = local_tree->Branch("Runtime", &structure, "energy/D:valid/O");
+ 
+    use_root = true;
+    return true;
 }
 
 bool LogicProcessor::Process(RawEvent &event)
@@ -85,7 +111,7 @@ void LogicProcessor::BasicProcessing(RawEvent &event) {
 	double timediff;
 
 	if(subtype == "start") {
-	    if (!isnan(lastStartTime.at(loc))) {
+	    if (!isnan(lastStartTime.at(loc)) && use_damm) {
 	        timediff = time - lastStartTime.at(loc);
 	        //PackRoot(timediff, loc, true);
 		plot(D_TDIFF_STARTX + loc, timediff / logicPlotResolution);
@@ -97,9 +123,9 @@ void LogicProcessor::BasicProcessing(RawEvent &event) {
 	    logicStatus.at(loc) = true;
 
 	    startCount.at(loc)++;
-	    plot(D_COUNTER_START, loc);
+	    if(use_damm){ plot(D_COUNTER_START, loc); }
 	} else if (subtype == "stop") {
-  	    if (!isnan(lastStopTime.at(loc))) {
+  	    if (!isnan(lastStopTime.at(loc)) && use_damm) {
 		timediff = time - lastStopTime.at(loc);
 		//PackRoot(timediff, loc, false);
 		plot(D_TDIFF_STOPX + loc, timediff / logicPlotResolution);
@@ -114,7 +140,7 @@ void LogicProcessor::BasicProcessing(RawEvent &event) {
 	    logicStatus.at(loc) = false;
 
 	    stopCount.at(loc)++;
-	    plot(D_COUNTER_STOP, loc);	  
+	    if(use_damm){ plot(D_COUNTER_STOP, loc); }
 	}
     }
 }
@@ -148,54 +174,43 @@ void LogicProcessor::TriggerProcessing(RawEvent &event) {
 	startTimeBin = max(0, startTimeBin - firstTimeBin);
 	timeBin -= firstTimeBin;
         
-	for (int bin=startTimeBin; bin < timeBin; bin++) {
-            int row = bin / plotSize;
-            int col = bin % plotSize;
-            plot(DD_RUNTIME_LOGIC, col, row, loc + 1); // add one since first logic location might be 0
-            plot(DD_RUNTIME_LOGIC + loc, col, row, 1);
+        if(use_damm){ 
+	    for (int bin=startTimeBin; bin < timeBin; bin++) {
+                int row = bin / plotSize;
+                int col = bin % plotSize;
+                plot(DD_RUNTIME_LOGIC, col, row, loc + 1); // add one since first logic location might be 0
+                plot(DD_RUNTIME_LOGIC + loc, col, row, 1);
+	    }
 	}
     }
     for (vector<ChanEvent*>::const_iterator it = triggers.begin(); it != triggers.end(); it++) {
         int timeBin = int((*it)->GetTime() / logicPlotResolution);
         timeBin -= firstTimeBin;
-        PackRoot((*it)->GetEnergy());
+        if(use_root){ PackRoot((*it)->GetEnergy()); }
         if (timeBin >= maxBin || timeBin < 0)
             continue;
         
-        int row = timeBin / plotSize;
-        int col = timeBin % plotSize;
+        if(use_damm){
+            int row = timeBin / plotSize;
+            int col = timeBin % plotSize;
         
-        std::cout << "here2\n";
-        plot(DD_RUNTIME_LOGIC, col, row, 20);
-        for (int i=1; i < MAX_LOGIC; i++) {
-            plot(DD_RUNTIME_LOGIC + i, col, row, 5);
+            plot(DD_RUNTIME_LOGIC, col, row, 20);
+            for (int i=1; i < MAX_LOGIC; i++) {
+                plot(DD_RUNTIME_LOGIC + i, col, row, 5);
+            }
         }
     }
 }
 
-// Initialize for root output
-bool LogicProcessor::InitRoot(){
-	std::cout << " LogicProcessor: Initializing\n";
-	if(outputInit){
-		std::cout << " LogicProcessor: Warning! Output already initialized\n";
-		return false;
-	}
-	
-	// Create the branch
-	local_tree = new TTree(name.c_str(),name.c_str());
-	//local_branch = local_tree->Branch("Logic", &structure, "tdiff/D:location/i:start/O");
-	local_branch = local_tree->Branch("Runtime", &structure, "energy/D");
-	outputInit = true;
-	return true;
+// "Zero" the root structure
+void LogicProcessor::Zero(){
+	structure.energy = 0.0; structure.valid = false;
 }
 
 // Fill the root variables with processed data
-bool LogicProcessor::PackRoot(double energy_){
-	if(!outputInit){ return false; }
+void LogicProcessor::PackRoot(double energy_){
 	structure.energy = energy_;
-
-        local_tree->Fill();
-        return true;
+	structure.valid = true;
 }
 /*bool LogicProcessor::PackRoot(double tdiff_, unsigned int location_, bool is_start_){
 	if(!outputInit){ return false; }
@@ -207,6 +222,14 @@ bool LogicProcessor::PackRoot(double energy_){
         return true;
 }*/
 
+// Fill the local tree with processed data (to be called from detector driver)
+bool LogicProcessor::FillRoot(){
+	if(!use_root){ return false; }
+	local_tree->Fill();
+	this->Zero();
+	return true;
+}
+
 // Write the local tree to file
 // Should only be called once per execution
 bool LogicProcessor::WriteRoot(TFile* masterFile){
@@ -215,12 +238,4 @@ bool LogicProcessor::WriteRoot(TFile* masterFile){
 	local_tree->Write();
 	std::cout << local_tree->GetEntries() << " entries\n";
 	return true;
-}
-
-bool LogicProcessor::InitDamm(){
-	return false;
-}
-
-bool LogicProcessor::PackDamm(){
-	return false;
 }

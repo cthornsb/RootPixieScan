@@ -6,33 +6,20 @@
 #ifndef __LIQUIDPROCESSOR_HPP_
 #define __LIQUIDPROCESSOR_HPP_
 
-/*#include "EventProcessor.hpp"
-#include "Trace.hpp"
-
-#include "TFile.h"
-#include "TTree.h"*/
-
 #include "EventProcessor.hpp"
-
-class TFile;
-
-struct LiquidDataStructure{
-    double TOF, S, L;
-    double liquid_tqdc, start_tqdc;
-    unsigned int location;
-};
+#include "RootDataStructures.h"
 
 class LiquidProcessor : public EventProcessor{
  public:
     LiquidProcessor(); // no virtual c'tors
-    virtual void DeclarePlots(void);
+    virtual bool InitDamm();
+    virtual bool InitRoot();
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual bool InitRoot();
+    virtual void Zero();
+    virtual bool FillRoot();
     virtual bool WriteRoot(TFile*);
-    bool PackRoot(unsigned int, double, double, double, double, double);
-    bool InitDamm();
-    bool PackDamm();
+    void PackRoot(unsigned int, double, double, double, double, double);
     
     LiquidDataStructure structure;
        

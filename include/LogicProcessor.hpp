@@ -9,16 +9,7 @@
 #include <vector>
 
 #include "EventProcessor.hpp"
-
-struct LogicDataStructure{
-    double tdiff;
-    unsigned int location;
-    bool is_start;
-};
-
-struct RuntimeDataStructure{
-    double energy;
-};
+#include "RootDataStructures.h"
 
 class LogicProcessor : public EventProcessor {
 private:
@@ -28,13 +19,14 @@ private:
 protected:
     std::vector<double> lastStartTime; //< time of last leading edge
     std::vector<double> lastStopTime;  //< time of last trailing edge
-    std::vector<bool>   logicStatus;   //< current level of the logic signal
+    std::vector<bool> logicStatus;   //< current level of the logic signal
 
     std::vector<unsigned long> stopCount;  //< number of stops received
     std::vector<unsigned long> startCount; //< number of starts received
  public:
     LogicProcessor();
-    virtual void DeclarePlots(void);
+    virtual bool InitDamm();
+    virtual bool InitRoot();
     virtual bool Process(RawEvent &event);
     virtual bool LogicStatus(size_t loc) const {
       return logicStatus.at(loc);
@@ -51,12 +43,11 @@ protected:
     double TimeOn(size_t loc, double t) const {
 	return (LogicStatus(loc) ? (t-lastStartTime.at(loc)) : 0.);
     }
-    virtual bool InitRoot();
+    virtual void Zero();
+    virtual bool FillRoot();
     virtual bool WriteRoot(TFile*);
-    bool PackRoot(double);
+    void PackRoot(double);
     //bool PackRoot(double, unsigned int, bool);
-    bool InitDamm();
-    bool PackDamm();
     
     RuntimeDataStructure structure;
     //LogicDataStructure structure;

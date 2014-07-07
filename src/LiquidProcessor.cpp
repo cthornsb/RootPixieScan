@@ -41,8 +41,14 @@ LiquidProcessor::LiquidProcessor() : EventProcessor(OFFSET, RANGE, "Liquid")
 }
 
 //******* Declare Plots *******
-void LiquidProcessor::DeclarePlots(void)
+bool LiquidProcessor::InitDamm()
 {
+    std::cout << " LiquidProcessor: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " LiquidProcessor: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
     //To handle Liquid Scintillators
     //DeclareHistogram2D(DD_TQDCLIQUID, SC, S3, "Liquid vs. Trace QDC");
     //DeclareHistogram2D(DD_MAXLIQUID, SC, S3, "Liquid vs. Maximum");
@@ -57,6 +63,25 @@ void LiquidProcessor::DeclarePlots(void)
     	DeclareHistogram2D(DD_TQDCVSLIQTOF+i, SC, SE, "Trace QDC vs. Liquid TOF");
     	DeclareHistogram2D(DD_TQDCVSENERGY+i, SD, SE, "Trace QDC vs. Energy");
     }*/
+    
+    use_damm = true;
+    return true;
+}
+
+// Initialize for root output
+bool LiquidProcessor::InitRoot(){
+    std::cout << " LiquidProcessor: Initializing the root output\n";
+    if(use_root){
+        std::cout << " LiquidProcessor: Warning! Root output already initialized\n";
+        return false;
+    }
+	
+    // Create the branch
+    local_tree = new TTree(name.c_str(),name.c_str());
+    local_branch = local_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i:valid/O");
+
+    use_root = true;
+    return true;
 }
 
 //******** Pre-Process ********
@@ -88,25 +113,28 @@ bool LiquidProcessor::Process(RawEvent &event) {
 
         //Graph traces for the Liquid Scintillators
         if(liquid.discrimination == 0) {
-            for(Trace::const_iterator i = liquid.trace.begin(); i != liquid.trace.end(); i++)
-                plot(DD_TRCLIQUID, int(i-liquid.trace.begin()), counter, int(*i)-liquid.aveBaseline);
+            if(use_damm){
+                for(Trace::const_iterator i = liquid.trace.begin(); i != liquid.trace.end(); i++)
+                    plot(DD_TRCLIQUID, int(i-liquid.trace.begin()), counter, int(*i)-liquid.aveBaseline);
+            }
             counter++;
         }
            
         // Valid Liquid
 	if(liquid.dataValid) {
-            plot(DD_TQDCLIQUID, liquid.tqdc, loc);
-            plot(DD_MAXLIQUID, liquid.maxval, loc);
-            
             double discrimNorm = liquid.discrimination/liquid.tqdc;	    
             double discRes = 1000;
             double discOffset = 100;
             
             TimingInformation::TimingCal calibration = TimingInformation::GetTimingCal(make_pair(loc, "liquid"));
             
-            if(discrimNorm > 0)
-                plot(DD_DISCRIM, discrimNorm*discRes+discOffset, loc);
-            plot(DD_TQDCVSDISCRIM, discrimNorm*discRes+discOffset, liquid.tqdc);
+            if(use_damm){
+                if(discrimNorm > 0)
+                    plot(DD_DISCRIM, discrimNorm*discRes+discOffset, loc);
+                plot(DD_TQDCVSDISCRIM, discrimNorm*discRes+discOffset, liquid.tqdc);
+                plot(DD_TQDCLIQUID, liquid.tqdc, loc);
+                plot(DD_MAXLIQUID, liquid.maxval, loc);
+            }
             
             if((*itLiquid)->GetChanID().HasTag("start"))
                 continue;
@@ -134,14 +162,16 @@ bool LiquidProcessor::Process(RawEvent &event) {
                     double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
                     
                     // Root stuff
-                    PackRoot(loc, TOF, S, L, liquid.tqdc, start.tqdc);
+                    if(use_root){ PackRoot(loc, TOF, S, L, liquid.tqdc, start.tqdc); }
                     
                     // Damm stuff
-                    plot(DD_TOFLIQUID, TOF*resMult+resOffset, histLoc);
-                    plot(DD_TOFVSDISCRIM+histLoc, discrimNorm*discRes+discOffset, TOF*resMult+resOffset);
-                    plot(DD_NEVSDISCRIM+histLoc, discrimNorm*discRes+discOffset, nEnergy);
-                    plot(DD_TQDCVSLIQTOF+histLoc, TOF*resMult+resOffset, liquid.tqdc);
-                    plot(DD_TQDCVSENERGY+histLoc, nEnergy, liquid.tqdc);
+                    if(use_damm){
+                        plot(DD_TOFLIQUID, TOF*resMult+resOffset, histLoc);
+                        plot(DD_TOFVSDISCRIM+histLoc, discrimNorm*discRes+discOffset, TOF*resMult+resOffset);
+                        plot(DD_NEVSDISCRIM+histLoc, discrimNorm*discRes+discOffset, nEnergy);
+                        plot(DD_TQDCVSLIQTOF+histLoc, TOF*resMult+resOffset, liquid.tqdc);
+                        plot(DD_TQDCVSENERGY+histLoc, nEnergy, liquid.tqdc);
+                    }
                 }
             } //Loop over starts
         } // Good Liquid Check
@@ -150,24 +180,15 @@ bool LiquidProcessor::Process(RawEvent &event) {
     return true;
 }
 
-// Initialize for root output
-bool LiquidProcessor::InitRoot(){
-	std::cout << " LiquidProcessor: Initializing\n";
-	if(outputInit){
-		std::cout << " LiquidProcessor: Warning! Output already initialized\n";
-		return false;
-	}
-	
-	// Create the branch
-	local_tree = new TTree(name.c_str(),name.c_str());
-	local_branch = local_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i");
-	outputInit = true;
-	return true;
+// "Zero" the root structure
+void LiquidProcessor::Zero(){
+	structure.TOF = 0.0; structure.S = 0.0; structure.L = 0.0;
+	structure.liquid_tqdc = 0.0; structure.start_tqdc = 0.0; 
+	structure.location = 0; structure.valid = false;
 }
 
 // Fill the root variables with processed data
-bool LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
-	if(!outputInit){ return false; }
+void LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
 	// Integers
 	structure.location = location_;
 	
@@ -177,8 +198,17 @@ bool LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, d
 	structure.L = L_;
 	structure.liquid_tqdc = ltqdc_;
 	structure.start_tqdc = stqdc_;
-        local_tree->Fill();
-        return true;
+	
+	// Bools
+	structure.valid = true;
+}
+
+// Fill the local tree with processed data (to be called from detector driver)
+bool LiquidProcessor::FillRoot(){
+	if(!use_root){ return false; }
+	local_tree->Fill();
+	this->Zero();
+	return true;
 }
 
 // Write the local tree to file
@@ -190,12 +220,4 @@ bool LiquidProcessor::WriteRoot(TFile* masterFile){
 	std::cout << local_tree->GetEntries() << " entries\n";
 	std::cout << " DEBUG: goodCount = " << goodCount << " badCount = " << badCount << std::endl;
 	return true;
-}
-
-bool LiquidProcessor::InitDamm(){
-	return false;
-}
-
-bool LiquidProcessor::PackDamm(){
-	return false;
 }

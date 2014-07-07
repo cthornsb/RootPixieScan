@@ -89,8 +89,8 @@ DetectorDriver* DetectorDriver::get() {
 
 DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE) 
 {
-    cout << " DetectorDriver: Loading Analyzers\n";
 #if defined(pulsefit) || defined(dcfd)
+    cout << " DetectorDriver: Loading Analyzers\n";
     vecAnalyzer.push_back(new WaveformAnalyzer());
 #endif
 #ifdef pulsefit
@@ -99,9 +99,13 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     vecAnalyzer.push_back(new CfdAnalyzer());
 #endif
 
-    cout << " DetectorDriver: Opening file 'master.root'\n";
-    masterFile = new TFile("master.root", "RECREATE"); // Will overwrite!
-    cout << " DetectorDriver: Loading Processors\n";
+    use_root = true; // Hard-coded for now
+    use_damm = false; // Hard-coded for now
+    if(use_root){
+        cout << " DetectorDriver: Opening file 'master.root'\n";
+        masterFile = new TFile("master.root", "RECREATE"); // Will overwrite!
+        cout << " DetectorDriver: Loading Processors\n";
+    }
     vecProcess.push_back(new BetaProcessor()); // For beam scintillator
     vecProcess.push_back(new LiquidProcessor()); // For UofM liquid array
     vecProcess.push_back(new LogicProcessor()); // For scalers
@@ -119,11 +123,14 @@ DetectorDriver::~DetectorDriver()
 
     // Iterate over processors
     for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
-        std::cout << " DetectorDriver: Writing '" << (*it)->GetName() << "' to root file... ";
-        if(!(*it)->WriteRoot(masterFile)){ std::cout << "failed\n"; }
+    	if(use_root){
+            std::cout << " DetectorDriver: Writing '" << (*it)->GetName() << "' to root file... ";
+            if(!(*it)->WriteRoot(masterFile)){ std::cout << "failed\n"; }
+        }
 	delete *it;
     }
-
+    std::cout << std::endl;
+    
     vecProcess.clear();
     masterFile->Close();
     delete masterFile;
@@ -132,6 +139,7 @@ DetectorDriver::~DetectorDriver()
     for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
 	delete *it;
     }
+    std::cout << std::endl;
 
     vecAnalyzer.clear();
 }
@@ -146,13 +154,17 @@ int DetectorDriver::Init(RawEvent& rawev)
     // initialize the trace analysis routine
     for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
 	(*it)->Init();
+    	if(use_damm){ (*it)->InitDamm(); }
+    	(*it)->CheckInit();
 	(*it)->SetLevel(20); //! Plot traces
     }
 
     // initialize processors in the event processing vector
     for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
     	(*it)->Init(rawev); // Initialize EventProcessor
-    	(*it)->InitRoot(); // Initialize processor to use root output
+    	if(use_root){ (*it)->InitRoot(); }
+    	if(use_damm){ (*it)->InitDamm(); }
+    	(*it)->CheckInit();
     }
 
     /*
@@ -200,9 +212,12 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
         string place = (*it)->GetChanID().GetPlaceName();
         if (place == "__-1") // empty channel
             continue;
-        PlotRaw((*it));
+        
         ThreshAndCal((*it), rawev); // check threshold and calibrate
-        PlotCal((*it));
+        if(use_damm){ 
+            PlotRaw((*it));
+            PlotCal((*it));
+        }
 
         double time = (*it)->GetTime();
         double energy = (*it)->GetCalEnergy();
@@ -223,6 +238,7 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     for (vector<EventProcessor *>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if ( (*iProc)->HasEvent() ) {
             (*iProc)->Process(rawev);
+            if(use_root){ (*iProc)->FillRoot(); } // Fill processor trees for each event (even if they are empty)
         }
     }
 
@@ -232,32 +248,26 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 // declare plots for all the event processors
 void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 {
-    for (vector<TraceAnalyzer *>::const_iterator it = vecAnalyzer.begin();
-	 it != vecAnalyzer.end(); it++) {
-        (*it)->DeclarePlots();
-    }
-
-    for (vector<EventProcessor *>::const_iterator it = vecProcess.begin();
-	 it != vecProcess.end(); it++) {
-        (*it)->DeclarePlots();
-    }
-    
-    // Declare plots for each channel
     DetectorLibrary* modChan = DetectorLibrary::get();
-
-    DeclareHistogram1D(D_HIT_SPECTRUM, S7, "channel hit spectrum");
-    DeclareHistogram1D(D_SUBEVENT_GAP, SE, "time btwn chan-in event,10ns bin");
-    DeclareHistogram1D(D_EVENT_LENGTH, SE, "time length of event, 10 ns bin");
-    DeclareHistogram1D(D_EVENT_GAP, SE, "time between events, 10 ns bin");
-    DeclareHistogram1D(D_EVENT_MULTIPLICITY, S7, "number of channels in event");
-    DeclareHistogram1D(D_BUFFER_END_TIME, SE, "length of buffer, 1 ms bin");
-    DeclareHistogram2D(DD_RUNTIME_SEC, SE, S6, "run time - s");
-    DeclareHistogram2D(DD_DEAD_TIME_CUMUL, SE, S6, "dead time - cumul");
-    DeclareHistogram2D(DD_BUFFER_START_TIME, SE, S6, "dead time - 0.1%");
-    DeclareHistogram2D(DD_RUNTIME_MSEC, SE, S7, "run time - ms");
-    DeclareHistogram1D(D_NUMBER_OF_EVENTS, S4, "event counter");
-
     DetectorLibrary::size_type maxChan = (theMapFile ? modChan->size() : 192);
+    
+    if(use_damm){ // Declare plots for each channel
+        for (vector<TraceAnalyzer *>::const_iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) { (*it)->InitDamm(); }
+        for (vector<EventProcessor *>::const_iterator it = vecProcess.begin(); it != vecProcess.end(); it++) { (*it)->InitDamm(); }
+        
+        DeclareHistogram1D(D_HIT_SPECTRUM, S7, "channel hit spectrum");
+        DeclareHistogram1D(D_SUBEVENT_GAP, SE, "time btwn chan-in event,10ns bin");
+        DeclareHistogram1D(D_EVENT_LENGTH, SE, "time length of event, 10 ns bin");
+        DeclareHistogram1D(D_EVENT_GAP, SE, "time between events, 10 ns bin");
+        DeclareHistogram1D(D_EVENT_MULTIPLICITY, S7, "number of channels in event");
+        DeclareHistogram1D(D_BUFFER_END_TIME, SE, "length of buffer, 1 ms bin");
+        DeclareHistogram2D(DD_RUNTIME_SEC, SE, S6, "run time - s");
+        DeclareHistogram2D(DD_DEAD_TIME_CUMUL, SE, S6, "dead time - cumul");
+        DeclareHistogram2D(DD_BUFFER_START_TIME, SE, S6, "dead time - 0.1%");
+        DeclareHistogram2D(DD_RUNTIME_MSEC, SE, S7, "run time - ms");
+        DeclareHistogram1D(D_NUMBER_OF_EVENTS, S4, "event counter");
+    }
+    DeclareHistogram1D(D_HAS_TRACE, S7, "channels with traces");
 
     for (DetectorLibrary::size_type i = 0; i < maxChan; i++) {	 
         if (theMapFile && !modChan->HasValue(i)) {
@@ -268,24 +278,23 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
         if (theMapFile) {
             const Identifier &id = modChan->at(i);
 
-            idstr << "M" << modChan->ModuleFromIndex(i)
-            << " C" << modChan->ChannelFromIndex(i)
-            << " - " << id.GetType()
-            << ":" << id.GetSubtype()
-            << " L" << id.GetLocation();
+            idstr << "M" << modChan->ModuleFromIndex(i) << " C" << modChan->ChannelFromIndex(i)
+            << " - " << id.GetType() << ":" << id.GetSubtype() << " L" << id.GetLocation();
         } else {
             idstr << "id " << i;
         }
-        DeclareHistogram1D(D_RAW_ENERGY + i, SE, ("RawE " + idstr.str()).c_str() );
-        DeclareHistogram1D(D_FILTER_ENERGY + i, SE, ("FilterE " + idstr.str()).c_str() );
-        DeclareHistogram1D(D_SCALAR + i, SE, ("Scalar " + idstr.str()).c_str() );
+        
+        if(use_damm){
+            DeclareHistogram1D(D_RAW_ENERGY + i, SE, ("RawE " + idstr.str()).c_str() );
+            DeclareHistogram1D(D_FILTER_ENERGY + i, SE, ("FilterE " + idstr.str()).c_str() );
+            DeclareHistogram1D(D_SCALAR + i, SE, ("Scalar " + idstr.str()).c_str() );
 #if !defined(REVD) && !defined(REVF)
-        DeclareHistogram1D(D_TIME + i, SE, ("Time " + idstr.str()).c_str() ); 
+            DeclareHistogram1D(D_TIME + i, SE, ("Time " + idstr.str()).c_str() ); 
 #endif
-        DeclareHistogram1D(D_CAL_ENERGY + i, SE, ("CalE " + idstr.str()).c_str() );
-        DeclareHistogram1D(D_CAL_ENERGY_REJECT + i, SE, ("CalE NoSat " + idstr.str()).c_str() );
+            DeclareHistogram1D(D_CAL_ENERGY + i, SE, ("CalE " + idstr.str()).c_str() );
+            DeclareHistogram1D(D_CAL_ENERGY_REJECT + i, SE, ("CalE NoSat " + idstr.str()).c_str() );
+        }
     }
-    DeclareHistogram1D(D_HAS_TRACE, S7, "channels with traces");
 }
 
 // sanity check for all our expectations
@@ -305,11 +314,11 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 {   
     // retrieve information about the channel
     Identifier chanId = chan->GetChanID();
-    int id            = chan->GetID();
-    string type       = chanId.GetType();
-    string subtype    = chanId.GetSubtype();
-    bool hasStartTag  = chanId.HasTag("start");
-    Trace &trace      = chan->GetTrace();
+    int id = chan->GetID();
+    string type = chanId.GetType();
+    string subtype = chanId.GetSubtype();
+    bool hasStartTag = chanId.HasTag("start");
+    Trace &trace = chan->GetTrace();
 
     RandomPool* randoms = RandomPool::get();
 
@@ -322,17 +331,16 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
       If the channel has a trace get it, analyze it and set the energy.
     */
     if ( !trace.empty() ) {
-        plot(D_HAS_TRACE, id);
+        if(use_damm){ plot(D_HAS_TRACE, id); }
 
-	for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin();
-	     it != vecAnalyzer.end(); it++) {	
+	for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {	
             (*it)->Analyze(trace, type, subtype);
 	}
 
 	if (trace.HasValue("filterEnergy") ) {     
 	    if (trace.GetValue("filterEnergy") > 0) {
-            energy = trace.GetValue("filterEnergy");
-            plot(D_FILTER_ENERGY + id, energy);
+                energy = trace.GetValue("filterEnergy");
+                if(use_damm){ plot(D_FILTER_ENERGY + id, energy); }
 	    } else {
             energy = 2;
 	    }
@@ -346,8 +354,7 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 	}
 	if (trace.HasValue("phase") ) {
 	    double phase = trace.GetValue("phase");
-	    chan->SetHighResTime( phase * pixie::adcClockInSeconds + 
-				  chan->GetTrigTime() * pixie::filterClockInSeconds);
+	    chan->SetHighResTime( phase * pixie::adcClockInSeconds + chan->GetTrigTime() * pixie::filterClockInSeconds);
 	}
     } else {
 	// otherwise, use the Pixie on-board calculated energy
@@ -373,8 +380,7 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 	summary->AddEvent(chan);
 
     if(hasStartTag) {
-	summary = 
-	    rawev.GetSummary(type + ':' + subtype + ':' + "start", false);
+	summary = rawev.GetSummary(type + ':' + subtype + ':' + "start", false);
 	if (summary != NULL)
 	    summary->AddEvent(chan);
     }
@@ -416,8 +422,7 @@ vector<EventProcessor *> DetectorDriver::GetProcessors(const string& type) const
 {
   vector<EventProcessor *> retVec;
 
-  for (vector<EventProcessor *>::const_iterator it = vecProcess.begin();
-       it != vecProcess.end(); it++) {
+  for (vector<EventProcessor *>::const_iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
     if ( (*it)->GetTypes().count(type) > 0 )
       retVec.push_back(*it);
   }
@@ -480,18 +485,14 @@ void DetectorDriver::ReadCal()
 	      line is a number, read in the first five parameters for a channel
             */
             if ( isdigit(calFile.peek()) ) {
-                 calFile >> detLocation >> detType >> detSubtype;
+                calFile >> detLocation >> detType >> detSubtype;
 		lookupID.SetLocation(detLocation);
 		lookupID.SetType(detType);
 		lookupID.SetSubtype(detSubtype);
 		// find the identifier in the map
-		DetectorLibrary::iterator mapIt = 
-		    find(modChan->begin(), modChan->end(), lookupID); 
+		DetectorLibrary::iterator mapIt = find(modChan->begin(), modChan->end(), lookupID); 
 		if (mapIt == modChan->end()) {
-		    cout << "Can not match detector type " << detType
-			 << " and subtype " << detSubtype 
-			 << " with location " << detLocation
-			 << " to a channel in the map." << endl;
+		    cout << "Can not match detector type " << detType << " and subtype " << detSubtype << " with location " << detLocation << " to a channel in the map.\n";
 		    exit(EXIT_FAILURE);
 		}
 		size_t id = distance(modChan->begin(), mapIt);
@@ -547,52 +548,33 @@ void DetectorDriver::ReadCal()
 	if (calIt->detType!= type) {
 	    if (mapIt->HasTag("uncal")) {
 		// set the remaining fields properly
-		calIt->detType     = type;
-		calIt->detSubtype  = mapIt->GetSubtype();
+		calIt->detType = type;
+		calIt->detSubtype = mapIt->GetSubtype();
 		calIt->detLocation = mapIt->GetLocation(); 
 		continue;
 	    }
-	    cout << "Uncalibrated detector found for type " << type
-		 << " at location " << mapIt->GetLocation() 
-		 << ". No default calibration is given, please correct." 
-		 << endl;
+	    cout << "Uncalibrated detector found for type " << type  << " at location " << mapIt->GetLocation() << ". No default calibration is given, please correct.\n";
 	    exit(EXIT_FAILURE);
 	}
     }
     /*
       Print the calibration values that have been read in
     */
-    //cout << "calibration parameters are: " << cal.size() << endl;
-   
     if (verbose::CALIBRATION_INIT) {
-        cout << setw(4)  << "mod" 
-            << setw(4)  << "ch"
-        << setw(4)  << "loc"
-        << setw(10) << "type"
-            << setw(8)  << "subtype"
-        << setw(5)  << "cals"
-        << setw(6)  << "order"
-        << setw(31) << "cal values: low-high thresh, coeffs" << endl;
+        cout << setw(4)  << "mod" << setw(4)  << "ch" << setw(4)  << "loc" << setw(10) << "type" << setw(8)  << "subtype"
+        << setw(5)  << "cals" << setw(6)  << "order"  << setw(31) << "cal values: low-high thresh, coeffs" << endl;
     
         //? calibration print command?
         for(size_t a = 0; a < cal.size(); a++){
-        cout << setw(4)  << int(a/16) 
-        << setw(4)  << (a % 16)
-        << setw(4)  << cal[a].detLocation 
-        << setw(10) << cal[a].detType
-            << setw(8)  << cal[a].detSubtype 
-        << setw(5)  << cal[a].numCal
-            << setw(6)  << cal[a].polyOrder;      
+        cout << setw(4)  << int(a/16) << setw(4)  << (a % 16) << setw(4)  << cal[a].detLocation  << setw(10) << cal[a].detType
+        << setw(8)  << cal[a].detSubtype  << setw(5)  << cal[a].numCal << setw(6)  << cal[a].polyOrder;      
             for(unsigned int b = 0; b < cal[a].numCal; b++){
-            cout << setw(6) << cal[a].thresh[b];
+                cout << setw(6) << cal[a].thresh[b];
                 cout << " - " << setw(6) << cal[a].thresh[b+1];
                 for(unsigned int c = 0; c < cal[a].polyOrder+1; c++){
-            cout << setw(7) << setprecision(5) 
-            << cal[a].val[b*(cal[a].polyOrder+1)+c];
+                    cout << setw(7) << setprecision(5) << cal[a].val[b*(cal[a].polyOrder+1)+c];
                 }
-
             }
-            
             cout << endl;
         }
     }
@@ -645,15 +627,3 @@ double Calibration::Calibrate(double raw)
 
     return calVal;
 }
-
-/*!
-  This function is called from the scan program
-  when scan is either killed or ended.  If
-  ROOT has been enabled, close the ROOT files.
-  If ROOT is not enabled do nothing.
-*/
-extern "C" void detectorend_()
-{
-    //cout << "ending, no rootfile " << endl;       
-}
-

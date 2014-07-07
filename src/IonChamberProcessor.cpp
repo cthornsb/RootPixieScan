@@ -48,9 +48,15 @@ IonChamberProcessor::IonChamberProcessor() : EventProcessor(OFFSET, RANGE)
     }
 }
 
-void IonChamberProcessor::DeclarePlots(void)
+bool IonChamberProcessor::InitDamm()
 {
-    /*DeclareHistogram1D(D_ENERGYSUM, SE, "ion chamber energy");
+    std::cout << " IonChamberProcessor: Initializing the damm output\n";
+    if(use_root){
+        std::cout << " IonChamberProcessor: Warning! Damm output already initialized\n";
+        return false;
+    }
+	
+    DeclareHistogram1D(D_ENERGYSUM, SE, "ion chamber energy");
 
     for (size_t i=0; i < noDets - 2; i++) {
       DeclareHistogram1D(D_ENERGYTHREE_GROUPX + i, SE, "ion chamber 3sum");
@@ -63,7 +69,26 @@ void IonChamberProcessor::DeclarePlots(void)
         DeclareHistogram1D(D_RATE_DETX + i, SE, "calc rate for det i, Hz");
         DeclareHistogram2D(DD_ESUM__ENERGY_DETX + i, SA, SA, "ion seg i v sum");
         DeclareHistogram2D(DD_EBACK__ENERGY_DETX + i,  SA, SA, "ion seg i v ion 234");
-    }*/
+    }
+    
+    use_damm = true;
+    return true;
+}
+
+// Initialize for root output
+bool IonChamberProcessor::InitRoot(){
+    std::cout << " IonChamberProcessor: Initializing root output\n";
+    if(use_root){
+        std::cout << " IonChamberProcessor: Warning! Root output already initialized\n";
+        return false;
+    }
+	
+    // Create the branch
+    local_tree = new TTree(name.c_str(),name.c_str());
+    local_branch = local_tree->Branch("IonChamber", &structure, "");
+
+    use_root = true;
+    return true;
 }
 
 bool IonChamberProcessor::Process(RawEvent &event)
@@ -174,29 +199,18 @@ void IonChamberProcessor::Data::Clear(void)
     mult = 0;
 }
 
-// Initialize for root output
-bool IonChamberProcessor::InitRoot(){
-	std::cout << " IonChamberProcessor: Initializing\n";
-	if(outputInit){
-		std::cout << " IonChamberProcessor: Warning! Output already initialized\n";
-		return false;
-	}
-	
-	// Create the branch
-	local_tree = new TTree(name.c_str(),name.c_str());
-	local_branch = local_tree->Branch("IonChamber", &structure, "");
-	outputInit = true;
-	return true;
-}
-
 // Fill the root variables with processed data
-bool IonChamberProcessor::PackRoot(){
-	if(!outputInit){ return false; }
+void IonChamberProcessor::PackRoot(){
 	// Integers
 	//structure.location = location_;
+}
 
-        local_tree->Fill();
-        return true;
+// Fill the local tree with processed data (to be called from detector driver)
+bool IonChamberProcessor::FillRoot(){
+	if(!use_root){ return false; }
+	local_tree->Fill();
+	this->Zero();
+	return true;
 }
 
 // Write the local tree to file
@@ -207,12 +221,4 @@ bool IonChamberProcessor::WriteRoot(TFile* masterFile){
 	local_tree->Write();
 	std::cout << local_tree->GetEntries() << " entries\n";
 	return true;
-}
-
-bool IonChamberProcessor::InitDamm(){
-	return false;
-}
-
-bool IonChamberProcessor::PackDamm(){
-	return false;
 }

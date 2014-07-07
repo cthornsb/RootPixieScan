@@ -6,27 +6,20 @@
 #define __VANDLEPROCESSOR_HPP_
 
 #include "EventProcessor.hpp"
-
-class TFile;
-
-struct VandleDataStructure{
-    double tof, lqdc, rqdc, tsLow, tsHigh;
-    double lMaxVal, rMaxVal, qdc, energy;
-    unsigned int multiplicity, location; 
-};
+#include "RootDataStructures.h"
 
 class VandleProcessor : public EventProcessor{
  public:
     VandleProcessor(); // no virtual c'tors
     VandleProcessor(const int VML_OFFSET, const int RANGE);
     VandleProcessor(const int RP_OFFSET, const int RANGE, int i);
-    virtual void DeclarePlots(void);
-    virtual bool Process(RawEvent &event);
+    virtual bool InitDamm();
     virtual bool InitRoot();
+    virtual bool Process(RawEvent &event);
+    virtual void Zero();
+    virtual bool FillRoot();
     virtual bool WriteRoot(TFile*);
-    bool PackRoot(unsigned int, const vmlData*, unsigned int);
-    bool InitDamm();
-    bool PackDamm();
+    void PackRoot(unsigned int, const vmlData*, unsigned int);
         
     VMLMap vmlMap; 
     VandleDataStructure structure;

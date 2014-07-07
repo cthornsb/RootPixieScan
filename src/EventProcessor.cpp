@@ -20,49 +20,53 @@
 
 using namespace std;
 
-EventProcessor::EventProcessor() : 
-    userTime(0.), systemTime(0.), name("generic"), initDone(false), didProcess(false), outputInit(false), histo(0, 0) 
-{
-    local_tree = NULL;
-    local_branch = NULL;
+// Default initialization
+void EventProcessor::_initialize(){
+    userTime = 0.0; systemTime = 0.0;
+    name = "Generic";
+    didProcess = false; initDone = true;
+    use_root = false; use_damm = false; 
+    local_tree = NULL; local_branch = NULL;
     clocksPerSecond = sysconf(_SC_CLK_TCK);
 }
 
-EventProcessor::EventProcessor(int offset, int range) : 
-    userTime(0.), systemTime(0.), name("generic"), initDone(false), didProcess(false), outputInit(false), histo(offset, range) 
+EventProcessor::EventProcessor() : histo(0, 0)
 {
-    local_tree = NULL;
-    local_branch = NULL;
-    clocksPerSecond = sysconf(_SC_CLK_TCK);
+    _initialize();
 }
 
-EventProcessor::EventProcessor(std::string name_) : 
-    userTime(0.), systemTime(0.), name(name_), initDone(false), didProcess(false), outputInit(false), histo(0, 0) 
+EventProcessor::EventProcessor(int offset, int range) : histo(offset, range) 
 {
-    local_tree = NULL;
-    local_branch = NULL;
-    clocksPerSecond = sysconf(_SC_CLK_TCK);
+    _initialize();
 }
 
-EventProcessor::EventProcessor(int offset, int range, std::string name_) : 
-    userTime(0.), systemTime(0.), name(name_), initDone(false), didProcess(false), outputInit(false), histo(offset, range) 
+EventProcessor::EventProcessor(std::string name_) : histo(0, 0) 
 {
-    local_tree = NULL;
-    local_branch = NULL;
-    clocksPerSecond = sysconf(_SC_CLK_TCK);
+    _initialize();
+    name = name_;
+}
+
+EventProcessor::EventProcessor(int offset, int range, std::string name_) : histo(offset, range) 
+{
+    _initialize();
+    name = name_;
 }
 
 EventProcessor::~EventProcessor() 
 {
-    if (initDone) {
+    /*if (initDone) {
 	// output the time usage
 	cout << " " << name << "Processor " << " : " << userTime << " user time, " << systemTime << " system time" << endl;
-    }
+    }*/
 }
 
-/** Declare plots */
-void EventProcessor::DeclarePlots(void)
-{
+/** Initialize Damm */
+bool EventProcessor::InitDamm(){
+    return false;
+}
+
+bool EventProcessor::InitRoot(){
+    return false; 
 }
 
 /** See if the detectors of interest have any events */
@@ -80,7 +84,7 @@ bool EventProcessor::HasEvent(void) const
  * the analysis
  */
 bool EventProcessor::Init(RawEvent& rawev) 
-{
+{    
     vector<string> intersect;   
     const set<string> &usedDets = DetectorLibrary::get()->GetUsedDetectors();
     set_intersection(associatedTypes.begin(), associatedTypes.end(), usedDets.begin(), usedDets.end(), back_inserter(intersect) );
@@ -95,9 +99,20 @@ bool EventProcessor::Init(RawEvent& rawev)
     }
 
     initDone = true;
-    cout << "processor " << name << " initialized operating on " << intersect.size() << " detector type(s)." << endl;
-    // cout << "  adding detector summary " << iSum->first << " at address " << &iSum->second << endl;
+    cout << " " << name << "Processor: Initialized, operating on " << intersect.size() << " detector type(s)." << endl;
 	    
+    return true;
+}
+
+bool EventProcessor::CheckInit(){
+    if(!initDone){
+        std::cout << " " << name << "Processor: Warning! Processor has not been initialized\n";
+        return false;
+    }
+    if(!use_root && !use_damm){
+    	std::cout << " " << name << "Processor: Warning! Both output types are marked inactive\n";
+    	return false;
+    }
     return true;
 }
 
@@ -143,8 +158,11 @@ void EventProcessor::EndProcess(void)
     times(&tmsBegin);
 }
 
-bool EventProcessor::InitRoot(){
-    return false; 
+void EventProcessor::Zero(){
+}
+
+bool EventProcessor::FillRoot(){
+    return false;
 }
 
 bool EventProcessor::WriteRoot(TFile* file){

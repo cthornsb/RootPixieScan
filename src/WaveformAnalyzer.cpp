@@ -21,15 +21,21 @@ using namespace dammIds::trace::waveform;
 
 
 //********** WaveformAnalyzer **********
-WaveformAnalyzer::WaveformAnalyzer() : TraceAnalyzer(OFFSET,RANGE) 
+WaveformAnalyzer::WaveformAnalyzer() : TraceAnalyzer(OFFSET, RANGE, "Waveform") 
 {
-    std::cout << " WaveformAnalyzer: Initializing\n";
-    name = "Waveform";
 }
 
 //********** DeclarePlots **********
-void WaveformAnalyzer::DeclarePlots(void) const
+bool WaveformAnalyzer::InitDamm()
 {
+    std::cout << " WaveformAnalyzer: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " WaveformAnalyzer: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
+    use_damm = true;
+    return true;
 }
 
 //********** Analyze **********

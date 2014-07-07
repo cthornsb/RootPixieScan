@@ -81,8 +81,7 @@ void hissub_sec(unsigned int *ibuf[],unsigned int *nhw);
 bool MakeModuleData(const word_t *data, unsigned long nWords); 
 #endif
 
-int ReadBuffData(word_t *lbuf, unsigned long *BufLen,
-		 vector<ChanEvent *> &eventList);
+int ReadBuffData(word_t *lbuf, unsigned long *BufLen, vector<ChanEvent *> &eventList);
 void Pixie16Error(int errornum);
 
 const string scanMode = "scan";

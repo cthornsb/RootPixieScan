@@ -1,0 +1,16 @@
+#str	name	Plotter
+#str	fname	master.root
+#str	tname	Beta
+#str	bname	Beta
+#str	xname	energy
+#str	xtype	double
+#str	yname	py
+#str	ytype	float
+#str	draw	COLZ
+#int	xbins	100
+#int	ybins	100
+#float	xmin	0
+#float	xmax	32766
+#float	ymin	0
+#float	ymax	100
+#endfile

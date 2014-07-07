@@ -20,12 +20,22 @@
 using namespace std;
 
 //********** CfdAnalyzer **********
-CfdAnalyzer::CfdAnalyzer() : TraceAnalyzer()
+CfdAnalyzer::CfdAnalyzer() : TraceAnalyzer("CfdAnalyzer")
 {
-    std::cout << " CfdAnalyzer: Initializing\n";
-    name = "CfdAnalyzer";
 }
 
+//********** Declare Plots **********
+bool CfdAnalyzer::InitDamm()
+{
+    std::cout << " CfdAnalyzer: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " CfdAnalyzer: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
+    use_damm = true;
+    return true;
+}
 
 //********** Analyze **********
 void CfdAnalyzer::Analyze(Trace &trace, const string &detType, 
@@ -96,10 +106,4 @@ void CfdAnalyzer::Analyze(Trace &trace, const string &detType,
 
     trace.InsertValue("phase", (-intercept/slope)+maxPos);
     EndAnalyze();
-}
-
-
-//********** Declare Plots **********
-void CfdAnalyzer::DeclarePlots (void) const 
-{
 }

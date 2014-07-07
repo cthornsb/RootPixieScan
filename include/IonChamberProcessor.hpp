@@ -32,13 +32,12 @@ class IonChamberProcessor : public EventProcessor
     std::deque<double> timeDiffs[noDets];
 public:
     IonChamberProcessor(); // no virtual c'tors
-    virtual void DeclarePlots(void);
-    virtual bool Process(RawEvent &event);
+    virtual bool InitDamm();
     virtual bool InitRoot();
+    virtual bool Process(RawEvent &event);
+    virtual bool FillRoot();
     virtual bool WriteRoot(TFile*);
-    bool PackRoot();
-    bool InitDamm();
-    bool PackDamm(); 
+    void PackRoot();
     
     IonChamberDataStructure structure;
 };

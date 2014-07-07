@@ -1,0 +1,16 @@
+#str	name	Plotter
+#str	fname	master.root
+#str	tname	Liquid
+#str	bname	Liquid
+#str	xname	TOF
+#str	xtype	double
+#str	yname	location
+#str	ytype	int
+#str	draw	COLZ
+#int	xbins	1000
+#int	ybins	5
+#float	xmin	-5122.44
+#float	xmax	4952.97
+#float	ymin	2
+#float	ymax	6
+#endfile

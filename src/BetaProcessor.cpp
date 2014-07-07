@@ -27,9 +27,34 @@ BetaProcessor::BetaProcessor() : EventProcessor(OFFSET, RANGE) {
     associatedTypes.insert("scint"); 
 }
 
-void BetaProcessor::DeclarePlots(void) {
+bool BetaProcessor::InitDamm(void) {
+    std::cout << " BetaProcessor: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " BetaProcessor: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
     DeclareHistogram1D(D_MULT_BETA, S4, "Beta multiplicity");
     DeclareHistogram1D(D_ENERGY_BETA, SE, "Beta energy");
+    
+    use_damm = true;
+    return true;
+}
+
+// Initialize for root output
+bool BetaProcessor::InitRoot(){
+    std::cout << " BetaProcessor: Initializing root output\n";
+    if(use_root){
+        std::cout << " BetaProcessor: Warning! Root output already initialized\n";
+        return false;
+    }
+	
+    // Create the branch
+    local_tree = new TTree(name.c_str(),name.c_str());
+    local_branch = local_tree->Branch("Beta", &structure, "energy/D:multiplicity/i:valid/O");
+
+    use_root = true;
+    return true;
 }
 
 bool BetaProcessor::PreProcess(RawEvent &event){
@@ -40,16 +65,15 @@ bool BetaProcessor::PreProcess(RawEvent &event){
     std::vector<double> energies;
 
     unsigned int multiplicity = 0;
-    for (vector<ChanEvent*>::const_iterator it = scintBetaEvents.begin(); 
-	 it != scintBetaEvents.end(); it++) {
+    for (vector<ChanEvent*>::const_iterator it = scintBetaEvents.begin(); it != scintBetaEvents.end(); it++) {
         double energy = (*it)->GetEnergy();
         if (energy > detectors::betaThreshold)
             ++multiplicity;
-        plot(D_ENERGY_BETA, energy);
+        if(use_damm){ plot(D_ENERGY_BETA, energy); }
         energies.push_back(energy);
     }
-    plot(D_MULT_BETA, multiplicity);
-    PackRoot(energies, multiplicity);
+    if(use_damm){ plot(D_MULT_BETA, multiplicity); }
+    if(use_root){ PackRoot(energies, multiplicity); }
     return true;
 }
 
@@ -61,32 +85,27 @@ bool BetaProcessor::Process(RawEvent &event)
     return true;
 }
 
-// Initialize for root output
-bool BetaProcessor::InitRoot(){
-	std::cout << " BetaProcessor: Initializing\n";
-	if(outputInit){
-		std::cout << " BetaProcessor: Warning! Output already initialized\n";
-		return false;
-	}
-	
-	// Create the branch
-	local_tree = new TTree(name.c_str(),name.c_str());
-	local_branch = local_tree->Branch("Beta", &structure, "energy/D:multiplicity/i");
-	outputInit = true;
-	return true;
+// "Zero" the root structure
+void BetaProcessor::Zero(){
+	structure.energy = 0.0; structure.multiplicity = 0; structure.valid = false;
 }
 
 // Fill the root variables with processed data
-bool BetaProcessor::PackRoot(std::vector<double> &energy_, unsigned int multiplicity_){
-	if(!outputInit){ return false; }
+void BetaProcessor::PackRoot(std::vector<double> &energy_, unsigned int multiplicity_){
 	// Quick fix just to get this processor working,
 	// energy should be a vector (Fix later!)
 	for(unsigned int i = 0; i < energy_.size(); i++){
 		structure.energy = energy_[i];
 		structure.multiplicity = multiplicity_;
-		local_tree->Fill();
 	}
-        return true;
+}
+
+// Fill the local tree with processed data (to be called from detector driver)
+bool BetaProcessor::FillRoot(){
+	if(!use_root){ return false; }
+	local_tree->Fill();
+	this->Zero();
+	return true;
 }
 
 // Write the local tree to file
@@ -97,12 +116,4 @@ bool BetaProcessor::WriteRoot(TFile* masterFile){
 	local_tree->Write();
 	std::cout << local_tree->GetEntries() << " entries\n";
 	return true;
-}
-
-bool BetaProcessor::InitDamm(){
-	return false;
-}
-
-bool BetaProcessor::PackDamm(){
-	return false;
 }

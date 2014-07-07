@@ -51,9 +51,20 @@ namespace dammIds {
 using namespace std;
 using namespace dammIds::trace::fitting;
 
-//********** DeclarePlots **********
-void FittingAnalyzer::DeclarePlots(void)
+//********** FittingAnalyzer **********
+FittingAnalyzer::FittingAnalyzer() : TraceAnalyzer(OFFSET, RANGE, "Fitting")
 {
+}
+
+//********** DeclarePlots **********
+bool FittingAnalyzer::InitDamm()
+{
+    std::cout << " FittingAnalyzer: Initializing the damm output\n";
+    if(use_damm){
+        std::cout << " FittingAnalyzer: Warning! Damm output already initialized\n";
+        return false;
+    }
+    
     DeclareHistogram2D(DD_TRACES, SB, S7, "traces data");
     DeclareHistogram2D(DD_AMP, SE, SC, "Fit Amplitude");
     DeclareHistogram1D(D_PHASE, SE, "Fit X0");
@@ -64,26 +75,17 @@ void FittingAnalyzer::DeclarePlots(void)
     DeclareHistogram2D(DD_QDCMASK, SE, SC, "Max vs Reduced Chi^2");
     DeclareHistogram2D(DD_MAXVSTHRESH, S7, SC, "Max vs Num Bins Tresh");
     DeclareHistogram1D(D_SIGMA, SE, "Standard Dev Baseline");
+    
+    use_damm = true;
+    return true;
 }
-
-
-//********** FittingAnalyzer **********
-FittingAnalyzer::FittingAnalyzer() : TraceAnalyzer(OFFSET,RANGE)
-{
-    std::cout << " FittingAnalyzer: Initializing\n";
-    name = "FittingAnalyzer";
-}
-
 
 //********** Analyze **********
-void FittingAnalyzer::Analyze(Trace &trace, const string &detType, 
-			      const string &detSubtype)
+void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string &detSubtype)
 {
     TraceAnalyzer::Analyze(trace, detType, detSubtype);
-
-    
     if(trace.HasValue("saturation") || trace.empty()) {
-	plot(D_SAT,2);
+	if(use_damm){ plot(D_SAT,2); }
      	EndAnalyze();
      	return;
     }
@@ -101,13 +103,15 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType,
     }
 
     static int counter = 0;
-    for(unsigned int i = 0; i < trace.size(); i++)
-      plot(DD_TRACES, i, counter, trace[i]);
+    if(use_damm){
+        for(unsigned int i = 0; i < trace.size(); i++)
+            plot(DD_TRACES, i, counter, trace[i]);
+            
+        plot(DD_MAXVSQDCMAX, qdcToMax*100+100, maxVal);
+        plot(DD_MAXVALPOS, maxPos, maxVal);
+        plot(D_SIGMA, sigmaBaseline*100);
+    }
     counter++;
-
-    plot(DD_MAXVSQDCMAX, qdcToMax*100+100, maxVal);
-    plot(DD_MAXVALPOS, maxPos, maxVal);
-    plot(D_SIGMA, sigmaBaseline*100);
 
     if(sigmaBaseline > 3.0) {
 	EndAnalyze();
@@ -190,19 +194,18 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType,
     trace.InsertValue("phase", fitPars.front()+maxPos);
     trace.InsertValue("walk", CalcWalk(maxVal, detType, detSubtype));
 
-    plot(DD_AMP, fitPars.at(1), maxVal);
-    plot(D_PHASE, fitPars.at(0)*1000+100);    
-    plot(D_CHISQPERDOF, chisqPerDof);
-    plot(DD_QDCMASK, chisqPerDof, maxVal);
+    if(use_damm){
+        plot(DD_AMP, fitPars.at(1), maxVal);
+        plot(D_PHASE, fitPars.at(0)*1000+100);    
+        plot(D_CHISQPERDOF, chisqPerDof);
+        plot(DD_QDCMASK, chisqPerDof, maxVal);
+    }
 
     EndAnalyze();
 } //void FittingAnalyzer::Analyze
 
-
-
 //********** WalkCorrection **********
-double FittingAnalyzer::CalcWalk(const double &val, const string &type, 
-				 const string &subType)
+double FittingAnalyzer::CalcWalk(const double &val, const string &type, const string &subType)
 {
     if(type == "vandleSmall") {
 	if(val < 175)
@@ -292,8 +295,7 @@ int CalcJacobian (const gsl_vector * x, void *FitData, gsl_matrix * J)
 
 
 //********** FitFunctionDerivative **********
-int FitFunctionDerivative (const gsl_vector * x, void *FitData, gsl_vector * f, 
-			   gsl_matrix * J)
+int FitFunctionDerivative (const gsl_vector * x, void *FitData, gsl_vector * f, gsl_matrix * J)
 {
     FitFunction (x, FitData, f);
     CalcJacobian (x, FitData, J);

@@ -23,6 +23,50 @@ using std::endl;
 using std::string;
 
 /**
+ * Set default filter parameters
+ */
+
+using namespace dammIds::trace;
+
+void TraceAnalyzer::_initialize(){
+    userTime = 0.0; systemTime = 0.0;
+    name = "Trace";
+    
+    // start at -1 so that when incremented on first trace analysis,
+    //   row 0 is respectively filled in the trace spectrum of inheritees 
+    numTracesAnalyzed = -1;    
+    clocksPerSecond = sysconf(_SC_CLK_TCK);
+}
+
+TraceAnalyzer::TraceAnalyzer() : histo(OFFSET, RANGE) 
+{
+    _initialize();
+}
+
+TraceAnalyzer::TraceAnalyzer(std::string name_) : histo(OFFSET, RANGE) 
+{
+    _initialize();
+    name = name_;
+}
+
+TraceAnalyzer::TraceAnalyzer(int offset, int range) : histo(offset, range) 
+{
+    _initialize();
+}
+
+TraceAnalyzer::TraceAnalyzer(int offset, int range, std::string name_) : histo(offset, range) 
+{
+    _initialize();
+    name = name_;
+}
+
+/** Output time processing traces */
+TraceAnalyzer::~TraceAnalyzer() 
+{
+    cout << " " << name << "Analyzer : " << userTime << " user time, " << systemTime << " system time" << endl;
+}
+
+/**
  * Initialize the trace analysis class.  Set the row numbers
  * for spectra 850 to zero
  */
@@ -31,34 +75,15 @@ bool TraceAnalyzer::Init(void)
     return true;
 }
 
-/**
- * Set default filter parameters
- */
-
-using namespace dammIds::trace;
-
-TraceAnalyzer::TraceAnalyzer() : userTime(0.), systemTime(0.), histo(OFFSET, RANGE) 
+/** declare the damm plots */
+bool TraceAnalyzer::InitDamm()
 {
-    name = "Trace";
-    // start at -1 so that when incremented on first trace analysis,
-    //   row 0 is respectively filled in the trace spectrum of inheritees 
-    numTracesAnalyzed = -1;    
-    clocksPerSecond = sysconf(_SC_CLK_TCK);
+    return false;
 }
 
-TraceAnalyzer::TraceAnalyzer(int offset, int range) : userTime(0.), systemTime(0.), histo(offset, range) 
+bool TraceAnalyzer::CheckInit()
 {
-    name = "Trace";
-    // start at -1 so that when incremented on first trace analysis,
-    //   row 0 is respectively filled in the trace spectrum of inheritees 
-    numTracesAnalyzed = -1;    
-    clocksPerSecond = sysconf(_SC_CLK_TCK);
-}
-
-/** Output time processing traces */
-TraceAnalyzer::~TraceAnalyzer() 
-{
-    cout << name << " analyzer : " << userTime << " user time, " << systemTime << " system time" << endl;
+    return false;
 }
 
 /**
@@ -93,12 +118,6 @@ void TraceAnalyzer::EndAnalyze(void)
     systemTime += (tmsEnd.tms_stime - tmsBegin.tms_stime) / clocksPerSecond;
 
     // reset the beginning time so multiple calls of EndAnalyze from
-    //   derived classes work properly
+    // derived classes work properly
     times(&tmsBegin);
-}
-
-/** declare the damm plots */
-void TraceAnalyzer::DeclarePlots()
-{
-    // do nothing
 }

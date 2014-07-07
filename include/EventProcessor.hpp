@@ -30,13 +30,14 @@ class EventProcessor : public TimingInformation{
     double systemTime;
     double clocksPerSecond;
 
+    void _initialize();
+
  protected:
     // define the associated detector types and only initialize if present
     std::string name;
     std::set<std::string> associatedTypes; //--- set of type string
-    bool initDone;
-    bool didProcess;
-    bool outputInit;
+    bool didProcess, initDone;
+    bool use_root, use_damm;
     TTree *local_tree;
     TBranch *local_branch;
 
@@ -65,7 +66,7 @@ class EventProcessor : public TimingInformation{
     virtual ~EventProcessor();
 
     // Declare associated damm plots (called by drrsub_)
-    virtual void DeclarePlots(void);
+    virtual bool InitDamm();
     virtual const std::set<std::string>& GetTypes(void) const {
       return associatedTypes; 
     }
@@ -74,7 +75,8 @@ class EventProcessor : public TimingInformation{
     }
     // Return true on success
     virtual bool HasEvent(void) const;
-    virtual bool Init(RawEvent& event);
+    virtual bool Init(RawEvent&);
+    virtual bool CheckInit();
     virtual bool PreProcess(RawEvent &event);   
     virtual bool Process(RawEvent &event);   
     void EndProcess(void); // stop the process timer
@@ -82,9 +84,11 @@ class EventProcessor : public TimingInformation{
       return name;
     }
 
+    virtual void Zero();
     virtual bool InitRoot();
+    virtual bool FillRoot();
     virtual bool WriteRoot(TFile*);
-    
+        
     std::string GetName(){ return name; }
 };
 
