@@ -16,12 +16,10 @@ class BetaProcessor : public EventProcessor
 public:
     BetaProcessor();
     virtual bool InitDamm();
-    virtual bool InitRoot();
+    virtual bool InitRoot(TTree*);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual void Zero();    
-    virtual bool FillRoot();
-    virtual bool WriteRoot(TFile*);
+    virtual void Zero();
     void PackRoot(std::vector<double>&, unsigned int);
     
     BetaDataStructure structure;

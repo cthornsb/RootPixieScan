@@ -43,7 +43,8 @@ vpath %.cpp src/
 vpath %.o obj/
 
 ifeq ($(HHIRF_DIR),)
-HHIRF_DIR = /usr/hhirf-intel64
+#HHIRF_DIR = /usr/hhirf-intel64
+HHIRF_DIR = /usr/hhirf
 endif
 
 ifneq ($(LIBS_IN_HHIRF),)
@@ -53,7 +54,8 @@ else
         ifneq ($(ACQ2_DIR),) 
             ACQ2_LIBDIR = $(ACQ2_DIR)
         else
-            ACQ2_LIBDIR = /usr/hhirf-intel64
+            #ACQ2_LIBDIR = /usr/hhirf-intel64
+            ACQ2_LIBDIR = /usr/hhirf
         endif
     endif
 endif

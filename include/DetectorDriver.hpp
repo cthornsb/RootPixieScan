@@ -67,9 +67,12 @@ class DetectorDriver {
     static DetectorDriver* get();
     vector<Calibration> cal; /**<the calibration vector*/ 
 
+    unsigned int num_events;
     bool use_root, use_damm;
     Plots histo;
     TFile *masterFile;
+    TTree *masterTree;
+    bool is_init;
     
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
@@ -77,7 +80,7 @@ class DetectorDriver {
     
     int ProcessEvent(const string &, RawEvent& rawev);
     int ThreshAndCal(ChanEvent *, RawEvent& rawev);
-    int Init(RawEvent& rawev);
+    bool Init(RawEvent& rawev);
 
     int PlotRaw(const ChanEvent *);
     int PlotCal(const ChanEvent *);
@@ -91,12 +94,12 @@ class DetectorDriver {
     time_t GetWallTime(double d) const {
 	return (time_t)((d - pixieToWallClock.first)*pixie::clockInSeconds + pixieToWallClock.second);
     }
-    const vector<EventProcessor *>& GetProcessors(void) const
-	{return vecProcess;}; /**< return the list of processors */
+    const vector<EventProcessor *>& GetProcessors(void) const {return vecProcess;}; /**< return the list of processors */
     vector<EventProcessor *> GetProcessors(const string &type) const;
     const set<string> &GetUsedDetectors(void) const;
 
     ~DetectorDriver();
+    bool Delete();
 
     void ReadCal();
 

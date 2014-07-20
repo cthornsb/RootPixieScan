@@ -39,6 +39,7 @@ public:
     int GetMult() const {return eventList.size();} /**< Get the multiplicity */
     const std::string& GetName() const {return name;} /**< Get the detector type name */
     const std::vector<ChanEvent*>& GetList() const {return eventList;} /**< Get the list of all channels in the rawevent that are of this detector type */
+    std::vector<ChanEvent*>* GetList2(){ return &eventList; }
 };
 
 #endif

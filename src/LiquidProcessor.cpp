@@ -69,16 +69,15 @@ bool LiquidProcessor::InitDamm()
 }
 
 // Initialize for root output
-bool LiquidProcessor::InitRoot(){
-    std::cout << " LiquidProcessor: Initializing the root output\n";
+bool LiquidProcessor::InitRoot(TTree* top_tree){
+    std::cout << " LiquidProcessor: Initializing root output\n";
     if(use_root){
         std::cout << " LiquidProcessor: Warning! Root output already initialized\n";
         return false;
     }
 	
     // Create the branch
-    local_tree = new TTree(name.c_str(),name.c_str());
-    local_branch = local_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i:valid/O");
+    local_branch = top_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i:valid/O");
 
     use_root = true;
     return true;
@@ -201,23 +200,5 @@ void LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, d
 	
 	// Bools
 	structure.valid = true;
-}
-
-// Fill the local tree with processed data (to be called from detector driver)
-bool LiquidProcessor::FillRoot(){
-	if(!use_root){ return false; }
-	local_tree->Fill();
-	this->Zero();
-	return true;
-}
-
-// Write the local tree to file
-// Should only be called once per execution
-bool LiquidProcessor::WriteRoot(TFile* masterFile){
-	if(!masterFile || !local_tree){ return false; }
-	masterFile->cd();
-	local_tree->Write();
-	std::cout << local_tree->GetEntries() << " entries\n";
-	std::cout << " DEBUG: goodCount = " << goodCount << " badCount = " << badCount << std::endl;
-	return true;
+	count++;
 }

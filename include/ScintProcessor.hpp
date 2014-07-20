@@ -18,7 +18,7 @@ public:
     virtual void DeclarePlots(void);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual bool InitRoot();
+    virtual bool InitRoot(TTree*);
     virtual bool WriteRoot(TFile*);
     bool PackRoot();
     bool InitDamm();

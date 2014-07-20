@@ -14,11 +14,9 @@ class VandleProcessor : public EventProcessor{
     VandleProcessor(const int VML_OFFSET, const int RANGE);
     VandleProcessor(const int RP_OFFSET, const int RANGE, int i);
     virtual bool InitDamm();
-    virtual bool InitRoot();
+    virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
     virtual void Zero();
-    virtual bool FillRoot();
-    virtual bool WriteRoot(TFile*);
     void PackRoot(unsigned int, const vmlData*, unsigned int);
         
     VMLMap vmlMap; 

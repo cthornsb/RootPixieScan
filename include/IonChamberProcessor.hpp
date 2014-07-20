@@ -33,10 +33,8 @@ class IonChamberProcessor : public EventProcessor
 public:
     IonChamberProcessor(); // no virtual c'tors
     virtual bool InitDamm();
-    virtual bool InitRoot();
+    virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
-    virtual bool FillRoot();
-    virtual bool WriteRoot(TFile*);
     void PackRoot();
     
     IonChamberDataStructure structure;

@@ -76,7 +76,7 @@ bool IonChamberProcessor::InitDamm()
 }
 
 // Initialize for root output
-bool IonChamberProcessor::InitRoot(){
+bool IonChamberProcessor::InitRoot(TTree *top_tree){
     std::cout << " IonChamberProcessor: Initializing root output\n";
     if(use_root){
         std::cout << " IonChamberProcessor: Warning! Root output already initialized\n";
@@ -84,8 +84,7 @@ bool IonChamberProcessor::InitRoot(){
     }
 	
     // Create the branch
-    local_tree = new TTree(name.c_str(),name.c_str());
-    local_branch = local_tree->Branch("IonChamber", &structure, "");
+    local_branch = top_tree->Branch("IonChamber", &structure, "");
 
     use_root = true;
     return true;
@@ -203,22 +202,4 @@ void IonChamberProcessor::Data::Clear(void)
 void IonChamberProcessor::PackRoot(){
 	// Integers
 	//structure.location = location_;
-}
-
-// Fill the local tree with processed data (to be called from detector driver)
-bool IonChamberProcessor::FillRoot(){
-	if(!use_root){ return false; }
-	local_tree->Fill();
-	this->Zero();
-	return true;
-}
-
-// Write the local tree to file
-// Should only be called once per execution
-bool IonChamberProcessor::WriteRoot(TFile* masterFile){
-	if(!masterFile || !local_tree){ return false; }
-	masterFile->cd();
-	local_tree->Write();
-	std::cout << local_tree->GetEntries() << " entries\n";
-	return true;
 }

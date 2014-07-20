@@ -26,7 +26,7 @@ void EventProcessor::_initialize(){
     name = "Generic";
     didProcess = false; initDone = true;
     use_root = false; use_damm = false; 
-    local_tree = NULL; local_branch = NULL;
+    local_branch = NULL; count = 0;
     clocksPerSecond = sysconf(_SC_CLK_TCK);
 }
 
@@ -54,10 +54,15 @@ EventProcessor::EventProcessor(int offset, int range, std::string name_) : histo
 
 EventProcessor::~EventProcessor() 
 {
-    /*if (initDone) {
-	// output the time usage
-	cout << " " << name << "Processor " << " : " << userTime << " user time, " << systemTime << " system time" << endl;
-    }*/
+}
+
+void EventProcessor::Status(unsigned int total_events)
+{
+    if (initDone) {
+	// output the time usage and the number of valid events
+	cout << " " << name << "Processor: User Time = " << userTime << ", System Time = " << systemTime << endl;
+	if(total_events > 0){ cout << " " << name << "Processor: " << count << " Valid Events (" << 1.0*count/total_events << "%)\n"; }
+    }
 }
 
 /** Initialize Damm */
@@ -65,7 +70,7 @@ bool EventProcessor::InitDamm(){
     return false;
 }
 
-bool EventProcessor::InitRoot(){
+bool EventProcessor::InitRoot(TTree* top_tree){
     return false; 
 }
 
@@ -159,12 +164,4 @@ void EventProcessor::EndProcess(void)
 }
 
 void EventProcessor::Zero(){
-}
-
-bool EventProcessor::FillRoot(){
-    return false;
-}
-
-bool EventProcessor::WriteRoot(TFile* file){
-    return false; 
 }

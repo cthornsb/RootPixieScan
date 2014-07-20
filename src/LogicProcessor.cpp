@@ -69,7 +69,7 @@ bool LogicProcessor::InitDamm()
 }
 
 // Initialize for root output
-bool LogicProcessor::InitRoot(){
+bool LogicProcessor::InitRoot(TTree* top_tree){
     std::cout << " LogicProcessor: Initializing root output\n";
     if(use_root){
         std::cout << " LogicProcessor: Warning! Root output already initialized\n";
@@ -77,9 +77,8 @@ bool LogicProcessor::InitRoot(){
     }
 	
     // Create the branch
-    local_tree = new TTree(name.c_str(),name.c_str());
-    //local_branch = local_tree->Branch("Logic", &structure, "tdiff/D:location/i:start/O");
-    local_branch = local_tree->Branch("Runtime", &structure, "energy/D:valid/O");
+    //local_branch = top_tree->Branch("Logic", &structure, "tdiff/D:location/i:start/O");
+    local_branch = top_tree->Branch("Runtime", &structure, "energy/D:valid/O");
  
     use_root = true;
     return true;
@@ -90,7 +89,7 @@ bool LogicProcessor::Process(RawEvent &event)
     if (!EventProcessor::Process(event))
 	return false;
 
-    BasicProcessing(event);
+    //BasicProcessing(event);
     TriggerProcessing(event);
     
     EndProcess(); // update processing time
@@ -98,9 +97,8 @@ bool LogicProcessor::Process(RawEvent &event)
 }
 
 void LogicProcessor::BasicProcessing(RawEvent &event) {
-    const double logicPlotResolution = 10e-6 / pixie::clockInSeconds;
-    
-    static const vector<ChanEvent*> &events = sumMap["logic"]->GetList();
+    const double logicPlotResolution = 10e-6 / pixie::clockInSeconds;    
+    static const vector<ChanEvent*> &events = sumMap["logic"]->GetList(); // This crashes the program sometimes
     
     for (vector<ChanEvent*>::const_iterator it = events.begin(); it != events.end(); it++) {
 	ChanEvent *chan = *it;
@@ -211,6 +209,7 @@ void LogicProcessor::Zero(){
 void LogicProcessor::PackRoot(double energy_){
 	structure.energy = energy_;
 	structure.valid = true;
+	count++;
 }
 /*bool LogicProcessor::PackRoot(double tdiff_, unsigned int location_, bool is_start_){
 	if(!outputInit){ return false; }
@@ -221,21 +220,3 @@ void LogicProcessor::PackRoot(double energy_){
         local_tree->Fill();
         return true;
 }*/
-
-// Fill the local tree with processed data (to be called from detector driver)
-bool LogicProcessor::FillRoot(){
-	if(!use_root){ return false; }
-	local_tree->Fill();
-	this->Zero();
-	return true;
-}
-
-// Write the local tree to file
-// Should only be called once per execution
-bool LogicProcessor::WriteRoot(TFile* masterFile){
-	if(!masterFile || !local_tree){ return false; }
-	masterFile->cd();
-	local_tree->Write();
-	std::cout << local_tree->GetEntries() << " entries\n";
-	return true;
-}

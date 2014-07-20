@@ -122,9 +122,9 @@ const unsigned int maxWords = IO_BUFFER_LENGTH; // Revision A
 // Catch the exit call from scanor and clean up c++ objects CRT
 extern "C" void cleanup_()
 {
-    std::cout << "\nCalling C++ destructors...\n";
+    std::cout << "\nCleaning up..\n";
     DetectorDriver* driver = DetectorDriver::get();
-    delete driver; // Call c++ destructors
+    driver->Delete();
 }
 
 extern "C" void hissub_(unsigned short *sbuf[],unsigned short *nhw)
@@ -411,27 +411,26 @@ extern "C" void hissub_(unsigned short *ibuf[],unsigned short *nhw)
 	 * vector, the DetectorDriver and rawevent have been initialized with the
 	 * detectors that will be used in this analysis.
 	 */
-    cout << "Using event width " << pixie::eventInSeconds * 1e6 << " us" << endl
-         << "                  " << pixie::eventWidth
-         << " in pixie16 clock tics." << endl;
+        cout << "Using event width " << pixie::eventInSeconds * 1e6 << " us" << endl;
+        cout << "                  " << pixie::eventWidth << " in pixie16 clock tics." << endl;
 
-	modChan->PrintUsedDetectors(rawev);
-    if (verbose::MAP_INIT)
-        modChan->PrintMap();
+        modChan->PrintUsedDetectors(rawev);
+        if (verbose::MAP_INIT)
+            modChan->PrintMap();
 
-	driver->Init(rawev);
+        driver->Init(rawev);
     
-	/* Make a last check to see that everything is in order for the driver 
-	 * before processing data
-	 */
-	if ( !driver->SanityCheck() ) {
-	    cout << "Detector driver did not pass sanity check!" << endl;
-	    exit(EXIT_FAILURE);
+        /* Make a last check to see that everything is in order for the driver 
+         * before processing data
+         */
+        if ( !driver->SanityCheck() ) {
+            cout << "Detector driver did not pass sanity check!" << endl;
+            exit(EXIT_FAILURE);
 	}
 
         lastVsn=-1; // set last vsn to -1 so we expect vsn 0 first 	
 
-	cout << "Init done at " << times(&tmsBegin) << " sys time." << endl;
+        cout << "Init done at " << times(&tmsBegin) << " sys time." << endl;
     }
     counter++;
  

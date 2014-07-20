@@ -254,7 +254,7 @@ void ScintProcessor::LiquidAnalysis(RawEvent &event)
 }//void ScintProcessor::LiquidAnalysis
 
 // Initialize for root output
-bool ScintProcessor::InitRoot(){
+bool ScintProcessor::InitRoot(TTree* top_tree){
 	std::cout << " ScintProcessor: Initializing\n";
 	if(outputInit){
 		std::cout << " ScintProcessor: Warning! Output already initialized\n";
@@ -262,8 +262,7 @@ bool ScintProcessor::InitRoot(){
 	}
 	
 	// Create the branch
-	local_tree = new TTree(name.c_str(),name.c_str());
-	local_branch = local_tree->Branch("Scint", &structure, "");
+	local_branch = top_tree->Branch("Scint", &structure, "");
 	outputInit = true;
 	return true;
 }

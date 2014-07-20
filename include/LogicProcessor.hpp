@@ -26,7 +26,7 @@ protected:
  public:
     LogicProcessor();
     virtual bool InitDamm();
-    virtual bool InitRoot();
+    virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
     virtual bool LogicStatus(size_t loc) const {
       return logicStatus.at(loc);
@@ -44,8 +44,6 @@ protected:
 	return (LogicStatus(loc) ? (t-lastStartTime.at(loc)) : 0.);
     }
     virtual void Zero();
-    virtual bool FillRoot();
-    virtual bool WriteRoot(TFile*);
     void PackRoot(double);
     //bool PackRoot(double, unsigned int, bool);
     

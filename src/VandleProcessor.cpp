@@ -231,7 +231,7 @@ bool VandleProcessor::InitDamm()
 }// Declare Plots
 
 // Initialize for root output
-bool VandleProcessor::InitRoot(){
+bool VandleProcessor::InitRoot(TTree* top_tree){
     std::cout << " VandleProcessor: Initializing root output\n";
     if(use_root){
         std::cout << " VandleProcessor: Warning! Root output already initialized\n";
@@ -239,8 +239,7 @@ bool VandleProcessor::InitRoot(){
     }
 	
     // Create the branch
-    local_tree = new TTree(name.c_str(),name.c_str());
-    local_branch = local_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i:valid/O");
+    local_branch = top_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i:valid/O");
 
     use_root = true;
     return true;
@@ -700,22 +699,5 @@ void VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_da
         
         // Bools
         structure.valid = true;
-}
-
-// Fill the local tree with processed data (to be called from detector driver)
-bool VandleProcessor::FillRoot(){
-	if(!use_root){ return false; }
-	local_tree->Fill();
-	this->Zero();
-	return true;
-}
-
-// Write the local tree to file
-// Should only be called once per execution
-bool VandleProcessor::WriteRoot(TFile* masterFile){
-	if(!masterFile || !local_tree){ return false; }
-	masterFile->cd();
-	local_tree->Write();
-	std::cout << local_tree->GetEntries() << " entries\n";
-	return true;
+        count++;
 }

@@ -13,12 +13,10 @@ class LiquidProcessor : public EventProcessor{
  public:
     LiquidProcessor(); // no virtual c'tors
     virtual bool InitDamm();
-    virtual bool InitRoot();
+    virtual bool InitRoot(TTree*);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
     virtual void Zero();
-    virtual bool FillRoot();
-    virtual bool WriteRoot(TFile*);
     void PackRoot(unsigned int, double, double, double, double, double);
     
     LiquidDataStructure structure;

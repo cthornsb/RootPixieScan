@@ -63,7 +63,7 @@ TraceAnalyzer::TraceAnalyzer(int offset, int range, std::string name_) : histo(o
 /** Output time processing traces */
 TraceAnalyzer::~TraceAnalyzer() 
 {
-    cout << " " << name << "Analyzer : " << userTime << " user time, " << systemTime << " system time" << endl;
+    cout << " " << name << "Analyzer : User Time = " << userTime << ", System Time = " << systemTime << endl;
 }
 
 /**

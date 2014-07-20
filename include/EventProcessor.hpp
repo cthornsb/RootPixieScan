@@ -38,8 +38,8 @@ class EventProcessor : public TimingInformation{
     std::set<std::string> associatedTypes; //--- set of type string
     bool didProcess, initDone;
     bool use_root, use_damm;
-    TTree *local_tree;
     TBranch *local_branch;
+    unsigned int count;
 
     // map of associated detector summary
     std::map<std::string, const DetectorSummary *> sumMap;
@@ -65,6 +65,8 @@ class EventProcessor : public TimingInformation{
     EventProcessor(int offset, int range, std::string);
     virtual ~EventProcessor();
 
+    void Status(unsigned int);
+
     // Declare associated damm plots (called by drrsub_)
     virtual bool InitDamm();
     virtual const std::set<std::string>& GetTypes(void) const {
@@ -85,9 +87,7 @@ class EventProcessor : public TimingInformation{
     }
 
     virtual void Zero();
-    virtual bool InitRoot();
-    virtual bool FillRoot();
-    virtual bool WriteRoot(TFile*);
+    virtual bool InitRoot(TTree*);
         
     std::string GetName(){ return name; }
 };

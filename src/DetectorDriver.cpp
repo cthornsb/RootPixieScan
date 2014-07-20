@@ -89,6 +89,8 @@ DetectorDriver* DetectorDriver::get() {
 
 DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE) 
 {
+    is_init = false;
+    
 #if defined(pulsefit) || defined(dcfd)
     cout << " DetectorDriver: Loading Analyzers\n";
     vecAnalyzer.push_back(new WaveformAnalyzer());
@@ -110,6 +112,8 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     vecProcess.push_back(new LiquidProcessor()); // For UofM liquid array
     vecProcess.push_back(new LogicProcessor()); // For scalers
     vecProcess.push_back(new VandleProcessor()); // For Vandle bar array
+    
+    num_events = 0;
 }
 
 /*!
@@ -119,29 +123,47 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
  */
 DetectorDriver::~DetectorDriver()
 {
+    this->Delete();
+}
+
+bool DetectorDriver::Delete()
+{
+    if(!is_init){
+        std::cout << "DetectorDriver: Warning! Not initialized\n";
+        return false;
+    }
     std::cout << "DetectorDriver: Cleaning up\n";
 
-    // Iterate over processors
-    for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
-    	if(use_root){
-            std::cout << " DetectorDriver: Writing '" << (*it)->GetName() << "' to root file... ";
-            if(!(*it)->WriteRoot(masterFile)){ std::cout << "failed\n"; }
+    // Write root tree to file
+    if(use_root){
+        std::cout << "DetectorDriver: Writing TTree to file with " << masterTree->GetEntries() << " entries...";
+        masterFile->cd();
+        masterTree->Write();
+        masterFile->Close();
+        delete masterFile;
+        std::cout << " done\n";
+    }
+
+    // Iterate over processors and delete them
+    if(vecProcess.size() > 0){ 
+        std::cout << "DetectorDriver: Killing processors\n";
+        for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
+            (*it)->Status(num_events);
+            delete *it;
         }
-	delete *it;
     }
-    std::cout << std::endl;
-    
     vecProcess.clear();
-    masterFile->Close();
-    delete masterFile;
 
-    // Iterate over analyzers
-    for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
-	delete *it;
+    // Iterate over analyzers and delete them
+    if(vecAnalyzer.size() > 0){ 
+        std::cout << "DetectorDriver: Killing analyzers\n";
+        for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
+            delete *it;
+        }
     }
-    std::cout << std::endl;
-
     vecAnalyzer.clear();
+
+    return true;
 }
 
 /*!
@@ -149,11 +171,20 @@ DetectorDriver::~DetectorDriver()
   The calibration file cal.txt is read using the function ReadCal() and 
   checked to make sure that all channels have a calibration.
 */
-int DetectorDriver::Init(RawEvent& rawev)
+bool DetectorDriver::Init(RawEvent& rawev)
 {
+    if(is_init){
+        std::cout << " DetectorDriver: Warning! Already initialized\n";
+        return false;
+    }
+    std::cout << " DetectorDriver: Initializing\n";
+    
+    masterTree = new TTree("Pixie16","Pixie analysis tree");
+    
     // initialize the trace analysis routine
     for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
 	(*it)->Init();
+	//if(use_root){ (*it)->InitRoot(masterTree); }
     	if(use_damm){ (*it)->InitDamm(); }
     	(*it)->CheckInit();
 	(*it)->SetLevel(20); //! Plot traces
@@ -162,7 +193,7 @@ int DetectorDriver::Init(RawEvent& rawev)
     // initialize processors in the event processing vector
     for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
     	(*it)->Init(rawev); // Initialize EventProcessor
-    	if(use_root){ (*it)->InitRoot(); }
+    	if(use_root){ (*it)->InitRoot(masterTree); }
     	if(use_damm){ (*it)->InitDamm(); }
     	(*it)->CheckInit();
     }
@@ -170,7 +201,6 @@ int DetectorDriver::Init(RawEvent& rawev)
     /*
       Read in the calibration parameters from the file cal.txt
     */
-    //cout << "read in the calibration parameters" << endl;
     ReadCal();
 
     TimingInformation readFiles;
@@ -178,8 +208,8 @@ int DetectorDriver::Init(RawEvent& rawev)
     readFiles.ReadTimingCalibration();
 
     rawev.GetCorrelator().Init(rawev);
-
-    return 0;
+    is_init = true;
+    return true;
 }
 
 /*!
@@ -229,18 +259,25 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     /* First round is preprocessing, where process result must be guaranteed
      * to not to be dependent on results of other Processors. */
     for (vector<EventProcessor*>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
-        if ( (*iProc)->HasEvent() ) {
-            (*iProc)->PreProcess(rawev);
-        }
+        if ( (*iProc)->HasEvent() ) { (*iProc)->PreProcess(rawev); }
     }
     /* In the second round the Process is called, which may depend on other
      * Processors. */
+    bool has_event = false;
     for (vector<EventProcessor *>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
-        if ( (*iProc)->HasEvent() ) {
-            (*iProc)->Process(rawev);
-            if(use_root){ (*iProc)->FillRoot(); } // Fill processor trees for each event (even if they are empty)
-        }
+        // Zero the branch first and mark it as invalid. Processors with valid data should fill
+        // their own branches by calling their PackRoot() routine internally.
+        if(use_root){ (*iProc)->Zero(); } // This should mark the processor entry as invalid (valid=false)
+        if ( (*iProc)->HasEvent() ) { 
+            (*iProc)->Process(rawev); // This should mark the processor entry as valid (valid=true)
+            if(!has_event){ has_event = true; }
+        } 
     }
+    
+    if(use_root && has_event){ 
+        masterTree->Fill(); 
+        num_events++;
+    } // Fill all processor branches for each event (even if they are invalid)
 
     return 0;   
 }

@@ -42,7 +42,7 @@ bool BetaProcessor::InitDamm(void) {
 }
 
 // Initialize for root output
-bool BetaProcessor::InitRoot(){
+bool BetaProcessor::InitRoot(TTree* top_tree){
     std::cout << " BetaProcessor: Initializing root output\n";
     if(use_root){
         std::cout << " BetaProcessor: Warning! Root output already initialized\n";
@@ -50,8 +50,7 @@ bool BetaProcessor::InitRoot(){
     }
 	
     // Create the branch
-    local_tree = new TTree(name.c_str(),name.c_str());
-    local_branch = local_tree->Branch("Beta", &structure, "energy/D:multiplicity/i:valid/O");
+    local_branch = top_tree->Branch("Beta", &structure, "energy/D:multiplicity/i:valid/O");
 
     use_root = true;
     return true;
@@ -98,22 +97,7 @@ void BetaProcessor::PackRoot(std::vector<double> &energy_, unsigned int multipli
 		structure.energy = energy_[i];
 		structure.multiplicity = multiplicity_;
 	}
-}
-
-// Fill the local tree with processed data (to be called from detector driver)
-bool BetaProcessor::FillRoot(){
-	if(!use_root){ return false; }
-	local_tree->Fill();
-	this->Zero();
-	return true;
-}
-
-// Write the local tree to file
-// Should only be called once per execution
-bool BetaProcessor::WriteRoot(TFile* masterFile){
-	if(!masterFile || !local_tree){ return false; }
-	masterFile->cd();
-	local_tree->Write();
-	std::cout << local_tree->GetEntries() << " entries\n";
-	return true;
+	
+	structure.valid = true;
+	count++;
 }
