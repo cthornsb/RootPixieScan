@@ -80,6 +80,7 @@ bool BetaProcessor::Process(RawEvent &event)
 {
     if (!EventProcessor::Process(event))
         return false;
+        
     EndProcess();
     return true;
 }

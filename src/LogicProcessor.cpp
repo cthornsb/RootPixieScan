@@ -89,7 +89,7 @@ bool LogicProcessor::Process(RawEvent &event)
     if (!EventProcessor::Process(event))
 	return false;
 
-    //BasicProcessing(event);
+    //BasicProcessing(event); // Causes seg-faults
     TriggerProcessing(event);
     
     EndProcess(); // update processing time

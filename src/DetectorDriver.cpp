@@ -258,18 +258,21 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     // have each processor in the event processing vector handle the event
     /* First round is preprocessing, where process result must be guaranteed
      * to not to be dependent on results of other Processors. */
+    // Zero the branch first and mark it as invalid. Processors with valid data should fill
+    // their own branches by calling their PackRoot() routine internally.
     for (vector<EventProcessor*>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
-        if ( (*iProc)->HasEvent() ) { (*iProc)->PreProcess(rawev); }
+        if(use_root){ (*iProc)->Zero(); } // Zero the structure in preparation for processing, mark entry as invalid (valid=false)
+        if ( (*iProc)->HasEvent() ) { 
+            (*iProc)->PreProcess(rawev); 
+            if(!has_event){ has_event = true; }
+        }
     }
     /* In the second round the Process is called, which may depend on other
      * Processors. */
     bool has_event = false;
     for (vector<EventProcessor *>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
-        // Zero the branch first and mark it as invalid. Processors with valid data should fill
-        // their own branches by calling their PackRoot() routine internally.
-        if(use_root){ (*iProc)->Zero(); } // This should mark the processor entry as invalid (valid=false)
         if ( (*iProc)->HasEvent() ) { 
-            (*iProc)->Process(rawev); // This should mark the processor entry as valid (valid=true)
+            (*iProc)->Process(rawev);
             if(!has_event){ has_event = true; }
         } 
     }
