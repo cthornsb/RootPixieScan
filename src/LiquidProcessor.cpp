@@ -179,13 +179,6 @@ bool LiquidProcessor::Process(RawEvent &event) {
     return true;
 }
 
-// "Zero" the root structure
-void LiquidProcessor::Zero(){
-	structure.TOF = 0.0; structure.S = 0.0; structure.L = 0.0;
-	structure.liquid_tqdc = 0.0; structure.start_tqdc = 0.0; 
-	structure.location = 0; structure.valid = false;
-}
-
 // Fill the root variables with processed data
 void LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
 	// Integers

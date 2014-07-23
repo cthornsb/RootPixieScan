@@ -85,11 +85,6 @@ bool BetaProcessor::Process(RawEvent &event)
     return true;
 }
 
-// "Zero" the root structure
-void BetaProcessor::Zero(){
-	structure.energy = 0.0; structure.multiplicity = 0; structure.valid = false;
-}
-
 // Fill the root variables with processed data
 void BetaProcessor::PackRoot(std::vector<double> &energy_, unsigned int multiplicity_){
 	// Quick fix just to get this processor working,

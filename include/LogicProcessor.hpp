@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "EventProcessor.hpp"
-#include "RootDataStructures.h"
+#include "Structures.h"
 
 class LogicProcessor : public EventProcessor {
 private:
@@ -28,6 +28,7 @@ protected:
     virtual bool InitDamm();
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
+    virtual void Zero(){ structure.Zero(); }
     virtual bool LogicStatus(size_t loc) const {
       return logicStatus.at(loc);
     }
@@ -43,7 +44,6 @@ protected:
     double TimeOn(size_t loc, double t) const {
 	return (LogicStatus(loc) ? (t-lastStartTime.at(loc)) : 0.);
     }
-    virtual void Zero();
     void PackRoot(double);
     //bool PackRoot(double, unsigned int, bool);
     

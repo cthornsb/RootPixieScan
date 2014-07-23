@@ -254,12 +254,13 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
         CorrEventData data(time, energy);
         TreeCorrelator::get()->place(place)->activate(data);
     } 
- 
+
     // have each processor in the event processing vector handle the event
     /* First round is preprocessing, where process result must be guaranteed
      * to not to be dependent on results of other Processors. */
     // Zero the branch first and mark it as invalid. Processors with valid data should fill
     // their own branches by calling their PackRoot() routine internally.
+    bool has_event = false;
     for (vector<EventProcessor*>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if(use_root){ (*iProc)->Zero(); } // Zero the structure in preparation for processing, mark entry as invalid (valid=false)
         if ( (*iProc)->HasEvent() ) { 
@@ -269,7 +270,6 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     }
     /* In the second round the Process is called, which may depend on other
      * Processors. */
-    bool has_event = false;
     for (vector<EventProcessor *>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if ( (*iProc)->HasEvent() ) { 
             (*iProc)->Process(rawev);

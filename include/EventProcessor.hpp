@@ -80,7 +80,7 @@ class EventProcessor : public TimingInformation{
     virtual bool Init(RawEvent&);
     virtual bool CheckInit();
     virtual bool PreProcess(RawEvent &event);   
-    virtual bool Process(RawEvent &event);   
+    virtual bool Process(RawEvent &event); 
     void EndProcess(void); // stop the process timer
     std::string GetName(void) const {
       return name;

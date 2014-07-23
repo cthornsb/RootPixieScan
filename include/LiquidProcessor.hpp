@@ -7,7 +7,7 @@
 #define __LIQUIDPROCESSOR_HPP_
 
 #include "EventProcessor.hpp"
-#include "RootDataStructures.h"
+#include "Structures.h"
 
 class LiquidProcessor : public EventProcessor{
  public:
@@ -16,7 +16,7 @@ class LiquidProcessor : public EventProcessor{
     virtual bool InitRoot(TTree*);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual void Zero();
+    virtual void Zero(){ structure.Zero(); }
     void PackRoot(unsigned int, double, double, double, double, double);
     
     LiquidDataStructure structure;

@@ -200,11 +200,6 @@ void LogicProcessor::TriggerProcessing(RawEvent &event) {
     }
 }
 
-// "Zero" the root structure
-void LogicProcessor::Zero(){
-	structure.energy = 0.0; structure.valid = false;
-}
-
 // Fill the root variables with processed data
 void LogicProcessor::PackRoot(double energy_){
 	structure.energy = energy_;

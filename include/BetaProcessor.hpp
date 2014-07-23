@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "EventProcessor.hpp"
-#include "RootDataStructures.h"
+#include "Structures.h"
 
 class BetaProcessor : public EventProcessor
 {
@@ -19,7 +19,7 @@ public:
     virtual bool InitRoot(TTree*);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual void Zero();
+    virtual void Zero(){ structure.Zero(); }
     void PackRoot(std::vector<double>&, unsigned int);
     
     BetaDataStructure structure;

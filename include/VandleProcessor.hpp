@@ -6,7 +6,7 @@
 #define __VANDLEPROCESSOR_HPP_
 
 #include "EventProcessor.hpp"
-#include "RootDataStructures.h"
+#include "Structures.h"
 
 class VandleProcessor : public EventProcessor{
  public:
@@ -16,7 +16,7 @@ class VandleProcessor : public EventProcessor{
     virtual bool InitDamm();
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
-    virtual void Zero();
+    virtual void Zero(){ structure.Zero(); }
     void PackRoot(unsigned int, const vmlData*, unsigned int);
         
     VMLMap vmlMap; 

@@ -672,14 +672,6 @@ void VandleProcessor::WalkBetaVandle(const TimingInformation::TimingDataMap &bet
     }
 }
 
-// "Zero" the root structure
-void VandleProcessor::Zero(){
-	structure.tof = 0.0; structure.lqdc = 0.0; structure.rqdc = 0.0;
-	structure.tsLow = 0.0; structure.tsHigh = 0.0; structure.lMaxVal = 0.0;
-	structure.rMaxVal = 0.0; structure.qdc = 0.0; structure.energy = 0.0;
-	structure.location = 0; structure.multiplicity = 0; structure.valid = false;
-}
-
 // Fill the root variables with processed data
 void VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_data, unsigned int multiplicity_){
 	// Integers
