@@ -77,7 +77,8 @@ bool LiquidProcessor::InitRoot(TTree* top_tree){
     }
 	
     // Create the branch
-    local_branch = top_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i:valid/O");
+    //local_branch = top_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i:valid/O");
+    local_branch = top_tree->Branch("Liquid", &structure);
 
     use_root = true;
     return true;

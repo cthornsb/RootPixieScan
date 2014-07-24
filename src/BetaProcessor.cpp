@@ -50,7 +50,8 @@ bool BetaProcessor::InitRoot(TTree* top_tree){
     }
 	
     // Create the branch
-    local_branch = top_tree->Branch("Beta", &structure, "energy/D:multiplicity/i:valid/O");
+    //local_branch = top_tree->Branch("Beta", &structure, "energy/D:multiplicity/i:valid/O");
+    local_branch = top_tree->Branch("Beta", &structure);
 
     use_root = true;
     return true;

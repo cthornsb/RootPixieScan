@@ -78,7 +78,8 @@ bool LogicProcessor::InitRoot(TTree* top_tree){
 	
     // Create the branch
     //local_branch = top_tree->Branch("Logic", &structure, "tdiff/D:location/i:start/O");
-    local_branch = top_tree->Branch("Runtime", &structure, "energy/D:valid/O");
+    //local_branch = top_tree->Branch("Runtime", &structure, "energy/D:valid/O");
+    local_branch = top_tree->Branch("Runtime", &structure);
  
     use_root = true;
     return true;

@@ -41,8 +41,9 @@ SOURCES = Structures.cpp BetaProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp 
 	   DoubleTraceAnalyzer.cpp PlaceBuilder.cpp TraceAnalyzer.cpp 
 FORTOBJ = $(addprefix $(FOBJ_DIR)/,$(FORTRAN:.f=.o))
 OBJECTS = $(addprefix $(COBJ_DIR)/,$(SOURCES:.cpp=.o))
+SHARED = libPixie.so
 
-all: $(FORTOBJ) libPixie.so $(OBJECTS) PixieLDF
+all: $(FORTOBJ) $(SHARED) $(OBJECTS) PixieLDF
 
 $(FOBJ_DIR)/%.o: $(FORT_DIR)/%.f
 	$(FC) -c $(FFLAGS) $< -o $@
@@ -59,7 +60,7 @@ RootDict.o: RootDict.cpp
 libPixie.so: RootDict.o $(COBJ_DIR)/Structures.o
 	$(CC) -g -shared -Wl,-soname,$@ -o $(DICT_DIR)/$@ $(COBJ_DIR)/Structures.o $(COBJ_DIR)/RootDict.o -lc	
 
-PixieLDF:
+PixieLDF: $(FORTOBJ) $(SHARED) $(OBJECTS)
 	$(FC) $(LDFLAGS) $(FORTOBJ) $(OBJECTS) $(LIBS) -L$(DICT_DIR) -lPixie -o $@ $(LDLIBS)
 
 clean:

@@ -239,7 +239,8 @@ bool VandleProcessor::InitRoot(TTree* top_tree){
     }
 	
     // Create the branch
-    local_branch = top_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i:valid/O");
+    //local_branch = top_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i:valid/O");
+    local_branch = top_tree->Branch("Vandle", &structure);
 
     use_root = true;
     return true;
