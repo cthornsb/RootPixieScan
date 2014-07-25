@@ -360,7 +360,7 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    double energy = CalcEnergy(corTOF, calibration.z0);
 
 	    //--- have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
-       	    static const vector<ChanEvent*> & validEvents =  rawev.GetSummary("valid")->GetList();
+       	    static const vector<ChanEvent*> & validEvents = rawev.GetSummary("valid")->GetList();
 
    	    double timeLow, timeHigh;
 	    for(vector<ChanEvent*>::const_iterator itValid = validEvents.begin();
@@ -370,7 +370,12 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 			timeHigh = (*itValid)->GetQdcValue(1); 
 		} 
             }
-	    VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh))).first;
+	    //VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh))).first;
+	    if(use_root){ 
+	    	// This will automatically mark the event as valid
+	    	structure.Append(barLoc, TOF, bar.lqdc, bar.rqdc, timeLow, timeHigh, bar.lMaxVal, bar.rMaxVal, bar.qdc, energy); 
+	    	count++;
+	    }
 
 	    bar.timeOfFlight.insert(make_pair(startLoc, TOF));
 	    bar.corTimeOfFlight.insert(make_pair(startLoc, corTOF));
@@ -378,7 +383,7 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    
 	    if(use_damm){
 	        if(corTOF >= 5) // cut out the gamma prompt
-		    plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
+		    //plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
 	        plot(DD_TOFBARS+idOffset, TOF*resMult+resOffset, barPlusStartLoc);
                 plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
 	        plot(DD_MAXRVSTOF+idOffset, TOF*resMult+resOffset, bar.rMaxVal);
@@ -418,15 +423,6 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    } 
 	} // for(TimingDataMap::iterator itStart
     } //(BarMap::iterator itBar
-
-    if(use_root){
-        unsigned int multiplicity = 1;
-        for(VMLMap::const_iterator itTempA = vmlMap.begin(); itTempA != vmlMap.end(); itTempA++) {
-            //---loops over vml map, creating root structure         
-            PackRoot((*itTempA).first, &(*itTempA).second, multiplicity); //--- filled from barMap
-            multiplicity++;
-        } // over vmlMAP
-    } // if use_root
 } //void VandleProcessor::AnalyzeData
 
 
@@ -479,7 +475,7 @@ void VandleProcessor::ClearMaps(void)
     smallMap.clear();
     startMap.clear();
     tvandleMap.clear();
-    vmlMap.clear();
+    //vmlMap.clear();
 }
 
 //********** CrossTalk **********
@@ -671,26 +667,4 @@ void VandleProcessor::WalkBetaVandle(const TimingInformation::TimingDataMap &bet
 		plot(DD_DEBUGGING8, (bar.walkCorTimeAve - (*it).second.walkCorTime)*2+500, (*it).second.maxval);
 	}
     }
-}
-
-// Fill the root variables with processed data
-void VandleProcessor::PackRoot(unsigned int location_, const vmlData* current_data, unsigned int multiplicity_){
-	// Integers
-	structure.location = location_;
-	structure.multiplicity = multiplicity_;
-	
-	// Doubles
-	structure.tof = current_data->tof; 
-	structure.lqdc = current_data->lqdc;
-	structure.rqdc = current_data->rqdc;
-	structure.tsLow = current_data->tsLow;
-	structure.tsHigh = current_data->tsHigh;
-        structure.lMaxVal = current_data->lMaxVal;
-        structure.rMaxVal = current_data->rMaxVal;
-        structure.qdc = current_data->qdc;
-        structure.energy = current_data->energy;
-        
-        // Bools
-        structure.valid = true;
-        count++;
 }

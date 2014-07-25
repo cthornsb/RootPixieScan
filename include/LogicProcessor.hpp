@@ -44,11 +44,9 @@ protected:
     double TimeOn(size_t loc, double t) const {
 	return (LogicStatus(loc) ? (t-lastStartTime.at(loc)) : 0.);
     }
-    void PackRoot(double);
-    //bool PackRoot(double, unsigned int, bool);
-    
-    RuntimeDataStructure structure;
-    //LogicDataStructure structure;
+
+    RuntimeStructure structure;
+    //LogicStructure structure;
 };
 
 #endif // __LOGICPROCESSOR_HPP_

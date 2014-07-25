@@ -149,8 +149,7 @@ bool LiquidProcessor::Process(RawEvent &event) {
                     // This calls Mike Febbraro's code from "PulseAnalysis.h"
                     // Probably slow, we should only call when we have a valid start. CRT
                     Analysis->Baseline_restore(liquid.trace, 1, 3);
-                    if(Analysis->PSD_Integration(liquid.trace, 10, 50, 1, L, S)){ goodCount++; }
-                    else{ badCount++; }
+                    Analysis->PSD_Integration(liquid.trace, 10, 50, 1, L, S);
                 
                     double tofOffset;
                     if(startLoc == 0)
@@ -162,7 +161,10 @@ bool LiquidProcessor::Process(RawEvent &event) {
                     double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
                     
                     // Root stuff
-                    if(use_root){ PackRoot(loc, TOF, S, L, liquid.tqdc, start.tqdc); }
+                    if(use_root){ 
+                    	structure.Append(loc, TOF, S, L, liquid.tqdc, start.tqdc); 
+                    	count++;
+                    }
                     
                     // Damm stuff
                     if(use_damm){
@@ -178,21 +180,4 @@ bool LiquidProcessor::Process(RawEvent &event) {
     }//end loop over liquid events
     EndProcess();
     return true;
-}
-
-// Fill the root variables with processed data
-void LiquidProcessor::PackRoot(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
-	// Integers
-	structure.location = location_;
-	
-	// Doubles
-	structure.TOF = TOF_;
-	structure.S = S_;
-	structure.L = L_;
-	structure.liquid_tqdc = ltqdc_;
-	structure.start_tqdc = stqdc_;
-	
-	// Bools
-	structure.valid = true;
-	count++;
 }

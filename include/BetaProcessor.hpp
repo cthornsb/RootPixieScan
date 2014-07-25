@@ -20,9 +20,8 @@ public:
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
     virtual void Zero(){ structure.Zero(); }
-    void PackRoot(std::vector<double>&, unsigned int);
     
-    BetaDataStructure structure;
+    BetaStructure structure;
 };
 
 #endif // __BETAPROCESSOR_HPP_

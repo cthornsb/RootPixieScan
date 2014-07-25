@@ -182,10 +182,14 @@ void LogicProcessor::TriggerProcessing(RawEvent &event) {
 	    }
 	}
     }
+    
     for (vector<ChanEvent*>::const_iterator it = triggers.begin(); it != triggers.end(); it++) {
         int timeBin = int((*it)->GetTime() / logicPlotResolution);
         timeBin -= firstTimeBin;
-        if(use_root){ PackRoot((*it)->GetEnergy()); }
+        if(use_root){ 
+        	structure.Append((*it)->GetEnergy()); 
+        	count++;
+        }
         if (timeBin >= maxBin || timeBin < 0)
             continue;
         
@@ -200,19 +204,3 @@ void LogicProcessor::TriggerProcessing(RawEvent &event) {
         }
     }
 }
-
-// Fill the root variables with processed data
-void LogicProcessor::PackRoot(double energy_){
-	structure.energy = energy_;
-	structure.valid = true;
-	count++;
-}
-/*bool LogicProcessor::PackRoot(double tdiff_, unsigned int location_, bool is_start_){
-	if(!outputInit){ return false; }
-	structure.tdiff = tdiff_;
-	structure.location = location_;
-	structure.is_start = is_start_;
-
-        local_tree->Fill();
-        return true;
-}*/

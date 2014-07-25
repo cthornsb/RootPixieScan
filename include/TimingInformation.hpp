@@ -56,15 +56,11 @@ class TimingInformation
     
     struct BarData
     {
-	BarData(const TimingData& Right, const TimingData& Left, 
-		const TimingCal &cal, const std::string &type);
-	bool BarEventCheck(const double &timeDiff, 
-			   const std::string &type);
-        double CalcFlightPath(double &timeDiff, const TimingCal &cal, 
-			      const std::string &type);
+	BarData(const TimingData& Right, const TimingData& Left, const TimingCal &cal, const std::string &type);
+	bool BarEventCheck(const double &timeDiff,  const std::string &type);
+        double CalcFlightPath(double &timeDiff, const TimingCal &cal, const std::string &type);
 	
         bool event;
-	
 	double flightPath;
 	double lMaxVal;
 	double lqdc;

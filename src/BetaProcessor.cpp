@@ -62,18 +62,18 @@ bool BetaProcessor::PreProcess(RawEvent &event){
         return false;
 
     static const vector<ChanEvent*> &scintBetaEvents =  event.GetSummary("scint:beta")->GetList();
-    std::vector<double> energies;
 
     unsigned int multiplicity = 0;
     for (vector<ChanEvent*>::const_iterator it = scintBetaEvents.begin(); it != scintBetaEvents.end(); it++) {
         double energy = (*it)->GetEnergy();
-        if (energy > detectors::betaThreshold)
-            ++multiplicity;
+        if (energy > detectors::betaThreshold){ ++multiplicity; }
         if(use_damm){ plot(D_ENERGY_BETA, energy); }
-        energies.push_back(energy);
+        if(use_root){ 
+            structure.Append(energy); 
+            count++;
+        }
     }
     if(use_damm){ plot(D_MULT_BETA, multiplicity); }
-    if(use_root){ PackRoot(energies, multiplicity); }
     return true;
 }
 
@@ -84,17 +84,4 @@ bool BetaProcessor::Process(RawEvent &event)
         
     EndProcess();
     return true;
-}
-
-// Fill the root variables with processed data
-void BetaProcessor::PackRoot(std::vector<double> &energy_, unsigned int multiplicity_){
-	// Quick fix just to get this processor working,
-	// energy should be a vector (Fix later!)
-	for(unsigned int i = 0; i < energy_.size(); i++){
-		structure.energy = energy_[i];
-		structure.multiplicity = multiplicity_;
-	}
-	
-	structure.valid = true;
-	count++;
 }

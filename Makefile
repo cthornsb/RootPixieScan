@@ -21,48 +21,76 @@ FFLAGS = -g -fsecond-underscore
 CFLAGS = -g -fPIC -Wall -O3 -DLINK_GFORTRAN `root-config --cflags` -Iinclude -DREVF -Dpulsefit -Dnewreadout #-Ddcfd
 LDLIBS = -lm -lstdc++ -lgsl -lgslcblas -lgfortran `root-config --libs`
 LDFLAGS = `root-config --glibs`
-
-DICT_DIR = ./dict
-INCLUDE_DIR = ./include
 ROOT_INC = `root-config --incdir`
-SOURCE_DIR = ./src
-FORT_DIR = ./scan
-COBJ_DIR = ./obj/c++
-FOBJ_DIR = ./obj/fortran
 
+TOP_LEVEL = $(shell pwd)
+DICT_DIR = $(TOP_LEVEL)/dict
+INCLUDE_DIR = $(TOP_LEVEL)/include
+SOURCE_DIR = $(TOP_LEVEL)/src
+FORT_DIR = $(TOP_LEVEL)/scan
+
+C_OBJ_DIR = $(TOP_LEVEL)/obj/c++
+FORT_OBJ_DIR = $(TOP_LEVEL)/obj/fortran
+DICT_OBJ_DIR = $(TOP_LEVEL)/dict/obj
+
+# Source code stuff
 FORTRAN = messlog.f mildatim.f scanor.f set2cc.f
-SOURCES = Structures.cpp BetaProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp Places.cpp ReadBuffData.RevD.cpp \
-	   Trace.cpp CfdAnalyzer.cpp EventProcessor.cpp MapFile.cpp Plots.cpp TraceExtractor.cpp ChanEvent.cpp \
-	   FittingAnalyzer.cpp McpProcessor.cpp PlotsRegister.cpp TraceFilterer.cpp ChanIdentifier.cpp GeProcessor.cpp \
-	   MtcProcessor.cpp PositionProcessor.cpp TracePlotter.cpp Correlator.cpp ImplantSsdProcessor.cpp NeutronProcessor.cpp \
-	   pugixml.cpp SsdProcessor.cpp TreeCorrelator.cpp DetectorDriver.cpp Initialize.cpp ParseXml.cpp PulserProcessor.cpp \
-	   StatsData.cpp ValidProcessor.cpp DetectorLibrary.cpp IonChamberProcessor.cpp PathHolder.cpp RandomPool.cpp TauAnalyzer.cpp \
-	   VandleProcessor.cpp DetectorSummary.cpp LiquidProcessor.cpp PixieStd.cpp RawEvent.cpp TimingInformation.cpp WaveformAnalyzer.cpp \
-	   DoubleTraceAnalyzer.cpp PlaceBuilder.cpp TraceAnalyzer.cpp 
-FORTOBJ = $(addprefix $(FOBJ_DIR)/,$(FORTRAN:.f=.o))
-OBJECTS = $(addprefix $(COBJ_DIR)/,$(SOURCES:.cpp=.o))
-SHARED = libPixie.so
+SOURCES = BetaProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp Places.cpp ReadBuffData.RevD.cpp \
+	  Trace.cpp CfdAnalyzer.cpp EventProcessor.cpp MapFile.cpp Plots.cpp TraceExtractor.cpp ChanEvent.cpp \
+	  FittingAnalyzer.cpp McpProcessor.cpp PlotsRegister.cpp TraceFilterer.cpp ChanIdentifier.cpp GeProcessor.cpp \
+	  MtcProcessor.cpp PositionProcessor.cpp TracePlotter.cpp Correlator.cpp ImplantSsdProcessor.cpp NeutronProcessor.cpp \
+	  pugixml.cpp SsdProcessor.cpp TreeCorrelator.cpp DetectorDriver.cpp Initialize.cpp ParseXml.cpp PulserProcessor.cpp \
+	  StatsData.cpp ValidProcessor.cpp DetectorLibrary.cpp IonChamberProcessor.cpp PathHolder.cpp RandomPool.cpp TauAnalyzer.cpp \
+	  VandleProcessor.cpp DetectorSummary.cpp LiquidProcessor.cpp PixieStd.cpp RawEvent.cpp TimingInformation.cpp WaveformAnalyzer.cpp \
+	  DoubleTraceAnalyzer.cpp PlaceBuilder.cpp TraceAnalyzer.cpp 
+FORTOBJ = $(addprefix $(FORT_OBJ_DIR)/,$(FORTRAN:.f=.o))
+OBJECTS = $(addprefix $(C_OBJ_DIR)/,$(SOURCES:.cpp=.o))
 
-all: $(FORTOBJ) $(SHARED) $(OBJECTS) PixieLDF
+# ROOT dictionary stuff
+DICT_SOURCE = RootDict
+STRUCT_FILE = Structures
 
-$(FOBJ_DIR)/%.o: $(FORT_DIR)/%.f
+ROOTOBJ = $(DICT_OBJ_DIR)/$(DICT_SOURCE).o 
+ROOTOBJ += $(C_OBJ_DIR)/$(STRUCT_FILE).o
+SFLAGS = $(addprefix -l,$(DICT_SOURCE))
+
+all: $(FORTOBJ) $(OBJECTS) shared PixieLDF
+#	Make all objects and link executable
+
+shared: $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
+
+.SECONDARY: $(DICT_DIR)/$(DICT_SOURCE).cpp $(ROOTOBJ)
+#	Want to keep the source files created by rootcint after compilation
+#	as well as keeping the object file made from those source files
+
+$(FORT_OBJ_DIR)/%.o: $(FORT_DIR)/%.f
+#	Compile fortran source files
 	$(FC) -c $(FFLAGS) $< -o $@
 
-$(COBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp
+$(C_OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp
+#	Compile C++ source files
 	$(CC) -c $(CFLAGS) $< -o $@
 
-RootDict.cpp:
-	@cd $(DICT_DIR); rootcint -f $@ -c ../$(INCLUDE_DIR)/Structures.h LinkDef.h
+$(DICT_OBJ_DIR)/%.o: $(DICT_DIR)/%.cpp
+#	Compile rootcint source files
+	$(CC) -c $(CFLAGS) $< -o $@
 
-RootDict.o: RootDict.cpp
-	$(CC) -I$(ROOT_INC) $(CFLAGS) $(LDFLAGS) -c $(DICT_DIR)/RootDict.cpp -o $(COBJ_DIR)/$@
+$(DICT_OBJ_DIR)/%.so: $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
+#	Generate the root shared library (.so) for the dictionary
+	$(CC) -g -shared -Wl,-soname,lib$(DICT_SOURCE).so -o $(DICT_OBJ_DIR)/lib$(DICT_SOURCE).so $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o -lc
 
-libPixie.so: RootDict.o $(COBJ_DIR)/Structures.o
-	$(CC) -g -shared -Wl,-soname,$@ -o $(DICT_DIR)/$@ $(COBJ_DIR)/Structures.o $(COBJ_DIR)/RootDict.o -lc	
+$(DICT_DIR)/%.cpp: $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
+#	Generate the dictionary source files using rootcint
+	@cd $(DICT_DIR); rootcint -f $@ -c $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
 
-PixieLDF: $(FORTOBJ) $(SHARED) $(OBJECTS)
-	$(FC) $(LDFLAGS) $(FORTOBJ) $(OBJECTS) $(LIBS) -L$(DICT_DIR) -lPixie -o $@ $(LDLIBS)
+PixieLDF: $(FORTOBJ) $(OBJECTS)
+#	Link the executable
+	$(FC) $(LDFLAGS) $(FORTOBJ) $(OBJECTS) $(ROOTOBJ) $(LIBS) -L$(DICT_OBJ_DIR) $(SFLAGS) -o $@ $(LDLIBS)
 
 clean:
 	@echo "Cleaning up..."
-	@rm -f $(COBJ_DIR)/*.o $(FOBJ_DIR)/*.o $(DICT_DIR)/RootDict* $(DICT_DIR)/*.so ./PixieLDF
+	@rm -f $(C_OBJ_DIR)/*.o $(FORT_OBJ_DIR)/*.o ./PixieLDF
+	
+tidy:
+	@echo "Removing ROOT dictionaries..."
+	@rm -f $(DICT_DIR)/$(DICT_SOURCE).cpp $(DICT_DIR)/$(DICT_SOURCE).h $(DICT_OBJ_DIR)/*.o  $(DICT_OBJ_DIR)/*.so

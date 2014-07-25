@@ -17,9 +17,8 @@ class LiquidProcessor : public EventProcessor{
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
     virtual void Zero(){ structure.Zero(); }
-    void PackRoot(unsigned int, double, double, double, double, double);
     
-    LiquidDataStructure structure;
+    LiquidStructure structure;
        
  private:
     TimingInformation timeInfo;

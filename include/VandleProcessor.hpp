@@ -17,10 +17,9 @@ class VandleProcessor : public EventProcessor{
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
     virtual void Zero(){ structure.Zero(); }
-    void PackRoot(unsigned int, const vmlData*, unsigned int);
         
-    VMLMap vmlMap; 
-    VandleDataStructure structure;
+    //VMLMap vmlMap; 
+    VandleStructure structure;
 
  protected:
     //define the maps
