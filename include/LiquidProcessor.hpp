@@ -11,18 +11,24 @@
 
 class LiquidProcessor : public EventProcessor{
  public:
-    LiquidProcessor(); // no virtual c'tors
+    LiquidProcessor();
+    LiquidProcessor(bool);
     virtual bool InitDamm();
     virtual bool InitRoot(TTree*);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual void Zero(){ structure.Zero(); }
+    virtual void Zero(){ 
+    	if(!save_waveforms){ structure.Zero(); }
+    	else{ waveform.Zero(); }
+    }
     
     LiquidStructure structure;
+    LiquidWaveform waveform;
        
  private:
     TimingInformation timeInfo;
     unsigned int goodCount, badCount;
+    bool save_waveforms;    
 };
 
 #endif // __LIQUIDPROCSSEOR_HPP_

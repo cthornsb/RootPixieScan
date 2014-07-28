@@ -65,6 +65,7 @@
 #include "TraceAnalyzer.hpp"
 #include "TraceExtractor.hpp"
 #include "WaveformAnalyzer.hpp"
+#include "GetArguments.hpp"
 
 using namespace std;
 using namespace dammIds::raw;
@@ -91,25 +92,46 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
 {
     is_init = false;
     
-#if defined(pulsefit) || defined(dcfd)
-    cout << " DetectorDriver: Loading Analyzers\n";
-    vecAnalyzer.push_back(new WaveformAnalyzer());
-#endif
-#ifdef pulsefit
-    vecAnalyzer.push_back(new FittingAnalyzer());
-#elif dcfd
-    vecAnalyzer.push_back(new CfdAnalyzer());
-#endif
-
-    use_root = true; // Hard-coded for now
-    use_damm = false; // Hard-coded for now
-    if(use_root){
-        cout << " DetectorDriver: Opening file 'master.root'\n";
-        masterFile = new TFile("master.root", "RECREATE"); // Will overwrite!
-        cout << " DetectorDriver: Loading Processors\n";
+    // Get the arguments passed to fortran (max length of 128 characters per argument)
+    // I had no idea we could do this, woooooo!!!! CRT
+    char arg[128];
+    for(int i = 0; i <= GetNumberArguments(); i++){
+        GetArgument(i, arg, 128);
+        AppendArgument(arg, 128);
     }
-    vecProcess.push_back(new BetaProcessor()); // For beam scintillator
-    vecProcess.push_back(new LiquidProcessor()); // For UofM liquid array
+    
+    cout << " DetectorDriver: Loading Analyzers\n";
+    if(!HasArgument("pfit-off") || HasArgument("dcfd-on")){
+        vecAnalyzer.push_back(new WaveformAnalyzer());
+        if(!HasArgument("pfit-off")){ vecAnalyzer.push_back(new FittingAnalyzer()); }
+        if(HasArgument("dcfd-on")){ vecAnalyzer.push_back(new CfdAnalyzer()); }
+    }
+    
+    // ROOT output is ON by default!
+    if(!HasArgument("root-off")){ 
+    	use_root = true; 
+    	std::cout << " DetectorDriver: Using ROOT output\n";
+    	std::cout << " DetectorDriver: Opening file '" << arguments[1] << ".root'\n";
+        masterFile = new TFile((arguments[1]+".root").c_str(), "RECREATE"); // Will overwrite the file!
+    }
+    else{ use_root = false; }
+    
+    // DAMM output is OFF by default!
+    if(HasArgument("damm-on")){ 
+    	use_damm = true; 
+    	std::cout << " DetectorDriver: Using DAMM output\n";
+    }
+    else{ use_damm = false; }
+
+    if(!use_root && !use_damm){ std::cout << " DetectorDriver: Warning! Neither output method is turned on\n"; }
+
+    // Writing of raw waveforms is disabled by default
+    bool save_wave = false;
+    if(HasArgument("waveform")){ save_wave = true; }
+
+    cout << " DetectorDriver: Loading Processors\n";
+    vecProcess.push_back(new BetaProcessor(); // For beam scintillator
+    vecProcess.push_back(new LiquidProcessor(save_wave)); // For UofM liquid array
     vecProcess.push_back(new LogicProcessor()); // For scalers
     vecProcess.push_back(new VandleProcessor()); // For Vandle bar array
     
@@ -210,6 +232,23 @@ bool DetectorDriver::Init(RawEvent& rawev)
     rawev.GetCorrelator().Init(rawev);
     is_init = true;
     return true;
+}
+
+bool DetectorDriver::HasArgument(std::string input){
+    for(std::vector<std::string>::iterator iter = arguments.begin(); iter != arguments.end(); iter++){
+        if(input == *iter){ return true; }
+    }
+    return false;
+}
+
+std::string DetectorDriver::AppendArgument(char* input, unsigned int size){
+    std::string arg = "";
+    for(unsigned int i = 0; i < size; i++){
+    	if(input[i] != ' '){ arg += input[i]; }
+    	else{ break; }
+    }
+    arguments.push_back(arg);
+    return arg;
 }
 
 /*!

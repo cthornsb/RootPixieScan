@@ -69,6 +69,7 @@ class DetectorDriver {
 
     unsigned int num_events;
     bool use_root, use_damm;
+    std::vector<std::string> arguments;
     Plots histo;
     TFile *masterFile;
     TTree *masterTree;
@@ -77,11 +78,18 @@ class DetectorDriver {
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
     }
-    
+
     int ProcessEvent(const string &, RawEvent& rawev);
     int ThreshAndCal(ChanEvent *, RawEvent& rawev);
     bool Init(RawEvent& rawev);
-
+    
+    // Check if an argument was passed to the program
+    bool HasArgument(std::string);
+    
+    // Append an argument to the argument vector
+    // Removes any whitespace
+    std::string AppendArgument(char*, unsigned int);
+    
     int PlotRaw(const ChanEvent *);
     int PlotCal(const ChanEvent *);
 

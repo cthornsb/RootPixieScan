@@ -110,6 +110,19 @@ void LiquidStructure::Zero(){
 	liquid_valid = false;
 }*/
 
+void LiquidWaveform::Append(std::vector<int> &pulse){
+	unsigned int count = 0;
+	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
+		if(count >= 124){ break; }
+		wave[count] = *iter;
+		count++;
+	}
+}
+
+void LiquidWaveform::Zero(){
+	for(unsigned short i = 0; i < 124; i++){ wave[i] = 0; }
+}
+
 ///////////////////////////////////////////////////////////
 // VandleProcessor
 ///////////////////////////////////////////////////////////

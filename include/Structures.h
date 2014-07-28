@@ -100,6 +100,19 @@ class LiquidStructure : public TObject {
     ClassDefNV(LiquidStructure, 1); // Liquid
 };
 
+class LiquidWaveform : public TObject {
+    public:
+	int wave[124]; // Integer array for waveform
+	
+	// Fill the root variable with raw waveform data
+	void Append(std::vector<int>&);
+	
+	// Zero the waveform
+	void Zero();
+	
+	ClassDefNV(LiquidWaveform, 1); // LiquidWaveform
+};
+
 ///////////////////////////////////////////////////////////
 // VandleProcessor
 ///////////////////////////////////////////////////////////

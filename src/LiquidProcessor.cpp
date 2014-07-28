@@ -38,6 +38,13 @@ namespace dammIds {
 LiquidProcessor::LiquidProcessor() : EventProcessor(OFFSET, RANGE, "Liquid")
 {
     associatedTypes.insert("scint");
+    save_waveforms = false;
+}
+
+LiquidProcessor::LiquidProcessor(bool save_waveforms_) : EventProcessor(OFFSET, RANGE, "Liquid")
+{
+    associatedTypes.insert("scint");
+    save_waveforms = save_waveforms_;
 }
 
 //******* Declare Plots *******
@@ -77,8 +84,11 @@ bool LiquidProcessor::InitRoot(TTree* top_tree){
     }
 	
     // Create the branch
-    //local_branch = top_tree->Branch("Liquid", &structure, "TOF/D:S/D:L/D:liquid_tqdc/D:start_tqdc/D:location/i:valid/O");
-    local_branch = top_tree->Branch("Liquid", &structure);
+    if(!save_waveforms){ local_branch = top_tree->Branch("Liquid", &structure); }
+    else{ 
+        std::cout << " LiquidProcessor: Dumping raw waveforms to root file\n";
+    	local_branch = top_tree->Branch("Liquid", &waveform); 
+    }
 
     use_root = true;
     return true;
@@ -159,10 +169,11 @@ bool LiquidProcessor::Process(RawEvent &event) {
                     
                     double TOF = liquid.highResTime - start.highResTime - tofOffset; //in ns
                     double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
-                    
+                                        
                     // Root stuff
                     if(use_root){ 
-                    	structure.Append(loc, TOF, S, L, liquid.tqdc, start.tqdc); 
+                    	if(!save_waveforms){ structure.Append(loc, TOF, S, L, liquid.tqdc, start.tqdc); }
+			else{ waveform.Append(liquid.trace); }
                     	count++;
                     }
                     
