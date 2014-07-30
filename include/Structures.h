@@ -102,7 +102,8 @@ class LiquidStructure : public TObject {
 
 class LiquidWaveform : public TObject {
     public:
-	int wave[124]; // Integer array for waveform
+	int liquid_wave[124]; // Integer array for waveform
+	bool liquid_valid;
 	
 	// Fill the root variable with raw waveform data
 	void Append(std::vector<int>&);

@@ -114,13 +114,15 @@ void LiquidWaveform::Append(std::vector<int> &pulse){
 	unsigned int count = 0;
 	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		if(count >= 124){ break; }
-		wave[count] = *iter;
+		liquid_wave[count] = *iter;
 		count++;
 	}
+	liquid_valid = true;
 }
 
 void LiquidWaveform::Zero(){
-	for(unsigned short i = 0; i < 124; i++){ wave[i] = 0; }
+	for(unsigned short i = 0; i < 124; i++){ liquid_wave[i] = 0; }
+	liquid_valid = false;
 }
 
 ///////////////////////////////////////////////////////////

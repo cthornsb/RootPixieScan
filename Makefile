@@ -1,7 +1,3 @@
-# Optional analyzers
-PULSEFIT = 1
-#DCFD = 1
-
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
 HHIRF_DIR = /usr/hhirf
@@ -18,7 +14,7 @@ CC = g++
 FC = gfortran
 
 FFLAGS = -g -fsecond-underscore
-CFLAGS = -g -fPIC -Wall -O3 -DLINK_GFORTRAN `root-config --cflags` -Iinclude -DREVF -Dpulsefit -Dnewreadout #-Ddcfd
+CFLAGS = -g -fPIC -Wall -O3 -DLINK_GFORTRAN `root-config --cflags` -Iinclude -DREVF -Dnewreadout
 LDLIBS = -lm -lstdc++ -lgsl -lgslcblas -lgfortran `root-config --libs`
 LDFLAGS = `root-config --glibs`
 ROOT_INC = `root-config --incdir`
