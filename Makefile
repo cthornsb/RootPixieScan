@@ -29,6 +29,8 @@ C_OBJ_DIR = $(TOP_LEVEL)/obj/c++
 FORT_OBJ_DIR = $(TOP_LEVEL)/obj/fortran
 DICT_OBJ_DIR = $(TOP_LEVEL)/dict/obj
 
+EXECUTABLE = PixieLDF
+
 # Source code stuff
 FORTRAN = messlog.f mildatim.f scanor.f set2cc.f
 SOURCES = BetaProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp Places.cpp ReadBuffData.RevD.cpp \
@@ -50,14 +52,34 @@ ROOTOBJ = $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
 ROOTOBJ += $(C_OBJ_DIR)/$(STRUCT_FILE).o
 SFLAGS = $(addprefix -l,$(DICT_SOURCE))
 
-all: $(FORTOBJ) $(OBJECTS) shared PixieLDF
-#	Make all objects and link executable
+#####################################################################
 
-shared: $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
+all: directory $(FORTOBJ) $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
+#	Create all directories, make all objects, and link executable
+
+.PHONY: clean tidy directory
 
 .SECONDARY: $(DICT_DIR)/$(DICT_SOURCE).cpp $(ROOTOBJ)
 #	Want to keep the source files created by rootcint after compilation
 #	as well as keeping the object file made from those source files
+
+#####################################################################
+
+directory: $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
+
+$(FORT_OBJ_DIR):
+#	Make fortran object file directory
+	mkdir $(FORT_OBJ_DIR)
+	
+$(C_OBJ_DIR):
+#	Make c++ object file directory
+	mkdir $(C_OBJ_DIR)
+
+$(DICT_OBJ_DIR):
+#	Make root dictionary object file directory
+	mkdir $(DICT_OBJ_DIR)
+
+########################################################################
 
 $(FORT_OBJ_DIR)/%.o: $(FORT_DIR)/%.f
 #	Compile fortran source files
@@ -66,6 +88,8 @@ $(FORT_OBJ_DIR)/%.o: $(FORT_DIR)/%.f
 $(C_OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp
 #	Compile C++ source files
 	$(CC) -c $(CFLAGS) $< -o $@
+
+#####################################################################
 
 $(DICT_OBJ_DIR)/%.o: $(DICT_DIR)/%.cpp
 #	Compile rootcint source files
@@ -79,9 +103,13 @@ $(DICT_DIR)/%.cpp: $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
 #	Generate the dictionary source files using rootcint
 	@cd $(DICT_DIR); rootcint -f $@ -c $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
 
-PixieLDF: $(FORTOBJ) $(OBJECTS)
+#####################################################################
+
+$(EXECUTABLE): $(FORTOBJ) $(OBJECTS)
 #	Link the executable
 	$(FC) $(LDFLAGS) $(FORTOBJ) $(OBJECTS) $(ROOTOBJ) $(LIBS) -L$(DICT_OBJ_DIR) $(SFLAGS) -o $@ $(LDLIBS)
+
+#####################################################################
 
 clean:
 	@echo "Cleaning up..."
