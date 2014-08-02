@@ -25,9 +25,10 @@ INCLUDE_DIR = $(TOP_LEVEL)/include
 SOURCE_DIR = $(TOP_LEVEL)/src
 FORT_DIR = $(TOP_LEVEL)/scan
 
-C_OBJ_DIR = $(TOP_LEVEL)/obj/c++
-FORT_OBJ_DIR = $(TOP_LEVEL)/obj/fortran
-DICT_OBJ_DIR = $(TOP_LEVEL)/dict/obj
+OBJ_DIR = $(TOP_LEVEL)/obj
+C_OBJ_DIR = $(OBJ_DIR)/c++
+FORT_OBJ_DIR = $(OBJ_DIR)/fortran
+DICT_OBJ_DIR = $(DICT_DIR)/obj
 
 EXECUTABLE = PixieLDF
 
@@ -65,7 +66,11 @@ all: directory $(FORTOBJ) $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTA
 
 #####################################################################
 
-directory: $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
+directory: $(OBJ_DIR) $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
+
+$(OBJ_DIR):
+#	Make the object file directory
+	mkdir $(OBJ_DIR)
 
 $(FORT_OBJ_DIR):
 #	Make fortran object file directory

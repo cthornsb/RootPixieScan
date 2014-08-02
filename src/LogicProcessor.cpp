@@ -70,34 +70,35 @@ bool LogicProcessor::InitDamm()
 
 // Initialize for root output
 bool LogicProcessor::InitRoot(TTree* top_tree){
-    std::cout << " LogicProcessor: Initializing root output\n";
-    if(use_root){
-        std::cout << " LogicProcessor: Warning! Root output already initialized\n";
+    if(!top_tree){
+        use_root = false;
         return false;
     }
 	
     // Create the branch
-    //local_branch = top_tree->Branch("Logic", &structure, "tdiff/D:location/i:start/O");
-    //local_branch = top_tree->Branch("Runtime", &structure, "energy/D:valid/O");
     local_branch = top_tree->Branch("Runtime", &structure);
  
     use_root = true;
     return true;
 }
 
+// Returns true ONLY if there is data to fill to the root tree
 bool LogicProcessor::Process(RawEvent &event)
 {
-    if (!EventProcessor::Process(event))
-	return false;
+    if(!initDone){ return (didProcess = false); }
 
-    //BasicProcessing(event); // Causes seg-faults
-    TriggerProcessing(event);
+    // start the process timer
+    times(&tmsBegin);
+
+    //BasicProcessing(event); // Causes seg-faults (sometimes)
+    bool output = TriggerProcessing(event);
     
     EndProcess(); // update processing time
-    return true;
+    return output;
 }
 
-void LogicProcessor::BasicProcessing(RawEvent &event) {
+// Returns true ONLY if there is data to fill to the root tree
+bool LogicProcessor::BasicProcessing(RawEvent &event) {
     const double logicPlotResolution = 10e-6 / pixie::clockInSeconds;    
     static const vector<ChanEvent*> &events = sumMap["logic"]->GetList(); // This crashes the program sometimes
     
@@ -142,9 +143,13 @@ void LogicProcessor::BasicProcessing(RawEvent &event) {
 	    if(use_damm){ plot(D_COUNTER_STOP, loc); }
 	}
     }
+    
+    return false; // Fix later, this method is un-used anyway at the moment
 }
 
-void LogicProcessor::TriggerProcessing(RawEvent &event) {
+// Returns true ONLY if there is data to fill to the root tree
+bool LogicProcessor::TriggerProcessing(RawEvent &event) {
+    bool output = false;
     const double logicPlotResolution = 1e-3 / pixie::clockInSeconds;
     const long maxBin = plotSize * plotSize;
     
@@ -188,6 +193,7 @@ void LogicProcessor::TriggerProcessing(RawEvent &event) {
         timeBin -= firstTimeBin;
         if(use_root){ 
         	structure.Append((*it)->GetEnergy()); 
+        	if(!output){ output = true; }
         	count++;
         }
         if (timeBin >= maxBin || timeBin < 0)
@@ -203,4 +209,6 @@ void LogicProcessor::TriggerProcessing(RawEvent &event) {
             }
         }
     }
+    
+    return output;
 }

@@ -77,9 +77,8 @@ bool LiquidProcessor::InitDamm()
 
 // Initialize for root output
 bool LiquidProcessor::InitRoot(TTree* top_tree){
-    std::cout << " LiquidProcessor: Initializing root output\n";
-    if(use_root){
-        std::cout << " LiquidProcessor: Warning! Root output already initialized\n";
+    if(!top_tree){
+        use_root = false;
         return false;
     }
 	
@@ -94,17 +93,14 @@ bool LiquidProcessor::InitRoot(TTree* top_tree){
     return true;
 }
 
-//******** Pre-Process ********
-bool LiquidProcessor::PreProcess(RawEvent &event){
-    if (!EventProcessor::PreProcess(event))
-        return false;
-    return true;
-}
-
 //********** Process **********
+// Returns true ONLY if there is data to fill to the root tree
 bool LiquidProcessor::Process(RawEvent &event) {
-    if (!EventProcessor::Process(event))
-        return false;
+    if(!initDone){ return (didProcess = false); }
+    bool output = false;
+
+    // start the process timer
+    times(&tmsBegin);
 
     static const vector<ChanEvent*> &liquidEvents = event.GetSummary("scint:liquid")->GetList();
     static const vector<ChanEvent*> &betaStartEvents = event.GetSummary("scint:beta:start")->GetList();
@@ -174,6 +170,7 @@ bool LiquidProcessor::Process(RawEvent &event) {
                     if(use_root){ 
                     	if(!save_waveforms){ structure.Append(loc, TOF, S, L, liquid.tqdc, start.tqdc); }
 			else{ waveform.Append(liquid.trace); }
+			if(!output){ output = true; }
                     	count++;
                     }
                     
@@ -190,5 +187,5 @@ bool LiquidProcessor::Process(RawEvent &event) {
         } // Good Liquid Check
     }//end loop over liquid events
     EndProcess();
-    return true;
+    return output;
 }

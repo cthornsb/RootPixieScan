@@ -37,6 +37,14 @@ using std::set;
 using std::string;
 using std::vector;
 
+// Convert arbitrary input to string
+template <typename T>
+std::string to_str(T input){
+	std::stringstream output;
+	output << input;
+	return output.str();
+}
+
 /**
   \brief DetectorDriver controls event processing
 
@@ -50,6 +58,16 @@ class DetectorDriver {
     DetectorDriver (const DetectorDriver&);
     DetectorDriver& operator= (DetectorDriver const&);
     static DetectorDriver* instance;
+    
+    // Variables related to the root output
+    unsigned int num_events;
+    unsigned int num_files;
+    bool use_root, use_damm;
+    std::vector<std::string> arguments;
+    std::string root_fname;   
+    TFile *masterFile;
+    TTree *masterTree;
+    bool is_init;
 
     vector<EventProcessor *> vecProcess; /**< vector of processors to handle each event */
     vector<TraceAnalyzer *> vecAnalyzer; /**< object which analyzes traces of channels to extract energy and time information */
@@ -66,14 +84,7 @@ class DetectorDriver {
  public:    
     static DetectorDriver* get();
     vector<Calibration> cal; /**<the calibration vector*/ 
-
-    unsigned int num_events;
-    bool use_root, use_damm;
-    std::vector<std::string> arguments;
     Plots histo;
-    TFile *masterFile;
-    TTree *masterTree;
-    bool is_init;
     
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
@@ -89,6 +100,9 @@ class DetectorDriver {
     // Append an argument to the argument vector
     // Removes any whitespace
     std::string AppendArgument(char*, unsigned int);
+    
+    // Close the current root file and open a new one with a new name
+    bool OpenNewFile();
     
     int PlotRaw(const ChanEvent *);
     int PlotCal(const ChanEvent *);

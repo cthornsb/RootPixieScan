@@ -232,14 +232,12 @@ bool VandleProcessor::InitDamm()
 
 // Initialize for root output
 bool VandleProcessor::InitRoot(TTree* top_tree){
-    std::cout << " VandleProcessor: Initializing root output\n";
-    if(use_root){
-        std::cout << " VandleProcessor: Warning! Root output already initialized\n";
+    if(!top_tree){
+        use_root = false;
         return false;
     }
 	
     // Create the branch
-    //local_branch = top_tree->Branch("Vandle", &structure, "tof/D:lqdc/D:rqdc/D:tsLow/D:tsHigh/D:lMaxVal/D:rMaxVal/D:qdc/D:energy/D:multiplicity/i:location/i:valid/O");
     local_branch = top_tree->Branch("Vandle", &structure);
 
     use_root = true;
@@ -247,22 +245,26 @@ bool VandleProcessor::InitRoot(TTree* top_tree){
 }
 
 //********** Process **********
+// Returns true ONLY if there is data to fill to the root tree
 bool VandleProcessor::Process(RawEvent &event) 
 {
-    if (!EventProcessor::Process(event)) //start event processing
-	return false;
+    if(!initDone){ return (didProcess = false); }
+
+    // start the process timer
+    times(&tmsBegin);
+    
     if(use_damm){ plot(D_PROBLEMS, 30); } //DEBUGGING
     if(RetrieveData(event)){
-        AnalyzeData(event);
+        bool output = AnalyzeData(event);
         //CrossTalk();
 
         EndProcess();
-        return true;
+        didProcess = true;
+        return output;
     } 
-    else{
-        EndProcess();
-        return (didProcess = false);
-    }
+    EndProcess();
+    didProcess = false;
+    return false;
 }
 
 //********** RetrieveData **********
@@ -304,8 +306,11 @@ bool VandleProcessor::RetrieveData(RawEvent &event)
 } // bool VandleProcessor::RetrieveData
 
 //********** AnalyzeData **********
-void VandleProcessor::AnalyzeData(RawEvent& rawev)
+// Returns true ONLY if there is data to fill to the root tree
+bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 {
+    bool output = false;
+    
     //Analyze the Teeny VANDLE data if there is any
     if(!tvandleMap.empty() && tvandleMap.size()%2 == 0) //--- there should be an even amount of events
 	Tvandle();
@@ -374,6 +379,7 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    if(use_root){ 
 	    	// This will automatically mark the event as valid
 	    	structure.Append(barLoc, TOF, bar.lqdc, bar.rqdc, timeLow, timeHigh, bar.lMaxVal, bar.rMaxVal, bar.qdc, energy); 
+	    	if(!output){ output = true; }
 	    	count++;
 	    }
 
@@ -423,6 +429,8 @@ void VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    } 
 	} // for(TimingDataMap::iterator itStart
     } //(BarMap::iterator itBar
+    
+    return output;
 } //void VandleProcessor::AnalyzeData
 
 

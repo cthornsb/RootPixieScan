@@ -24,15 +24,15 @@ class RawEvent;
 
 class EventProcessor : public TimingInformation{
  private:
+    void _initialize();
+    
+ protected:
     // things associated with timing
     tms tmsBegin;
     double userTime;
     double systemTime;
     double clocksPerSecond;
 
-    void _initialize();
-
- protected:
     // define the associated detector types and only initialize if present
     std::string name;
     std::set<std::string> associatedTypes; //--- set of type string

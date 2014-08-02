@@ -13,8 +13,8 @@
 
 class LogicProcessor : public EventProcessor {
 private:
-    void BasicProcessing(RawEvent &event);
-    void TriggerProcessing(RawEvent &event);
+    bool BasicProcessing(RawEvent &event);
+    bool TriggerProcessing(RawEvent &event);
     int plotSize;
 protected:
     std::vector<double> lastStartTime; //< time of last leading edge

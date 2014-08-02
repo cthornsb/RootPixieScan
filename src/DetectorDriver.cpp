@@ -91,6 +91,8 @@ DetectorDriver* DetectorDriver::get() {
 DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE) 
 {
     is_init = false;
+    root_fname = "";
+    num_files = 0;
     
     // Get the arguments passed to fortran (max length of 128 characters per argument)
     // I had no idea we could do this, woooooo!!!! CRT
@@ -100,41 +102,41 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
         AppendArgument(arg, 128);
     }
     
-    cout << " DetectorDriver: Loading Analyzers\n";
+    cout << "DetectorDriver: Loading Analyzers\n";
     if(!HasArgument("pfit-off") || HasArgument("dcfd-on")){
         vecAnalyzer.push_back(new WaveformAnalyzer());
         if(!HasArgument("pfit-off")){ vecAnalyzer.push_back(new FittingAnalyzer()); }
         if(HasArgument("dcfd-on")){ vecAnalyzer.push_back(new CfdAnalyzer()); }
     }
     
+    // Writing of raw waveforms is disabled by default
+    bool save_wave = false;
+    if(HasArgument("waveform")){ save_wave = true; }
+
+    cout << "DetectorDriver: Loading Processors\n";
+    vecProcess.push_back(new BetaProcessor()); // For beam scintillator
+    vecProcess.push_back(new LiquidProcessor(save_wave)); // For UofM liquid array
+    vecProcess.push_back(new LogicProcessor()); // For scalers
+    vecProcess.push_back(new VandleProcessor()); // For Vandle bar array
+
     // ROOT output is ON by default!
     if(!HasArgument("root-off")){ 
     	use_root = true; 
-    	std::cout << " DetectorDriver: Using ROOT output\n";
-    	std::cout << " DetectorDriver: Opening file '" << arguments[1] << ".root'\n";
-        masterFile = new TFile((arguments[1]+".root").c_str(), "RECREATE"); // Will overwrite the file!
+    	root_fname = arguments[1];
+    	std::cout << "DetectorDriver: Using ROOT output\n";
+    	OpenNewFile();
     }
     else{ use_root = false; }
     
     // DAMM output is OFF by default!
     if(HasArgument("damm-on")){ 
     	use_damm = true; 
-    	std::cout << " DetectorDriver: Using DAMM output\n";
+    	std::cout << "DetectorDriver: Using DAMM output\n";
     }
     else{ use_damm = false; }
 
-    if(!use_root && !use_damm){ std::cout << " DetectorDriver: Warning! Neither output method is turned on\n"; }
+    if(!use_root && !use_damm){ std::cout << "DetectorDriver: Warning! Neither output method is turned on\n"; }
 
-    // Writing of raw waveforms is disabled by default
-    bool save_wave = false;
-    if(HasArgument("waveform")){ save_wave = true; }
-
-    cout << " DetectorDriver: Loading Processors\n";
-    vecProcess.push_back(new BetaProcessor()); // For beam scintillator
-    vecProcess.push_back(new LiquidProcessor(save_wave)); // For UofM liquid array
-    vecProcess.push_back(new LogicProcessor()); // For scalers
-    vecProcess.push_back(new VandleProcessor()); // For Vandle bar array
-    
     num_events = 0;
 }
 
@@ -154,8 +156,7 @@ bool DetectorDriver::Delete()
         std::cout << "DetectorDriver: Warning! Not initialized\n";
         return false;
     }
-    std::cout << "DetectorDriver: Cleaning up\n";
-
+    
     // Write root tree to file
     if(use_root){
         std::cout << "DetectorDriver: Writing TTree to file with " << masterTree->GetEntries() << " entries...";
@@ -164,7 +165,10 @@ bool DetectorDriver::Delete()
         masterFile->Close();
         delete masterFile;
         std::cout << " done\n";
-    }
+    }    
+    
+    std::cout << "DetectorDriver: Cleaning up\n";
+    std::cout << "DetectorDriver: Wrote " << num_events << " total events\n";
 
     // Iterate over processors and delete them
     if(vecProcess.size() > 0){ 
@@ -196,28 +200,22 @@ bool DetectorDriver::Delete()
 bool DetectorDriver::Init(RawEvent& rawev)
 {
     if(is_init){
-        std::cout << " DetectorDriver: Warning! Already initialized\n";
+        std::cout << "DetectorDriver: Warning! Already initialized\n";
         return false;
     }
-    std::cout << " DetectorDriver: Initializing\n";
-    
-    masterTree = new TTree("Pixie16","Pixie analysis tree");
+    std::cout << "DetectorDriver: Initializing\n";
     
     // initialize the trace analysis routine
     for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
 	(*it)->Init();
-	//if(use_root){ (*it)->InitRoot(masterTree); }
     	if(use_damm){ (*it)->InitDamm(); }
-    	(*it)->CheckInit();
 	(*it)->SetLevel(20); //! Plot traces
     }
 
     // initialize processors in the event processing vector
     for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
-    	(*it)->Init(rawev); // Initialize EventProcessor
-    	if(use_root){ (*it)->InitRoot(masterTree); }
+    	(*it)->Init(rawev); // Initialize EventProcessor	
     	if(use_damm){ (*it)->InitDamm(); }
-    	(*it)->CheckInit();
     }
 
     /*
@@ -249,6 +247,64 @@ std::string DetectorDriver::AppendArgument(char* input, unsigned int size){
     }
     arguments.push_back(arg);
     return arg;
+}
+
+bool DetectorDriver::OpenNewFile(){
+    if(!use_root){
+        std::cout << "DetectorDriver: Warning! Cannot open Root file, Root usage is not enabled\n";
+        std::cout << "DetectorDriver: Did you pass the root-off flag at the command line?\n";
+        return false;
+    }
+    
+    // Get the new file name
+    std::string current_fname = "";
+    if(num_files == 0){ current_fname = root_fname + ".root"; } // root_fname.root
+    else{
+        if(num_files < 10){ current_fname = root_fname + "_0" + to_str(num_files) + ".root"; } // root_fname_01.root
+        else{ current_fname = root_fname + "_" + to_str(num_files) + ".root"; } // root_fname_10.root
+        
+        // Since num_files > 0, there is already a file open. It needs to be closed.
+        std::cout << "DetectorDriver: Writing TTree to file with " << masterTree->GetEntries() << " entries...";
+        masterFile->cd();
+        masterTree->Write();
+        masterFile->Close();
+        delete masterFile; // Also deleting masterTree will cause a segfault!
+        std::cout << " done\n";
+    }
+    
+    // Open the new file and create the tree
+    std::cout << "DetectorDriver: Opening file '" << current_fname << "'\n";
+    masterFile = new TFile(current_fname.c_str(), "RECREATE"); // Will overwrite the file!
+    masterTree = new TTree("Pixie16","Pixie analysis tree");
+
+    if(num_files == 0){
+        // Add analyzer branches to root tree
+        /*for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
+            std::cout << " " << (*it)->GetName() << "Analyzer: Initializing root output\n";
+            if(!(*it)->InitRoot(masterTree)){ std::cout << " " << (*it)->GetName() << "Analyzer: Warning! Failed to add branch\n"; }
+        }*/
+
+        // Add processor branches to root tree
+        for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
+            std::cout << " " << (*it)->GetName() << "Processor: Initializing root output\n";
+            if(!(*it)->InitRoot(masterTree)){ std::cout << " " << (*it)->GetName() << "Processor: Warning! Failed to add branch\n"; }
+        }
+    }
+    else{
+        // Add analyzer branches to root tree
+        /*for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
+            (*it)->InitRoot(masterTree)
+        }*/
+
+        // Add processor branches to root tree
+        for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
+            (*it)->InitRoot(masterTree);
+        }
+    }    
+    
+    num_files++;
+    if(!masterFile){ return false; }
+    return true;
 }
 
 /*!
@@ -303,23 +359,26 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     for (vector<EventProcessor*>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if(use_root){ (*iProc)->Zero(); } // Zero the structure in preparation for processing, mark entry as invalid (valid=false)
         if ( (*iProc)->HasEvent() ) { 
-            (*iProc)->PreProcess(rawev); 
-            if(!has_event){ has_event = true; }
+            if((*iProc)->PreProcess(rawev) && !has_event){ has_event = true; }
         }
     }
     /* In the second round the Process is called, which may depend on other
      * Processors. */
     for (vector<EventProcessor *>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
         if ( (*iProc)->HasEvent() ) { 
-            (*iProc)->Process(rawev);
-            if(!has_event){ has_event = true; }
+            if((*iProc)->Process(rawev) && !has_event){ has_event = true; }
         } 
     }
     
+    // Fill all processor branches for each event (even if they are invalid)
     if(use_root && has_event){ 
         masterTree->Fill(); 
         num_events++;
-    } // Fill all processor branches for each event (even if they are invalid)
+        
+        // Limit root file size to roughly 2 GB
+        if(masterFile->GetSize() >= 2147483648){ OpenNewFile(); }
+        //if(masterFile->GetSize() >= 2000000){ OpenNewFile(); }
+    } 
 
     return 0;   
 }

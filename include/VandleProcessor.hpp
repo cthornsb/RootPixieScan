@@ -31,7 +31,7 @@ class VandleProcessor : public EventProcessor{
  
  private:
     virtual bool RetrieveData(RawEvent &event);
-    virtual void AnalyzeData(RawEvent& rawev);
+    virtual bool AnalyzeData(RawEvent& rawev);
     virtual void ClearMaps(void);
     virtual void CrossTalk(void);
     virtual void Tvandle(void);

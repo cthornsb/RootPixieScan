@@ -43,23 +43,22 @@ bool BetaProcessor::InitDamm(void) {
 
 // Initialize for root output
 bool BetaProcessor::InitRoot(TTree* top_tree){
-    std::cout << " BetaProcessor: Initializing root output\n";
-    if(use_root){
-        std::cout << " BetaProcessor: Warning! Root output already initialized\n";
+    if(!top_tree){
+        use_root = false;
         return false;
     }
 	
     // Create the branch
-    //local_branch = top_tree->Branch("Beta", &structure, "energy/D:multiplicity/i:valid/O");
     local_branch = top_tree->Branch("Beta", &structure);
 
     use_root = true;
     return true;
 }
 
+// Returns true ONLY if there is data to fill to the root tree
 bool BetaProcessor::PreProcess(RawEvent &event){
-    if (!EventProcessor::PreProcess(event))
-        return false;
+    if(!initDone){ return (didProcess = false); }
+    bool output = false;
 
     static const vector<ChanEvent*> &scintBetaEvents =  event.GetSummary("scint:beta")->GetList();
 
@@ -70,18 +69,22 @@ bool BetaProcessor::PreProcess(RawEvent &event){
         if(use_damm){ plot(D_ENERGY_BETA, energy); }
         if(use_root){ 
             structure.Append(energy); 
+            if(!output){ output = true; }
             count++;
         }
     }
     if(use_damm){ plot(D_MULT_BETA, multiplicity); }
-    return true;
+    return output;
 }
 
+// Returns true ONLY if there is data to fill to the root tree
 bool BetaProcessor::Process(RawEvent &event)
 {
-    if (!EventProcessor::Process(event))
-        return false;
+    if(!initDone){ return (didProcess = false); }
+
+    // start the process timer
+    times(&tmsBegin);
         
     EndProcess();
-    return true;
+    return false;
 }
