@@ -61,6 +61,7 @@ class DetectorDriver {
     
     // Variables related to the root output
     unsigned int num_events;
+    unsigned int num_fills;
     unsigned int num_files;
     bool use_root, use_damm;
     std::vector<std::string> arguments;

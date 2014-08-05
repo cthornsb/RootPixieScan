@@ -102,11 +102,18 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
         AppendArgument(arg, 128);
     }
     
-    cout << "DetectorDriver: Loading Analyzers\n";
+    std::cout << "DetectorDriver: Loading Analyzers\n";
     if(!HasArgument("pfit-off") || HasArgument("dcfd-on")){
         vecAnalyzer.push_back(new WaveformAnalyzer());
-        if(!HasArgument("pfit-off")){ vecAnalyzer.push_back(new FittingAnalyzer()); }
-        if(HasArgument("dcfd-on")){ vecAnalyzer.push_back(new CfdAnalyzer()); }
+        std::cout << "DetectorDriver: Using WaveformAnalyzer\n";
+        if(!HasArgument("pfit-off")){ 
+            vecAnalyzer.push_back(new FittingAnalyzer()); 
+            std::cout << "DetectorDriver: FittingAnalyzer is active\n";
+        }
+        if(HasArgument("dcfd-on")){ 
+            vecAnalyzer.push_back(new CfdAnalyzer()); 
+            std::cout << "DetectorDriver: CfdAnalyzer is active\n";
+        }
     }
     
     // Writing of raw waveforms is disabled by default
@@ -138,6 +145,7 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     if(!use_root && !use_damm){ std::cout << "DetectorDriver: Warning! Neither output method is turned on\n"; }
 
     num_events = 0;
+    num_fills = 0;
 }
 
 /*!
@@ -162,19 +170,23 @@ bool DetectorDriver::Delete()
         std::cout << "DetectorDriver: Writing TTree to file with " << masterTree->GetEntries() << " entries...";
         masterFile->cd();
         masterTree->Write();
+        
+        unsigned int filesize = masterFile->GetSize();
         masterFile->Close();
         delete masterFile;
         std::cout << " done\n";
+        std::cout << "DetectorDriver: Wrote " << filesize << " bytes to file\n";
     }    
     
     std::cout << "DetectorDriver: Cleaning up\n";
-    std::cout << "DetectorDriver: Wrote " << num_events << " total events\n";
+    std::cout << "DetectorDriver: Found " << num_events << " total events\n";
+    std::cout << "DetectorDriver: Wrote " << num_fills << " (" << 100.0*num_fills/num_events << "%) events to file\n";
 
     // Iterate over processors and delete them
     if(vecProcess.size() > 0){ 
         std::cout << "DetectorDriver: Killing processors\n";
         for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
-            (*it)->Status(num_events);
+            (*it)->Status(num_fills);
             delete *it;
         }
     }
@@ -267,9 +279,12 @@ bool DetectorDriver::OpenNewFile(){
         std::cout << "DetectorDriver: Writing TTree to file with " << masterTree->GetEntries() << " entries...";
         masterFile->cd();
         masterTree->Write();
+        
+        unsigned int filesize = masterFile->GetSize();        
         masterFile->Close();
         delete masterFile; // Also deleting masterTree will cause a segfault!
         std::cout << " done\n";
+        std::cout << "DetectorDriver: Wrote " << filesize << " bytes to file\n";
     }
     
     // Open the new file and create the tree
@@ -326,14 +341,9 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
       that fired in this particular event.
     */
     plot(dammIds::raw::D_NUMBER_OF_EVENTS, dammIds::GENERIC_CHANNEL);
+    num_events++; // Count the number of raw events
     
-    /*
-    const vector<ChanEvent *> &eventList = rawev.GetEventList();
-    for(size_t i=0; i < eventList.size(); i++) {
-        ChanEvent *chan = eventList[i];  
-    */
-    for (vector<ChanEvent*>::const_iterator it = rawev.GetEventList().begin();
-         it != rawev.GetEventList().end(); ++it) {
+    for (vector<ChanEvent*>::const_iterator it = rawev.GetEventList().begin(); it != rawev.GetEventList().end(); ++it) {
         string place = (*it)->GetChanID().GetPlaceName();
         if (place == "__-1") // empty channel
             continue;
@@ -373,11 +383,10 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
     // Fill all processor branches for each event (even if they are invalid)
     if(use_root && has_event){ 
         masterTree->Fill(); 
-        num_events++;
+        num_fills++; // Count the number of tree fills
         
         // Limit root file size to roughly 2 GB
         if(masterFile->GetSize() >= 2147483648){ OpenNewFile(); }
-        //if(masterFile->GetSize() >= 2000000){ OpenNewFile(); }
     } 
 
     return 0;   

@@ -12,7 +12,6 @@ class BetaStructure : public TObject {
   public:
     std::vector<double> beta_energy;
     unsigned int beta_mult;
-    bool beta_valid;
 
     BetaStructure();
 
@@ -52,7 +51,6 @@ class RuntimeStructure : public TObject {
   public:
     std::vector<double> rtime_energy;
     unsigned int rtime_mult;
-    bool rtime_valid;
 
     RuntimeStructure();
 
@@ -68,17 +66,6 @@ class RuntimeStructure : public TObject {
 ///////////////////////////////////////////////////////////
 // LiquidProcessor
 ///////////////////////////////////////////////////////////
-/*struct LiquidData{
-    double liquid_TOF, liquid_S, L, liquid_tqdc, start_tqdc;
-    int liquid_loc;
-    
-    LiquidData(){ Zero(); }
-    LiquidData(unsigned int, double, double, double, double, double);
-
-    // Zero the data structure
-    void Zero();
-};*/
-
 class LiquidStructure : public TObject {
   public:
     //std::vector<LiquidData*> liquid_data;
@@ -86,12 +73,10 @@ class LiquidStructure : public TObject {
     std::vector<double> liquid_tqdc, start_tqdc;
     std::vector<int> liquid_loc;
     unsigned int liquid_mult;
-    bool liquid_valid;
 
     LiquidStructure();
 
     // Fill the root variables with processed data
-    //void Append(LiquidData*);
     void Append(unsigned int, double, double, double, double, double);
     
     // Zero the data structure    
@@ -117,18 +102,6 @@ class LiquidWaveform : public TObject {
 ///////////////////////////////////////////////////////////
 // VandleProcessor
 ///////////////////////////////////////////////////////////
-/*struct VandleData{
-    double vandle_TOF, vandle_lqdc, vandle_rqdc, vandle_tsLow, vandle_tsHigh;
-    double vandle_lMaxVal, vandle_rMaxVal, vandle_qdc, vandle_energy;
-    int vandle_loc;
-    
-    VandleData(){ Zero(); }
-    VandleData(unsigned int, double, double, double, double, double, double, double, double, double);
-
-    // Zero the data structure
-    void Zero();
-};*/
-
 class VandleStructure : public TObject {
   public:
     //std::vector<VandleData*> vandle_data;
@@ -136,13 +109,11 @@ class VandleStructure : public TObject {
     std::vector<double> vandle_lMaxVal, vandle_rMaxVal, vandle_qdc, vandle_energy;
     std::vector<int> vandle_loc;
     unsigned int vandle_mult; 
-    bool vandle_valid;
 
     VandleStructure();
     
     // Add an entry to the data vector
     // Calling this method will mark the event as valid
-    //void Append(VandleData*);
     void Append(unsigned int, double, double, double, double, double, double, double, double, double);
     
     // Zero the data structure
