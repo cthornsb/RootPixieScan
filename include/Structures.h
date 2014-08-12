@@ -1,6 +1,9 @@
 #ifndef ROOTDATAStructure_H
 #define ROOTDATAStructure_H
 
+#define BETA_WAVE_SIZE 62
+#define LIQUID_WAVE_SIZE 124
+
 #include "TObject.h"
 
 #include <vector>
@@ -22,6 +25,20 @@ class BetaStructure : public TObject {
     void Zero();
     
     ClassDefNV(BetaStructure, 1); // Beta
+};
+
+class BetaWaveform : public TObject {
+    public:
+	int beta_wave[BETA_WAVE_SIZE]; // Integer array for waveform
+	bool beta_valid;
+	
+	// Fill the root variable with raw waveform data
+	void Append(std::vector<int>&);
+	
+	// Zero the waveform
+	void Zero();
+	
+	ClassDefNV(BetaWaveform, 1); // BetaWaveform
 };
 
 ///////////////////////////////////////////////////////////
@@ -86,8 +103,8 @@ class LiquidStructure : public TObject {
 };
 
 class LiquidWaveform : public TObject {
-    public:
-	int liquid_wave[124]; // Integer array for waveform
+  public:
+	int liquid_wave[LIQUID_WAVE_SIZE]; // Integer array for waveform
 	bool liquid_valid;
 	
 	// Fill the root variable with raw waveform data

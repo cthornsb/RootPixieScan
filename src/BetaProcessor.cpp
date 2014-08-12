@@ -25,6 +25,13 @@ namespace dammIds {
 BetaProcessor::BetaProcessor() : EventProcessor(OFFSET, RANGE) {
     name = "Beta";
     associatedTypes.insert("scint"); 
+    save_waveforms = false;
+}
+
+BetaProcessor::BetaProcessor(bool save_waveforms_) : EventProcessor(OFFSET, RANGE) {
+    name = "Beta";
+    associatedTypes.insert("scint"); 
+    save_waveforms = save_waveforms_;
 }
 
 bool BetaProcessor::InitDamm(void) {
@@ -47,9 +54,13 @@ bool BetaProcessor::InitRoot(TTree* top_tree){
         use_root = false;
         return false;
     }
-	
+
     // Create the branch
-    local_branch = top_tree->Branch("Beta", &structure);
+    if(!save_waveforms){ local_branch = top_tree->Branch("Beta", &structure); }
+    else{
+    	std::cout << " BetaProcessor: Dumping raw waveforms to root file\n";
+    	local_branch = top_tree->Branch("Beta", &waveform);
+    }
 
     use_root = true;
     return true;
@@ -64,11 +75,13 @@ bool BetaProcessor::PreProcess(RawEvent &event){
 
     unsigned int multiplicity = 0;
     for (vector<ChanEvent*>::const_iterator it = scintBetaEvents.begin(); it != scintBetaEvents.end(); it++) {
+    	TimingInformation::TimingData beta((*it));
         double energy = (*it)->GetEnergy();
         if (energy > detectors::betaThreshold){ ++multiplicity; }
         if(use_damm){ plot(D_ENERGY_BETA, energy); }
         if(use_root){ 
-            structure.Append(energy); 
+            if(!save_waveforms){ structure.Append(energy); }
+            else{ waveform.Append(beta.trace); }
             if(!output){ output = true; }
             count++;
         }

@@ -1,3 +1,6 @@
+#define BETA_WAVE_SIZE 62
+#define LIQUID_WAVE_SIZE 124
+
 #include "Structures.h"
 
 ///////////////////////////////////////////////////////////
@@ -14,6 +17,21 @@ void BetaStructure::Zero(){
 	if(beta_mult == 0){ return ; } // Structure is already empty
 	beta_energy.clear();
 	beta_mult = 0;
+}
+
+void BetaWaveform::Append(std::vector<int> &pulse){
+	unsigned int count = 0;
+	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
+		if(count >= BETA_WAVE_SIZE){ break; }
+		beta_wave[count] = *iter;
+		count++;
+	}
+	beta_valid = true;
+}
+
+void BetaWaveform::Zero(){
+	for(unsigned short i = 0; i < BETA_WAVE_SIZE; i++){ beta_wave[i] = 0; }
+	beta_valid = false;
 }
 
 ///////////////////////////////////////////////////////////
@@ -77,7 +95,7 @@ void LiquidStructure::Zero(){
 void LiquidWaveform::Append(std::vector<int> &pulse){
 	unsigned int count = 0;
 	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
-		if(count >= 124){ break; }
+		if(count >= LIQUID_WAVE_SIZE){ break; }
 		liquid_wave[count] = *iter;
 		count++;
 	}
@@ -85,7 +103,7 @@ void LiquidWaveform::Append(std::vector<int> &pulse){
 }
 
 void LiquidWaveform::Zero(){
-	for(unsigned short i = 0; i < 124; i++){ liquid_wave[i] = 0; }
+	for(unsigned short i = 0; i < LIQUID_WAVE_SIZE; i++){ liquid_wave[i] = 0; }
 	liquid_valid = false;
 }
 

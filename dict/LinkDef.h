@@ -7,6 +7,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class BetaStructure+;
+#pragma link C++ class BetaWaveform+;
 #pragma link C++ class RuntimeStructure+;
 #pragma link C++ class LiquidStructure+;
 #pragma link C++ class LiquidWaveform+;

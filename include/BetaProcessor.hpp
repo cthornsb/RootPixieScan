@@ -13,15 +13,23 @@
 
 class BetaProcessor : public EventProcessor
 {
-public:
+  public:
     BetaProcessor();
+    BetaProcessor(bool);
     virtual bool InitDamm();
     virtual bool InitRoot(TTree*);
     virtual bool PreProcess(RawEvent &event);
     virtual bool Process(RawEvent &event);
-    virtual void Zero(){ structure.Zero(); }
+    virtual void Zero(){ 
+    	if(!save_waveforms){ structure.Zero(); }
+    	else{ waveform.Zero(); }
+    }
     
     BetaStructure structure;
+    BetaWaveform waveform;
+    
+  private:
+	bool save_waveforms;
 };
 
 #endif // __BETAPROCESSOR_HPP_

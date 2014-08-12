@@ -121,7 +121,7 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     if(HasArgument("waveform")){ save_wave = true; }
 
     cout << "DetectorDriver: Loading Processors\n";
-    vecProcess.push_back(new BetaProcessor()); // For beam scintillator
+    vecProcess.push_back(new BetaProcessor(save_wave)); // For beam scintillator
     vecProcess.push_back(new LiquidProcessor(save_wave)); // For UofM liquid array
     vecProcess.push_back(new LogicProcessor()); // For scalers
     vecProcess.push_back(new VandleProcessor()); // For Vandle bar array

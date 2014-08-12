@@ -169,8 +169,8 @@ bool LiquidProcessor::Process(RawEvent &event) {
                     // Root stuff
                     if(use_root){ 
                     	if(!save_waveforms){ structure.Append(loc, TOF, S, L, liquid.tqdc, start.tqdc); }
-			else{ waveform.Append(liquid.trace); }
-			if(!output){ output = true; }
+						else{ waveform.Append(liquid.trace); }
+						if(!output){ output = true; }
                     	count++;
                     }
                     
