@@ -15,7 +15,9 @@ class LogicProcessor : public EventProcessor {
 private:
     bool BasicProcessing(RawEvent &event);
     bool TriggerProcessing(RawEvent &event);
+    bool save_waveforms;
     int plotSize;
+    
 protected:
     std::vector<double> lastStartTime; //< time of last leading edge
     std::vector<double> lastStopTime;  //< time of last trailing edge
@@ -23,6 +25,7 @@ protected:
 
     std::vector<unsigned long> stopCount;  //< number of stops received
     std::vector<unsigned long> startCount; //< number of starts received
+    
  public:
     LogicProcessor();
     virtual bool InitDamm();
@@ -46,7 +49,6 @@ protected:
     }
 
     RuntimeStructure structure;
-    //LogicStructure structure;
 };
 
 #endif // __LOGICPROCESSOR_HPP_

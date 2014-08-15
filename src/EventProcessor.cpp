@@ -59,9 +59,9 @@ EventProcessor::~EventProcessor()
 void EventProcessor::Status(unsigned int total_events)
 {
     if (initDone) {
-	// output the time usage and the number of valid events
-	cout << " " << name << "Processor: User Time = " << userTime << ", System Time = " << systemTime << endl;
-	if(total_events > 0){ cout << " " << name << "Processor: " << count << " Valid Events (" << 100.0*count/total_events << "%)\n"; }
+		// output the time usage and the number of valid events
+		cout << " " << name << "Processor: User Time = " << userTime << ", System Time = " << systemTime << endl;
+		if(total_events > 0){ cout << " " << name << "Processor: " << count << " Valid Events (" << 100.0*count/total_events << "%)\n"; }
     }
 }
 

@@ -75,7 +75,7 @@ namespace detectors {
     /**
      * Beta scintilators
      */
-    const double betaThreshold = 10.0;
+    const double triggerThreshold = 10.0;
 
     /**
      * 3Hen

@@ -9,7 +9,7 @@
 # "virtual" tag indicates that this channel is not a physical channel
 #   but is generated dynamically onboard 
 MOD    CH      TYPE	   SUBTYPE	LOCATION	TAGS
-0	0	scint beta 				uncal start
+0	0	scint trigger 				uncal start
 0 	14-15 	scint liquid				uncal
 1	0	logic trigger				uncal
 1	1 	logic trigger				uncal

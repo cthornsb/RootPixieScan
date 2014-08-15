@@ -29,13 +29,19 @@ namespace dammIds {
     }
 } // logic namespace
 
-
-LogicProcessor::LogicProcessor(void) : 
-    EventProcessor(OFFSET, RANGE), lastStartTime(MAX_LOGIC, NAN), lastStopTime(MAX_LOGIC, NAN),
-    logicStatus(MAX_LOGIC), stopCount(MAX_LOGIC), startCount(MAX_LOGIC)
-{
+LogicProcessor::LogicProcessor(void) : EventProcessor(OFFSET, RANGE), lastStartTime(MAX_LOGIC, NAN), 
+  lastStopTime(MAX_LOGIC, NAN), logicStatus(MAX_LOGIC), stopCount(MAX_LOGIC), startCount(MAX_LOGIC){
     name = "Logic";
     associatedTypes.insert("logic");
+    save_waveforms = false;
+    plotSize = SA;
+}
+
+LogicProcessor::LogicProcessor(bool save_waveforms_) : EventProcessor(OFFSET, RANGE), lastStartTime(MAX_LOGIC, NAN), 
+  lastStopTime(MAX_LOGIC, NAN), logicStatus(MAX_LOGIC), stopCount(MAX_LOGIC), startCount(MAX_LOGIC){
+    name = "Logic";
+    associatedTypes.insert("logic"); 
+    save_waveforms = save_waveforms_;
     plotSize = SA;
 }
 
@@ -77,6 +83,9 @@ bool LogicProcessor::InitRoot(TTree* top_tree){
 	
     // Create the branch
     local_branch = top_tree->Branch("Runtime", &structure);
+    if(save_waveforms){
+    	std::cout << " LogicProcessor: Writing of raw waveforms is disabled!\n";
+    }
  
     use_root = true;
     return true;

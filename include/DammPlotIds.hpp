@@ -37,7 +37,7 @@ namespace dammIds {
     }
 
     namespace scint {
-        namespace beta {
+        namespace trigger {
             const int OFFSET = 2100;
             const int RANGE  = 20;
         } 

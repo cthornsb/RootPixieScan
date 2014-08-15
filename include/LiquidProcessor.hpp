@@ -17,8 +17,8 @@ class LiquidProcessor : public EventProcessor{
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
     virtual void Zero(){ 
-    	if(!save_waveforms){ structure.Zero(); }
-    	else{ waveform.Zero(); }
+    	structure.Zero();
+    	if(save_waveforms){ waveform.Zero(); }
     }
     
     LiquidStructure structure;

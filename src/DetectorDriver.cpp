@@ -41,7 +41,7 @@
 
 #include "DammPlotIds.hpp"
 
-#include "BetaProcessor.hpp"
+#include "TriggerProcessor.hpp"
 #include "DssdProcessor.hpp"
 #include "GeProcessor.hpp"
 #include "ImplantSsdProcessor.hpp"
@@ -117,14 +117,18 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
     }
     
     // Writing of raw waveforms is disabled by default
-    bool save_wave = false;
-    if(HasArgument("waveform")){ save_wave = true; }
+    bool save_trig_wave = false, save_liq_wave = false;
+    bool save_log_wave = false, save_van_wave = false;
+    if(HasArgument("trigger_wave")){ save_trig_wave = true; }
+    if(HasArgument("liquid_wave")){ save_liq_wave = true; }
+    if(HasArgument("logic_wave")){ save_log_wave = true; }
+    if(HasArgument("vandle_wave")){ save_van_wave = true; }
 
     cout << "DetectorDriver: Loading Processors\n";
-    vecProcess.push_back(new BetaProcessor(save_wave)); // For beam scintillator
-    vecProcess.push_back(new LiquidProcessor(save_wave)); // For UofM liquid array
-    vecProcess.push_back(new LogicProcessor()); // For scalers
-    vecProcess.push_back(new VandleProcessor()); // For Vandle bar array
+    vecProcess.push_back(new TriggerProcessor(save_trig_wave)); // For beam scintillator
+    vecProcess.push_back(new LiquidProcessor(save_liq_wave)); // For UofM liquid array
+    vecProcess.push_back(new LogicProcessor(save_log_wave)); // For scalers
+    vecProcess.push_back(new VandleProcessor(save_van_wave)); // For Vandle bar array
 
     // ROOT output is ON by default!
     if(!HasArgument("root-off")){ 

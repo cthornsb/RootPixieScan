@@ -2,7 +2,7 @@
  *\brief Processes information for VANDLE
  *
  *Processes information from the VANDLE Bars, allows for 
- *beta-gamma-neutron correlations. The prototype for this 
+ *trigger-gamma-neutron correlations. The prototype for this 
  *code was written by M. Madurga.
  *
  *\author S. V. Paulauskas 
@@ -110,6 +110,16 @@ VandleProcessor::VandleProcessor(): EventProcessor(OFFSET, RANGE, "Vandle") //--
     associatedTypes.insert("vandleSmall"); 
     associatedTypes.insert("vandleBig");
     associatedTypes.insert("tvandle");
+    save_waveforms = false;
+}
+
+VandleProcessor::VandleProcessor(bool save_waveforms_): EventProcessor(OFFSET, RANGE, "Vandle") //--- These values directly affect the plotted IDS
+{
+    associatedTypes.insert("scint"); 
+    associatedTypes.insert("vandleSmall"); 
+    associatedTypes.insert("vandleBig");
+    associatedTypes.insert("tvandle");
+    save_waveforms = save_waveforms_;
 }
 
 VandleProcessor::VandleProcessor(const int VML_OFFSET, const int RANGE):
@@ -131,9 +141,9 @@ bool VandleProcessor::InitDamm()
         return false;
     }
     
-    bool hasSmall   = true;
-    bool hasBig     = false;
-    //const unsigned int numSmallEnds = S7;
+    bool hasSmall = true;
+    bool hasBig = false;
+    const unsigned int numSmallEnds = S7;
     const unsigned int numBigEnds   = S7;
 
     //Plots used for debugging
@@ -141,42 +151,42 @@ bool VandleProcessor::InitDamm()
     DeclareHistogram2D(DD_PROBLEMS, S7, S7, "2D Debugging");
     
     if(hasSmall) {
-       //Plots used for the general information about VANDLE
-       // DeclareHistogram2D(DD_TQDCBARS, SD, numSmallEnds, "Det Loc vs Trace QDC");
-       // DeclareHistogram2D(DD_MAXIMUMBARS, SC, S5, "Det Loc vs. Maximum");
-       // DeclareHistogram2D(DD_TIMEDIFFBARS, S9, numSmallEnds, "Bars vs. Time Differences");
-       // DeclareHistogram2D(DD_TOFBARS, SC, numSmallEnds, "Bar vs. Time of Flight");
-       // DeclareHistogram2D(DD_CORTOFBARS, SC, numSmallEnds, "Bar vs  Cor Time of Flight");
-       // DeclareHistogram2D(DD_TQDCAVEVSTDIFF, SC, SD, "<E> vs. Time Diff(0.5ns/bin)");
+       // Plots used for the general information about VANDLE
+       DeclareHistogram2D(DD_TQDCBARS, SD, numSmallEnds, "Det Loc vs Trace QDC");
+       DeclareHistogram2D(DD_MAXIMUMBARS, SC, S5, "Det Loc vs. Maximum");
+       DeclareHistogram2D(DD_TIMEDIFFBARS, S9, numSmallEnds, "Bars vs. Time Differences");
+       DeclareHistogram2D(DD_TOFBARS, SC, numSmallEnds, "Bar vs. Time of Flight");
+       DeclareHistogram2D(DD_CORTOFBARS, SC, numSmallEnds, "Bar vs  Cor Time of Flight");
+       DeclareHistogram2D(DD_TQDCAVEVSTDIFF, SC, SD, "<E> vs. Time Diff(0.5ns/bin)");
 
-       //Plots related to the TOF
-       // DeclareHistogram2D(DD_TOFVSTDIFF, S9, SC, "TOF vs. TDiff(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXRVSTOF, SD, SC, "MaxR vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXLVSTOF, SD, SC, "MaxL vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_TQDCAVEVSTOF, SC, SD, "<E> vs. TOF(0.5ns/bin)");
+       // Plots related to the TOF
+       DeclareHistogram2D(DD_TOFVSTDIFF, S9, SC, "TOF vs. TDiff(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXRVSTOF, SD, SC, "MaxR vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXLVSTOF, SD, SC, "MaxL vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_TQDCAVEVSTOF, SC, SD, "<E> vs. TOF(0.5ns/bin)");
 
-       //Plots related to the corTOF
-       // DeclareHistogram2D(DD_CORTOFVSTDIFF, S9, SC, "corTOF vs. Tdiff(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXRVSCORTOF, SD, SC, "MaxR vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXLVSCORTOF, SD, SC, "MaxL vs. CorTOF(0.5ns/bin)");    
-       // DeclareHistogram2D(DD_TQDCAVEVSCORTOF, SC, SD, "<E> vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_TQDCAVEVSENERGY, SC, SD, "TQDC vs Energy (kev/bin)");
+       // Plots related to the corTOF
+       DeclareHistogram2D(DD_CORTOFVSTDIFF, S9, SC, "corTOF vs. Tdiff(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXRVSCORTOF, SD, SC, "MaxR vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXLVSCORTOF, SD, SC, "MaxL vs. CorTOF(0.5ns/bin)");    
+       DeclareHistogram2D(DD_TQDCAVEVSCORTOF, SC, SD, "<E> vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_TQDCAVEVSENERGY, SC, SD, "TQDC vs Energy (kev/bin)");
 
-       //Plots related to Correlated times
-       // DeclareHistogram2D(DD_CORRELATED_TOF, SC, SC, "Correlated TOF");
+       // Plots related to Correlated times
+       DeclareHistogram2D(DD_CORRELATED_TOF, SC, SC, "Correlated TOF");
 
-       //Plots related to the Starts
-       // DeclareHistogram2D(DD_MAXSTART0VSTOF, SD, SC, "Max Start0 vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXSTART1VSTOF, SD, SC, "Max Start1 vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXSTART0VSCORTOF, SD, SC, "Max Start0 vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXSTART1VSCORTOF, SD, SC, "Max Start1 vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_TQDCAVEVSSTARTQDCSUM, SC, SD, "<E> VANDLE vs. <E> BETA - SUMMED");
-       // DeclareHistogram2D(DD_TOFVSSTARTQDCSUM, SC, SD, "TOF VANDLE vs. <E> BETA - SUMMED");
+       // Plots related to the Starts
+       DeclareHistogram2D(DD_MAXSTART0VSTOF, SD, SC, "Max Start0 vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXSTART1VSTOF, SD, SC, "Max Start1 vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXSTART0VSCORTOF, SD, SC, "Max Start0 vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXSTART1VSCORTOF, SD, SC, "Max Start1 vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_TQDCAVEVSSTARTQDCSUM, SC, SD, "<E> VANDLE vs. <E> TRIGGER - SUMMED");
+       DeclareHistogram2D(DD_TOFVSSTARTQDCSUM, SC, SD, "TOF VANDLE vs. <E> TRIGGER - SUMMED");
        
-       //Plots related to the Ge detectors
-       // DeclareHistogram2D(DD_GAMMAENERGYVSTOF, SC, S9, "GAMMA ENERGY vs. CorTOF VANDLE");
-       // DeclareHistogram2D(DD_TQDCAVEVSTOF_VETO, SC, SD, "<E> VANDLE vs. CorTOF VANDLE - Gamma Veto");
-       // DeclareHistogram2D(DD_TOFBARS_VETO, SC, S9, "Bar vs CorTOF - Gamma Veto"); 
+       // Plots related to the Ge detectors
+       DeclareHistogram2D(DD_GAMMAENERGYVSTOF, SC, S9, "GAMMA ENERGY vs. CorTOF VANDLE");
+       DeclareHistogram2D(DD_TQDCAVEVSTOF_VETO, SC, SD, "<E> VANDLE vs. CorTOF VANDLE - Gamma Veto");
+       DeclareHistogram2D(DD_TOFBARS_VETO, SC, S9, "Bar vs CorTOF - Gamma Veto"); 
     }//if (hasSmall)
 
     if(hasBig) {
@@ -186,45 +196,45 @@ bool VandleProcessor::InitDamm()
        DeclareHistogram2D(DD_TIMEDIFFBARS+dammIds::BIG_OFFSET, SA, numBigEnds, "Bars vs. Time Differences");
        DeclareHistogram2D(DD_TOFBARS+dammIds::BIG_OFFSET, SC, numBigEnds, "Bar vs. Time of Flight");
        DeclareHistogram2D(DD_CORTOFBARS+dammIds::BIG_OFFSET, SC, numBigEnds, "Bar vs  Cor Time of Flight");
-       // DeclareHistogram2D(DD_TQDCAVEVSTDIFF+dammIds::BIG_OFFSET, SC, SD, "<E> vs. Time Diff(0.5ns/bin)");
+       DeclareHistogram2D(DD_TQDCAVEVSTDIFF+dammIds::BIG_OFFSET, SC, SD, "<E> vs. Time Diff(0.5ns/bin)");
 
        //Plots related to the TOF
-       // DeclareHistogram2D(DD_TOFVSTDIFF+dammIds::BIG_OFFSET, S9, SC, "TDiff vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXRVSTOF+dammIds::BIG_OFFSET, SD, SC, "MaxR vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXLVSTOF+dammIds::BIG_OFFSET, SD, SC, "MaxL vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_TOFVSTDIFF+dammIds::BIG_OFFSET, S9, SC, "TDiff vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXRVSTOF+dammIds::BIG_OFFSET, SD, SC, "MaxR vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXLVSTOF+dammIds::BIG_OFFSET, SD, SC, "MaxL vs. TOF(0.5ns/bin)");
        DeclareHistogram2D(DD_TQDCAVEVSTOF+dammIds::BIG_OFFSET, SC, SD, "<E> vs. TOF(0.5ns/bin)");
 
-       //Plots related to the corTOF
-       // DeclareHistogram2D(DD_CORTOFVSTDIFF+dammIds::BIG_OFFSET, S9, SC, "TDiff vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXRVSCORTOF+dammIds::BIG_OFFSET, SD, SC, "MaxR vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXLVSCORTOF+dammIds::BIG_OFFSET, SD, SC, "MaxL vs. CorTOF(0.5ns/bin)");    
+       // Plots related to the corTOF
+       DeclareHistogram2D(DD_CORTOFVSTDIFF+dammIds::BIG_OFFSET, S9, SC, "TDiff vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXRVSCORTOF+dammIds::BIG_OFFSET, SD, SC, "MaxR vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXLVSCORTOF+dammIds::BIG_OFFSET, SD, SC, "MaxL vs. CorTOF(0.5ns/bin)");    
        DeclareHistogram2D(DD_TQDCAVEVSCORTOF+dammIds::BIG_OFFSET, SC, SD, "<E> vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_TQDCAVEVSENERGY+dammIds::BIG_OFFSET, SC, SD, "TQDC vs Energy (kev/bin)");
+       DeclareHistogram2D(DD_TQDCAVEVSENERGY+dammIds::BIG_OFFSET, SC, SD, "TQDC vs Energy (kev/bin)");
 
-       //Plots related to Correlated times
-       // DeclareHistogram2D(DD_CORRELATED_TOF+dammIds::BIG_OFFSET, SC, SC, "Correlated TOF");
+       // Plots related to Correlated times
+       DeclareHistogram2D(DD_CORRELATED_TOF+dammIds::BIG_OFFSET, SC, SC, "Correlated TOF");
 
-       //Plots related to the Starts
-       // DeclareHistogram2D(DD_MAXSTART0VSTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start0 vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXSTART1VSTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start1 vs. TOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXSTART0VSCORTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start0 vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_MAXSTART1VSCORTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start1 vs. CorTOF(0.5ns/bin)");
-       // DeclareHistogram2D(DD_TQDCAVEVSSTARTQDCSUM+dammIds::BIG_OFFSET, SC, SD, "<E> VANDLE vs. <E> BETA - SUMMED");
-       // DeclareHistogram2D(DD_TOFVSSTARTQDCSUM+dammIds::BIG_OFFSET, SC, SD, "TOF VANDLE vs. <E> BETA - SUMMED");
+       // Plots related to the Starts
+       DeclareHistogram2D(DD_MAXSTART0VSTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start0 vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXSTART1VSTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start1 vs. TOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXSTART0VSCORTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start0 vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_MAXSTART1VSCORTOF+dammIds::BIG_OFFSET, SD, SC, "Max Start1 vs. CorTOF(0.5ns/bin)");
+       DeclareHistogram2D(DD_TQDCAVEVSSTARTQDCSUM+dammIds::BIG_OFFSET, SC, SD, "<E> VANDLE vs. <E> TRIGGER - SUMMED");
+       DeclareHistogram2D(DD_TOFVSSTARTQDCSUM+dammIds::BIG_OFFSET, SC, SD, "TOF VANDLE vs. <E> TRIGGER - SUMMED");
 
-       //Plots related to the Ge detectors
-       // DeclareHistogram2D(DD_GAMMAENERGYVSTOF+dammIds::BIG_OFFSET, SC, S9, "GAMMA ENERGY vs. CorTOF VANDLE");
-       // DeclareHistogram2D(DD_TQDCAVEVSTOF_VETO+dammIds::BIG_OFFSET, SC, SD, "<E> VANDLE vs. CorTOF VANDLE - Gamma Veto");
-       // DeclareHistogram2D(DD_TOFBARS_VETO+dammIds::BIG_OFFSET, SC, S9, "Bar vs CorTOF - Gamma Veto"); 
-    }//if (hasBig)
+       // Plots related to the Ge detectors
+       DeclareHistogram2D(DD_GAMMAENERGYVSTOF+dammIds::BIG_OFFSET, SC, S9, "GAMMA ENERGY vs. CorTOF VANDLE");
+       DeclareHistogram2D(DD_TQDCAVEVSTOF_VETO+dammIds::BIG_OFFSET, SC, SD, "<E> VANDLE vs. CorTOF VANDLE - Gamma Veto");
+       DeclareHistogram2D(DD_TOFBARS_VETO+dammIds::BIG_OFFSET, SC, S9, "Bar vs CorTOF - Gamma Veto"); 
+    } //if (hasBig)
 
-    //Histograms for the CrossTalk Subroutine
-    // DeclareHistogram1D(D_CROSSTALK, SC, "CrossTalk Between Two Bars");
-    // DeclareHistogram2D(DD_GATEDTQDCAVEVSTOF, SC, SD, "<E> vs. TOF0 (0.5ns/bin) - Gated");
-    // DeclareHistogram2D(DD_TOFBARBVSBARA, SC, SC, "TOF Bar1 vs. Bar2");
-    // DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
-    // DeclareHistogram1D(, SD, "Muons");
-    // DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
+    // Histograms for the CrossTalk Subroutine
+    DeclareHistogram1D(D_CROSSTALK, SC, "CrossTalk Between Two Bars");
+    DeclareHistogram2D(DD_GATEDTQDCAVEVSTOF, SC, SD, "<E> vs. TOF0 (0.5ns/bin) - Gated");
+    DeclareHistogram2D(DD_TOFBARBVSBARA, SC, SC, "TOF Bar1 vs. Bar2");
+    DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
+    DeclareHistogram1D(, SD, "Muons");
+    DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
     
     use_damm = true;
     return true;
@@ -239,6 +249,9 @@ bool VandleProcessor::InitRoot(TTree* top_tree){
 	
     // Create the branch
     local_branch = top_tree->Branch("Vandle", &structure);
+    if(save_waveforms){
+    	std::cout << " VandleProcessor: Writing of raw waveforms is disabled!\n";
+    }
 
     use_root = true;
     return true;
@@ -274,13 +287,13 @@ bool VandleProcessor::RetrieveData(RawEvent &event)
 
     static const vector<ChanEvent*> &smallEvents = event.GetSummary("vandleSmall")->GetList(); //--- GetList returns the eventList
     static const vector<ChanEvent*> &bigEvents = event.GetSummary("vandleBig")->GetList(); //--- the eventList is a list of events associated with this detector group
-    static const vector<ChanEvent*> &betaStarts = event.GetSummary("scint:beta:start")->GetList(); //--- vectors are filled with events of the specified type
+    static const vector<ChanEvent*> &triggerStarts = event.GetSummary("scint:trigger:start")->GetList(); //--- vectors are filled with events of the specified type
     static const vector<ChanEvent*> &liquidStarts = event.GetSummary("scint:liquid:start")->GetList();
     static const vector<ChanEvent*> &tvandleEvents = event.GetSummary("tvandle")->GetList();
 
     //Construct and fill the vector for the startEvents
     vector<ChanEvent*> startEvents;
-    startEvents.insert(startEvents.end(), betaStarts.begin(), betaStarts.end());
+    startEvents.insert(startEvents.end(), triggerStarts.begin(), triggerStarts.end());
     startEvents.insert(startEvents.end(), liquidStarts.begin(), liquidStarts.end());
 
     if(smallEvents.empty() && bigEvents.empty() && tvandleEvents.empty()) {
@@ -343,7 +356,7 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    plot(DD_TIMEDIFFBARS+idOffset, timeDiff*resMult+resOffset, barLoc);
 	    plot(DD_TQDCAVEVSTDIFF+idOffset,  timeDiff*resMult+resOffset, bar.qdc);
 	}
-	WalkBetaVandle(startMap, bar);
+	WalkTriggerVandle(startMap, bar);
 
 	//Loop over the starts in the event
 	//--- each event has multiple starts, find the ONE start
@@ -367,7 +380,8 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 	    //--- have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
        	    static const vector<ChanEvent*> & validEvents = rawev.GetSummary("valid")->GetList();
 
-   	    double timeLow, timeHigh;
+   	    double timeLow = 0.0;
+   	    double timeHigh = 0.0;
 	    for(vector<ChanEvent*>::const_iterator itValid = validEvents.begin();
 		itValid != validEvents.end(); itValid++) { //--- is it output type?
 		if ((*itValid)->GetChanID().GetTag("output")) {
@@ -661,9 +675,9 @@ void VandleProcessor::Tvandle(void)
 	plot(D_PROBLEMS, 2);
 }
 
-void VandleProcessor::WalkBetaVandle(const TimingInformation::TimingDataMap &beta, const TimingInformation::BarData &bar) {
+void VandleProcessor::WalkTriggerVandle(const TimingInformation::TimingDataMap &trigger, const TimingInformation::BarData &bar) {
     double cutoff = 1500;
-    for(TimingDataMap::const_iterator it = beta.begin(); it != beta.end(); it++) {
+    for(TimingDataMap::const_iterator it = trigger.begin(); it != trigger.end(); it++) {
 	plot(DD_DEBUGGING4, bar.lMaxVal, bar.rMaxVal); //--- 104, found at 3204, declared but not functioning
 	if((*it).first.first == 0 && bar.rMaxVal > cutoff
 	   && bar.lMaxVal > cutoff) {

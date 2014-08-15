@@ -34,7 +34,7 @@ EXECUTABLE = PixieLDF
 
 # Source code stuff
 FORTRAN = messlog.f mildatim.f scanor.f set2cc.f
-SOURCES = BetaProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp Places.cpp ReadBuffData.RevD.cpp \
+SOURCES = TriggerProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp Places.cpp ReadBuffData.RevD.cpp \
 	  Trace.cpp CfdAnalyzer.cpp EventProcessor.cpp MapFile.cpp Plots.cpp TraceExtractor.cpp ChanEvent.cpp \
 	  FittingAnalyzer.cpp McpProcessor.cpp PlotsRegister.cpp TraceFilterer.cpp ChanIdentifier.cpp GeProcessor.cpp \
 	  MtcProcessor.cpp PositionProcessor.cpp TracePlotter.cpp Correlator.cpp ImplantSsdProcessor.cpp NeutronProcessor.cpp \
@@ -53,10 +53,19 @@ ROOTOBJ = $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
 ROOTOBJ += $(C_OBJ_DIR)/$(STRUCT_FILE).o
 SFLAGS = $(addprefix -l,$(DICT_SOURCE))
 
+TOOL_DIR = $(TOP_LEVEL)/tools
+TOOL_SRC_DIR = $(TOOL_DIR)/src
+
+VIEWER = PulseViewer
+ANALYZER = PulseAnalyzer
+
 #####################################################################
 
 all: directory $(FORTOBJ) $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
 #	Create all directories, make all objects, and link executable
+
+dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
+#	Create root dictionary objects
 
 .PHONY: clean tidy directory
 
@@ -83,6 +92,10 @@ $(C_OBJ_DIR):
 $(DICT_OBJ_DIR):
 #	Make root dictionary object file directory
 	mkdir $(DICT_OBJ_DIR)
+
+$(TOOL_OBJ_DIR):
+#	Make root tool object file directory
+	mkdir $(TOOL_OBJ_DIR)
 
 ########################################################################
 
@@ -116,10 +129,28 @@ $(EXECUTABLE): $(FORTOBJ) $(OBJECTS)
 
 #####################################################################
 
-clean:
+tidy: clean_obj
+
+clean: clean_obj clean_dict clean_tools
+
+clean_obj:
 	@echo "Cleaning up..."
 	@rm -f $(C_OBJ_DIR)/*.o $(FORT_OBJ_DIR)/*.o ./PixieLDF
 	
-tidy:
+clean_dict:
 	@echo "Removing ROOT dictionaries..."
 	@rm -f $(DICT_DIR)/$(DICT_SOURCE).cpp $(DICT_DIR)/$(DICT_SOURCE).h $(DICT_OBJ_DIR)/*.o  $(DICT_OBJ_DIR)/*.so
+	
+clean_tools:
+	@echo "Removing ROOT tools..."
+	@rm -f $(TOOL_DIR)/$(VIEWER) $(TOOL_DIR)/$(ANALYZER)
+	
+#####################################################################
+
+$(ANALYZER): $(TOOL_SRC_DIR)/$(ANALYZER).cpp
+#	Make the PulseAnalyzer tool
+	$(CC) -O2 $(TOOL_SRC_DIR)/$(ANALYZER).cpp `root-config --cflags --glibs` -o $(TOOL_DIR)/$@
+
+$(VIEWER): $(TOOL_SRC_DIR)/$(VIEWER).cpp
+#	Make the PulseViewer tool
+	$(CC) -O2 $(TOOL_SRC_DIR)/$(VIEWER).cpp `root-config --cflags --glibs` -o $(TOOL_DIR)/$@

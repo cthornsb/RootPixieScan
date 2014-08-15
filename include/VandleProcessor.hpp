@@ -37,10 +37,10 @@ class VandleProcessor : public EventProcessor{
     virtual void Tvandle(void);
     virtual void BuildBars(const TimingDataMap &endMap, const std::string &type, BarMap &barMap);    
     virtual void FillMap(const vector<ChanEvent*> &eventList, const std::string type, TimingDataMap &eventMap);    
-    virtual void WalkBetaVandle(const TimingInformation::TimingDataMap &beta, const TimingInformation::BarData &bar);
+    virtual void WalkTriggerVandle(const TimingInformation::TimingDataMap &trigger, const TimingInformation::BarData &bar);
     virtual double CorrectTOF(const double &TOF, const double &corRadius, const double &z0) {return((z0/corRadius)*TOF);};
 
-    bool hasDecay;
+    bool hasDecay, save_waveforms;
     double decayTime;
     int counter;
 

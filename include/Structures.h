@@ -1,22 +1,19 @@
 #ifndef ROOTDATAStructure_H
 #define ROOTDATAStructure_H
 
-#define BETA_WAVE_SIZE 62
-#define LIQUID_WAVE_SIZE 124
-
 #include "TObject.h"
 
 #include <vector>
 
 ///////////////////////////////////////////////////////////
-// BetaProcessor
+// TriggerProcessor
 ///////////////////////////////////////////////////////////
-class BetaStructure : public TObject {
+class TriggerStructure : public TObject {
   public:
-    std::vector<double> beta_energy;
-    unsigned int beta_mult;
+    std::vector<double> trigger_energy;
+    unsigned int trigger_mult;
 
-    BetaStructure();
+    TriggerStructure();
 
     // Fill the root variables with processed data
     void Append(double);
@@ -24,13 +21,13 @@ class BetaStructure : public TObject {
     // Zero the data structure
     void Zero();
     
-    ClassDefNV(BetaStructure, 1); // Beta
+    ClassDefNV(TriggerStructure, 1); // Trigger
 };
 
-class BetaWaveform : public TObject {
-    public:
-	int beta_wave[BETA_WAVE_SIZE]; // Integer array for waveform
-	bool beta_valid;
+class TriggerWaveform : public TObject {
+  public:
+	std::vector<int> trigger_wave; // Integer vector for waveform
+	unsigned int trigger_wave_mult;
 	
 	// Fill the root variable with raw waveform data
 	void Append(std::vector<int>&);
@@ -38,28 +35,8 @@ class BetaWaveform : public TObject {
 	// Zero the waveform
 	void Zero();
 	
-	ClassDefNV(BetaWaveform, 1); // BetaWaveform
+	ClassDefNV(TriggerWaveform, 1); // TriggerWaveform
 };
-
-///////////////////////////////////////////////////////////
-// LogicProcessor:Logic
-///////////////////////////////////////////////////////////
-/*class LogicStructure : public TObject {
-  public:
-    double logic_tdiff;
-    unsigned int logic_loc;
-    bool logic_start, logic_valid;
-
-    LogicStructure();
-
-    // Zero the data structure    
-    void Zero();
-    
-    // Fill the root variables with processed data
-    void Pack(double, unsigned int, bool);
-    
-    ClassDefNV(LogicStructure, 1); // Logic
-};*/
 
 ///////////////////////////////////////////////////////////
 // LogicProcessor:Runtime
@@ -85,16 +62,15 @@ class RuntimeStructure : public TObject {
 ///////////////////////////////////////////////////////////
 class LiquidStructure : public TObject {
   public:
-    //std::vector<LiquidData*> liquid_data;
-    std::vector<double> liquid_TOF, liquid_S, liquid_L;
-    std::vector<double> liquid_tqdc, start_tqdc;
+    std::vector<double> liquid_TOF, liquid_tqdc, start_tqdc;
     std::vector<int> liquid_loc;
     unsigned int liquid_mult;
 
     LiquidStructure();
 
     // Fill the root variables with processed data
-    void Append(unsigned int, double, double, double, double, double);
+    //void Append(unsigned int, double, double, double, double, double);
+    void Append(unsigned int, double, double, double);
     
     // Zero the data structure    
     void Zero();
@@ -104,8 +80,8 @@ class LiquidStructure : public TObject {
 
 class LiquidWaveform : public TObject {
   public:
-	int liquid_wave[LIQUID_WAVE_SIZE]; // Integer array for waveform
-	bool liquid_valid;
+	std::vector<int> liquid_wave; // Integer array for waveform
+	unsigned int liquid_wave_mult;
 	
 	// Fill the root variable with raw waveform data
 	void Append(std::vector<int>&);
@@ -121,7 +97,6 @@ class LiquidWaveform : public TObject {
 ///////////////////////////////////////////////////////////
 class VandleStructure : public TObject {
   public:
-    //std::vector<VandleData*> vandle_data;
     std::vector<double> vandle_TOF, vandle_lqdc, vandle_rqdc, vandle_tsLow, vandle_tsHigh;
     std::vector<double> vandle_lMaxVal, vandle_rMaxVal, vandle_qdc, vandle_energy;
     std::vector<int> vandle_loc;

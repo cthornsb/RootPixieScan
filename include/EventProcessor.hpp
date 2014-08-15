@@ -65,7 +65,7 @@ class EventProcessor : public TimingInformation{
     EventProcessor(int offset, int range, std::string);
     virtual ~EventProcessor();
 
-    void Status(unsigned int);
+    virtual void Status(unsigned int);
 
     // Declare associated damm plots (called by drrsub_)
     virtual bool InitDamm();

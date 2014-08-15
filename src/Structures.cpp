@@ -1,54 +1,34 @@
-#define BETA_WAVE_SIZE 62
-#define LIQUID_WAVE_SIZE 124
-
 #include "Structures.h"
 
 ///////////////////////////////////////////////////////////
-// BetaProcessor
+// TriggerProcessor
 ///////////////////////////////////////////////////////////
-BetaStructure::BetaStructure(){ beta_mult = 0; }
+TriggerStructure::TriggerStructure(){ trigger_mult = 0; }
 
-void BetaStructure::Append(double energy_){
-	beta_energy.push_back(energy_);
-	beta_mult++;
+void TriggerStructure::Append(double energy_){
+	trigger_energy.push_back(energy_);
+	trigger_mult++;
 }
 
-void BetaStructure::Zero(){
-	if(beta_mult == 0){ return ; } // Structure is already empty
-	beta_energy.clear();
-	beta_mult = 0;
+void TriggerStructure::Zero(){
+	if(trigger_mult == 0){ return ; } // Structure is already empty
+	trigger_energy.clear();
+	trigger_mult = 0;
 }
 
-void BetaWaveform::Append(std::vector<int> &pulse){
-	unsigned int count = 0;
+void TriggerWaveform::Append(std::vector<int> &pulse){
 	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
-		if(count >= BETA_WAVE_SIZE){ break; }
-		beta_wave[count] = *iter;
-		count++;
+		trigger_wave.push_back((*iter));
 	}
-	beta_valid = true;
+	trigger_wave_mult++; // trigger_wave.size()/trigger_wave_mult will give pulse size
 }
 
-void BetaWaveform::Zero(){
-	for(unsigned short i = 0; i < BETA_WAVE_SIZE; i++){ beta_wave[i] = 0; }
-	beta_valid = false;
+void TriggerWaveform::Zero(){
+	if(trigger_wave_mult > 0){
+		trigger_wave.clear();
+		trigger_wave_mult = 0;
+	}
 }
-
-///////////////////////////////////////////////////////////
-// LogicProcessor:Logic
-///////////////////////////////////////////////////////////
-/*LogicStructure::LogicStructure(){ Zero(); }
-
-void LogicStructure::Zero(){
-	logic_tdiff = 0.0; logic_loc = 0; 
-	logic_start = false; logic_valid = false;
-}
-
-void LogicStructure::Pack(double tdiff_, unsigned int location_, bool is_start_){
-	logic_tdiff = tdiff_;
-	logic_loc = location_;
-	logic_start = is_start_;
-}*/
 
 ///////////////////////////////////////////////////////////
 // LogicProcessor:Runtime
@@ -71,11 +51,10 @@ void RuntimeStructure::Zero(){
 ///////////////////////////////////////////////////////////
 LiquidStructure::LiquidStructure(){ liquid_mult = 0; }
 
-void LiquidStructure::Append(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
+//void LiquidStructure::Append(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
+void LiquidStructure::Append(unsigned int location_, double TOF_, double ltqdc_, double stqdc_){
 	liquid_loc.push_back(location_);
 	liquid_TOF.push_back(TOF_);
-	liquid_S.push_back(S_);
-	liquid_L.push_back(L_);
 	liquid_tqdc.push_back(ltqdc_);
 	start_tqdc.push_back(stqdc_);
 	liquid_mult++;
@@ -85,26 +64,23 @@ void LiquidStructure::Zero(){
 	if(liquid_mult == 0){ return ; } // Structure is already empty
 	liquid_loc.clear();
 	liquid_TOF.clear();
-	liquid_S.clear();
-	liquid_L.clear();
 	liquid_tqdc.clear();
 	start_tqdc.clear();
 	liquid_mult = 0;
 }
 
 void LiquidWaveform::Append(std::vector<int> &pulse){
-	unsigned int count = 0;
 	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
-		if(count >= LIQUID_WAVE_SIZE){ break; }
-		liquid_wave[count] = *iter;
-		count++;
+		liquid_wave.push_back((*iter));
 	}
-	liquid_valid = true;
+	liquid_wave_mult++; // liquid_wave.size()/liquid_wave_mult will give pulse size
 }
 
 void LiquidWaveform::Zero(){
-	for(unsigned short i = 0; i < LIQUID_WAVE_SIZE; i++){ liquid_wave[i] = 0; }
-	liquid_valid = false;
+	if(liquid_wave_mult > 0){
+		liquid_wave.clear();
+		liquid_wave_mult = 0;
+	}
 }
 
 ///////////////////////////////////////////////////////////
