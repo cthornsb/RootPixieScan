@@ -32,16 +32,41 @@ DICT_OBJ_DIR = $(DICT_DIR)/obj
 
 EXECUTABLE = PixieLDF
 
-# Source code stuff
+# FORTRAN
 FORTRAN = messlog.f mildatim.f scanor.f set2cc.f
-SOURCES = TriggerProcessor.cpp DssdProcessor.cpp LogicProcessor.cpp Places.cpp ReadBuffData.RevD.cpp \
-	  Trace.cpp CfdAnalyzer.cpp EventProcessor.cpp MapFile.cpp Plots.cpp TraceExtractor.cpp ChanEvent.cpp \
-	  FittingAnalyzer.cpp McpProcessor.cpp PlotsRegister.cpp TraceFilterer.cpp ChanIdentifier.cpp GeProcessor.cpp \
-	  MtcProcessor.cpp PositionProcessor.cpp TracePlotter.cpp Correlator.cpp ImplantSsdProcessor.cpp NeutronProcessor.cpp \
-	  pugixml.cpp SsdProcessor.cpp TreeCorrelator.cpp DetectorDriver.cpp Initialize.cpp ParseXml.cpp PulserProcessor.cpp \
-	  StatsData.cpp ValidProcessor.cpp DetectorLibrary.cpp IonChamberProcessor.cpp PathHolder.cpp RandomPool.cpp TauAnalyzer.cpp \
-	  VandleProcessor.cpp DetectorSummary.cpp LiquidProcessor.cpp PixieStd.cpp RawEvent.cpp TimingInformation.cpp WaveformAnalyzer.cpp \
-	  DoubleTraceAnalyzer.cpp PlaceBuilder.cpp TraceAnalyzer.cpp 
+
+# C++ CORE
+SOURCES = Places.cpp ReadBuffData.RevD.cpp Trace.cpp EventProcessor.cpp MapFile.cpp Plots.cpp TraceExtractor.cpp ChanEvent.cpp \
+		  PlotsRegister.cpp TraceFilterer.cpp ChanIdentifier.cpp TracePlotter.cpp Correlator.cpp pugixml.cpp SsdProcessor.cpp \
+		  TreeCorrelator.cpp DetectorDriver.cpp Initialize.cpp ParseXml.cpp StatsData.cpp DetectorLibrary.cpp RandomPool.cpp  \
+		  DetectorSummary.cpp PixieStd.cpp RawEvent.cpp TimingInformation.cpp PlaceBuilder.cpp 
+
+# ANALYZERS
+SOURCES += CfdAnalyzer.cpp
+#SOURCES += DoubleTraceAnalyzer.cpp
+SOURCES += FittingAnalyzer.cpp
+#SOURCES += TauAnalyzer.cpp
+SOURCES += TraceAnalyzer.cpp
+SOURCES += WaveformAnalyzer.cpp
+
+# PROCESSORS
+#SOURCES += DssdProcessor.cpp
+#SOURCES += GeProcessor.cpp
+#SOURCES += ImplantSsdProcessor.cpp
+#SOURCES += IonChamberProcessor.cpp
+SOURCES += LiquidProcessor.cpp
+SOURCES += LogicProcessor.cpp
+#SOURCES += McpProcessor.cpp
+#SOURCES += MtcProcessor.cpp
+#SOURCES += NeutronProcessor.cpp
+#SOURCES += PositionProcessor.cpp
+#SOURCES += PulserProcessor.cpp
+#SOURCES += ScintProcessor.cpp
+#SOURCES += SsdProcessor.cpp
+SOURCES += TriggerProcessor.cpp
+#SOURCES += ValidProcessor.cpp
+SOURCES += VandleProcessor.cpp
+
 FORTOBJ = $(addprefix $(FORT_OBJ_DIR)/,$(FORTRAN:.f=.o))
 OBJECTS = $(addprefix $(C_OBJ_DIR)/,$(SOURCES:.cpp=.o))
 

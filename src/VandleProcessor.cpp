@@ -17,7 +17,6 @@
 
 #include "DetectorDriver.hpp"
 #include "DammPlotIds.hpp"
-#include "GetArguments.hpp"
 #include "RawEvent.hpp"
 #include "VandleProcessor.hpp"
 
@@ -232,9 +231,9 @@ bool VandleProcessor::InitDamm()
     DeclareHistogram1D(D_CROSSTALK, SC, "CrossTalk Between Two Bars");
     DeclareHistogram2D(DD_GATEDTQDCAVEVSTOF, SC, SD, "<E> vs. TOF0 (0.5ns/bin) - Gated");
     DeclareHistogram2D(DD_TOFBARBVSBARA, SC, SC, "TOF Bar1 vs. Bar2");
-    DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
-    DeclareHistogram1D(, SD, "Muons");
-    DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
+    //DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
+    //DeclareHistogram1D(, SD, "Muons");
+    //DeclareHistogram2D(, S8, S8, "tdiffA vs. tdiffB");
     
     use_damm = true;
     return true;

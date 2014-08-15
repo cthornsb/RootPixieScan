@@ -11,7 +11,6 @@
 #include <sstream>
 
 #include "EventProcessor.hpp"
-#include "GetArguments.hpp"
 
 class ValidProcessor : public EventProcessor
 {

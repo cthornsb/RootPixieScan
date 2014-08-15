@@ -8,7 +8,7 @@
 
 #include "DetectorDriver.hpp"
 #include "MapFile.hpp"
-#include "PathHolder.hpp"
+//#include "PathHolder.hpp"
 
 // DAMM initialization call
 extern "C" void drrmake_();
@@ -18,8 +18,8 @@ extern "C" void endrr_();
 /*! This function defines the histograms to be used in the analysis */
 extern "C" void drrsub_(unsigned int& iexist)
 {
-    PathHolder* conf_path = new PathHolder("setup.cfg");
-    delete conf_path;
+    //PathHolder* conf_path = new PathHolder("setup.cfg");
+    //delete conf_path;
     MapFile theMapFile = MapFile();
     drrmake_();
     DetectorDriver::get()->DeclarePlots(theMapFile);

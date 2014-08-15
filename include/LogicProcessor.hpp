@@ -28,6 +28,7 @@ protected:
     
  public:
     LogicProcessor();
+    LogicProcessor(bool);
     virtual bool InitDamm();
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);

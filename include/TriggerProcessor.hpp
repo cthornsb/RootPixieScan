@@ -24,7 +24,6 @@ class TriggerProcessor : public EventProcessor
     	structure.Zero();
     	if(save_waveforms){ waveform.Zero(); }
     }
-    virtual void Status(unsigned int);
     
     TriggerStructure structure;
     TriggerWaveform waveform;

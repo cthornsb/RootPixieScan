@@ -18,7 +18,6 @@
 #include "MapFile.hpp"
 #include "RawEvent.hpp"
 #include "TreeCorrelator.hpp"
-#include "PathHolder.hpp"
 
 #include "Globals.hpp"
 
@@ -38,10 +37,7 @@ using namespace std;
  */
 MapFile::MapFile(const string &filename /*="map2.txt"*/)
 {  
-    PathHolder* conf_path = new PathHolder();
-    string mapFileName = conf_path->GetFullPath(filename);
-    delete conf_path;
-
+	string mapFileName = "./setup/" + filename;
     cout << "MapFile: loading map file " << mapFileName << endl;
 
     ifstream in(mapFileName.c_str());

@@ -52,7 +52,7 @@ ScintProcessor::ScintProcessor() : EventProcessor(OFFSET, RANGE)
 
 void ScintProcessor::DeclarePlots(void)
 {
-    /*{
+    {
 	using namespace neutr::betaGated;
 	DeclareHistogram1D(D_ENERGY_DETX + 0, SE, "beta gated scint1 sig1");
 	DeclareHistogram1D(D_ENERGY_DETX + 1, SE, "beta gated scint1 sig2");
@@ -70,11 +70,11 @@ void ScintProcessor::DeclarePlots(void)
 	DeclareHistogram1D(D_ENERGY_DETX + 0, SE, "beta-gamma gated scint1 sig1");
 	DeclareHistogram1D(D_ENERGY_DETX + 1, SE, "beta-gamma gated scint1 sig2");
 	DeclareHistogram1D(D_ENERGY_DETX + 2, SE, "beta-gamma gated 3Hen");
-    }*/
+    }
 
-    //for the beta detectors from LeRIBSS
-   // DeclareHistogram2D(DD_TQDCBETA, SC, S3, "Start vs. Trace QDC");
-   // DeclareHistogram2D(DD_MAXBETA, SC, S3, "Start vs. Maximum");
+//for the beta detectors from LeRIBSS
+    DeclareHistogram2D(DD_TQDCBETA, SC, S3, "Start vs. Trace QDC");
+    DeclareHistogram2D(DD_MAXBETA, SC, S3, "Start vs. Maximum");
 
     //To handle Liquid Scintillators
     // DeclareHistogram2D(DD_TQDCLIQUID, SC, S3, "Liquid vs. Trace QDC");
@@ -98,9 +98,12 @@ bool ScintProcessor::PreProcess(RawEvent &event){
 
     // Beta energy threshold
     static const int BETA_THRESHOLD = 10;
-    static const vector<ChanEvent*> &scintBetaEvents = event.GetSummary("scint:beta")->GetList();
 
-    for (vector<ChanEvent*>::const_iterator it = scintBetaEvents.begin(); it != scintBetaEvents.end(); it++) {
+    static const vector<ChanEvent*> &scintBetaEvents = 
+	event.GetSummary("scint:beta")->GetList();
+
+    for (vector<ChanEvent*>::const_iterator it = scintBetaEvents.begin(); 
+	 it != scintBetaEvents.end(); it++) {
         string place = (*it)->GetChanID().GetPlaceName();
         if (TCorrelator::get().places.count(place) == 1) {
             double time   = (*it)->GetTime();
@@ -111,7 +114,8 @@ bool ScintProcessor::PreProcess(RawEvent &event){
                 TCorrelator::get().places[place]->activate(data);
             }
         } else {
-            cerr << "In ScintProcessor: beta place " << place << " does not exist." << endl;
+            cerr << "In ScintProcessor: beta place " << place
+                    << " does not exist." << endl;
             return false;
         }
     }
@@ -252,45 +256,3 @@ void ScintProcessor::LiquidAnalysis(RawEvent &event)
         } // Good Liquid Check
     }//end loop over liquid events
 }//void ScintProcessor::LiquidAnalysis
-
-// Initialize for root output
-bool ScintProcessor::InitRoot(TTree* top_tree){
-	std::cout << " ScintProcessor: Initializing\n";
-	if(outputInit){
-		std::cout << " ScintProcessor: Warning! Output already initialized\n";
-		return false;
-	}
-	
-	// Create the branch
-	local_branch = top_tree->Branch("Scint", &structure, "");
-	outputInit = true;
-	return true;
-}
-
-// Fill the root variables with processed data
-bool ScintProcessor::PackRoot(){
-	if(!outputInit){ return false; }
-	// Integers
-	//structure.location = location_;
-
-        local_tree->Fill();
-        return true;
-}
-
-// Write the local tree to file
-// Should only be called once per execution
-bool ScintProcessor::WriteRoot(TFile* masterFile){
-	if(!masterFile || !local_tree){ return false; }
-	masterFile->cd();
-	local_tree->Write();
-	std::cout << local_tree->GetEntries() << " entries\n";
-	return true;
-}
-
-bool ScintProcessor::InitDamm(){
-	return false;
-}
-
-bool ScintProcessor::PackDamm(){
-	return false;
-}

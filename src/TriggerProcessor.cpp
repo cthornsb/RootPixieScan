@@ -34,17 +34,6 @@ TriggerProcessor::TriggerProcessor(bool save_waveforms_) : EventProcessor(OFFSET
     save_waveforms = save_waveforms_;
 }
 
-void TriggerProcessor::Status(unsigned int total_events){
-    if (initDone) {
-		// output the time usage and the number of valid events
-		cout << " TriggerProcessor: User Time = " << userTime << ", System Time = " << systemTime << endl;
-		if(total_events > 0){ cout << " TriggerProcessor: " << count << " Valid Events (" << 100.0*count/total_events << "%)\n"; }
-		if(count != total_events){ 
-			cout << " TriggerProcessor: Warning! Number of trigger events does not match total!\n";
-		}
-    }
-}
-
 bool TriggerProcessor::InitDamm(void) {
     std::cout << " TriggerProcessor: Initializing the damm output\n";
     if(use_damm){

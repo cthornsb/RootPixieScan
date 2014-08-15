@@ -11,6 +11,7 @@
 class VandleProcessor : public EventProcessor{
  public:
     VandleProcessor(); // no virtual c'tors
+    VandleProcessor(bool);
     VandleProcessor(const int VML_OFFSET, const int RANGE);
     VandleProcessor(const int RP_OFFSET, const int RANGE, int i);
     virtual bool InitDamm();

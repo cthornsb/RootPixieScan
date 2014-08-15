@@ -37,13 +37,33 @@ using std::set;
 using std::string;
 using std::vector;
 
-// Convert arbitrary input to string
-template <typename T>
-std::string to_str(T input){
-	std::stringstream output;
-	output << input;
-	return output.str();
-}
+int GetNumberArguments(void);
+void GetArgument(int, char*, int);
+std::string GetArgument(int);
+
+struct ConfigArgs{
+	std::vector<std::string> names;
+	std::vector<std::string> values;
+	
+	ConfigArgs(){ }
+	
+	// Push back a name and a value
+	void Append(std::string name, std::string value){
+		names.push_back(name); values.push_back(value);
+	}
+	
+	// Return true if 'input' is found in the names vector
+	bool HasName(std::string input, std::string &output){
+		std::vector<std::string>::iterator iter1, iter2;
+		for(iter1 = names.begin(), iter2 = values.begin(); iter1 != names.end() && iter2 != values.end(); iter1++, iter2++){
+			if(input == (*iter1)){ 
+				output = (*iter2); 
+				return true;
+			}
+		}
+		return false;
+	}
+};
 
 /**
   \brief DetectorDriver controls event processing
@@ -64,7 +84,7 @@ class DetectorDriver {
     unsigned int num_fills;
     unsigned int num_files;
     bool use_root, use_damm;
-    std::vector<std::string> arguments;
+    ConfigArgs config_args;
     std::string root_fname;   
     TFile *masterFile;
     TTree *masterTree;
@@ -95,12 +115,8 @@ class DetectorDriver {
     int ThreshAndCal(ChanEvent *, RawEvent& rawev);
     bool Init(RawEvent& rawev);
     
-    // Check if an argument was passed to the program
-    bool HasArgument(std::string);
-    
-    // Append an argument to the argument vector
-    // Removes any whitespace
-    std::string AppendArgument(char*, unsigned int);
+    // Open the RootPixieScan configuration file
+    bool LoadConfigFile(const char* fname="setup/config/default.config");
     
     // Close the current root file and open a new one with a new name
     bool OpenNewFile();
