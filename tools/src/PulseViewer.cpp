@@ -6,6 +6,7 @@
 #include "TSystem.h"
 #include "TApplication.h"
 
+#include <sstream>
 #include <iostream>
 #include <unistd.h>
 #include <stdlib.h>
@@ -15,9 +16,9 @@ double PIXIE_TIME_RES = 4.0; // In ns
 
 // For compilation
 int main(int argc, char* argv[]){
-	if(argc < 6){
+	if(argc < 5){
 		std::cout << " Missing required argument, aborting\n";
-		std::cout << "  SYNTAX: Viewer {filename treename wave_branch wave_size skip#}\n";
+		std::cout << "  SYNTAX: Viewer {filename treename branch skip#}\n";
 		return 1;
 	}
 	
@@ -25,25 +26,16 @@ int main(int argc, char* argv[]){
 	char* dummy[0]; 
 	TApplication* rootapp = new TApplication("rootapp",0,dummy);
 	gSystem->Load("libTree");
-
-	unsigned int wave_size = atol(argv[4]);
-	unsigned int skip = atol(argv[5]);
-	std::cout << " Using wave array size of " << wave_size << std::endl;
+	
+	unsigned int skip = atol(argv[4]);
 	std::cout << " Showing every " << skip << " pulses\n";
 
-	// Waveform array
+	// Branch variables
 	std::vector<int> wave;
-	
-	// Variables for TGraph
-	double *x = new double[wave_size];
-	const double *x_val = new double[wave_size];
-	const double *y_val = new double[wave_size];
-	
-	TGraph *graph = new TGraph(wave_size, x_val, y_val);
-	for(unsigned int i = 0; i < wave_size; i++){
-		x[i] = i*PIXIE_TIME_RES;
-	}
-	
+	std::vector<double> energy;
+	unsigned int mult;
+	unsigned int wave_size;
+		
 	TFile *file = new TFile(argv[1], "READ");
 	if(!file->IsOpen()){
 		std::cout << " Failed to load the input file '" << argv[1] << "'\n";
@@ -57,23 +49,54 @@ int main(int argc, char* argv[]){
 	}
 	tree->SetMakeClass(1);
 	
-	TBranch *b_wave, *b_valid;
-	tree->SetBranchAddress(argv[3], &wave, &b_wave);
+	std::stringstream branch_name;
+	branch_name << argv[3];
+	TBranch *b_wave, *b_mult;
+	tree->SetBranchAddress((branch_name.str()+"_wave").c_str(), &wave, &b_wave);
+	tree->SetBranchAddress((branch_name.str()+"_wave_mult").c_str(), &mult, &b_mult);
 	
 	if(!b_wave){
-		std::cout << " Failed to load the input branch '" << argv[3] << "'\n";
+		std::cout << " Failed to load the input branch '" << branch_name.str() << "_wave'\n";
+		file->Close();
+		return 1;
+	}
+	if(!b_mult){
+		std::cout << " Failed to load the input branch '" << branch_name.str() << "_wave_mult'\n";
 		file->Close();
 		return 1;
 	}
 
+	// Get the pulse size
+	for(unsigned int i = 0; i < tree->GetEntries(); i++){
+		tree->GetEntry(i);
+		if(mult == 0){ continue; }
+		else{ 
+			wave_size = wave.size()/mult;
+			break; 
+		}
+	}
+	std::cout << " Using wave size " << wave_size << std::endl;
+
 	TCanvas *can = new TCanvas("can", "canvas");
 	can->cd();
+
+	// Variables for TGraph
+	double *x = new double[wave_size];
+	const double *x_val = new double[wave_size];
+	const double *y_val = new double[wave_size];
+	
+	TGraph *graph = new TGraph(wave_size, x_val, y_val);
+	for(unsigned int i = 0; i < wave_size; i++){
+		x[i] = i*PIXIE_TIME_RES;
+	}
 
 	unsigned int count = 0, index = 0;
 	std::cout << " Processing " << tree->GetEntries() << " entries\n";
 	for(unsigned int i = 0; i < tree->GetEntries(); i++){
 		tree->GetEntry(i);
-		if(count % skip == 0){
+		if(i % 100000 == 0 && i != 0){ std::cout << " Entry no. " << i << std::endl; }
+		if(mult > 0 && count > skip){
+			count = 0;
 			index = 0;
 			for(std::vector<int>::iterator iter = wave.begin(); iter != wave.end(); iter++){
 				if(index >= wave_size){ break; } // Reached maximum graph container size
@@ -84,7 +107,7 @@ int main(int argc, char* argv[]){
 			can->Update();
 			sleep(1);
 		}
-		else{ count++; }
+		else{ count += mult; }
 	}
 
 	can->Close();
