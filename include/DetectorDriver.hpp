@@ -17,8 +17,10 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <TFile.h>
-#include <TTree.h>
+#include <time.h>
+
+#include "TFile.h"
+#include "TTree.h"
 
 #include "Plots.hpp"
 #include "Globals.hpp"
@@ -40,6 +42,7 @@ using std::vector;
 int GetNumberArguments(void);
 void GetArgument(int, char*, int);
 std::string GetArgument(int);
+std::string ConvTime(int);
 
 struct ConfigArgs{
 	std::vector<std::string> names;
@@ -89,6 +92,7 @@ class DetectorDriver {
     TFile *masterFile;
     TTree *masterTree;
     bool is_init;
+    time_t start_time;
 
     vector<EventProcessor *> vecProcess; /**< vector of processors to handle each event */
     vector<TraceAnalyzer *> vecAnalyzer; /**< object which analyzes traces of channels to extract energy and time information */
@@ -116,7 +120,7 @@ class DetectorDriver {
     bool Init(RawEvent& rawev);
     
     // Open the RootPixieScan configuration file
-    bool LoadConfigFile(const char* fname="setup/config/default.config");
+    bool LoadConfigFile(const char* fname="setup/default.config");
     
     // Close the current root file and open a new one with a new name
     bool OpenNewFile();

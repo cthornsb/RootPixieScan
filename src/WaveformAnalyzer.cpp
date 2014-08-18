@@ -41,6 +41,7 @@ bool WaveformAnalyzer::InitDamm()
 //********** Analyze **********
 void WaveformAnalyzer::Analyze(Trace &trace, const string &detType, const string &detSubtype)
 {
+	StartAnalyze();
     TraceAnalyzer::Analyze(trace, detType, detSubtype);
     
     if(detType == "vandleSmall" || detType == "vandleBig" || detType == "scint" || detType == "pulser" || detType == "tvandle") {

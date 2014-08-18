@@ -8,7 +8,7 @@
 #define __TRACEANALYZER_HPP_
 
 #include <string>
-#include <sys/times.h>
+#include <time.h>
 
 #include "Plots.hpp"
 
@@ -22,10 +22,8 @@ class Trace;
 class TraceAnalyzer {
  private:
     // things associated with timing
-    tms tmsBegin;             ///< time at which the analyzer began
-    double userTime;          ///< user time used by this class
-    double systemTime;        ///< system time used by this class
-    double clocksPerSecond;   ///< frequency of system clock
+	long total_time;
+	clock_t start_time;
     
     void _initialize();
 
@@ -34,6 +32,7 @@ class TraceAnalyzer {
     int numTracesAnalyzed;    ///< rownumber for DAMM spectrum 850
     std::string name;         ///< name of the analyzer
     bool use_root, use_damm;
+    bool initDone;
 
     Plots histo;
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
@@ -53,12 +52,19 @@ class TraceAnalyzer {
     TraceAnalyzer(int, int, std::string);
     virtual ~TraceAnalyzer();
     
+	virtual float Status();
     virtual bool Init(void);
     virtual bool CheckInit();
     virtual bool InitDamm();
     virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
+    
+    // Start the analysis timer
+    void StartAnalyze(){ start_time = clock(); }
+    
+	// Finish analysis updating the analyzer timing information
     void EndAnalyze(Trace &trace);
-    void EndAnalyze(void);
+    void EndAnalyze(void){ total_time += (clock() - start_time); }
+
     void SetLevel(int i) {level=i;}
     int GetLevel() {return level;}
     std::string GetName(){ return name; }

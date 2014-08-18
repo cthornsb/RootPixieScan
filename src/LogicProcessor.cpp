@@ -97,7 +97,7 @@ bool LogicProcessor::Process(RawEvent &event)
     if(!initDone){ return (didProcess = false); }
 
     // start the process timer
-    times(&tmsBegin);
+    StartProcess();
 
     //BasicProcessing(event); // Causes seg-faults (sometimes)
     bool output = TriggerProcessing(event);

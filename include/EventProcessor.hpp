@@ -8,8 +8,8 @@
 #include <map>
 #include <set>
 #include <string>
+#include <time.h>
 
-#include <sys/times.h>
 #include "Plots.hpp"
 #include "TreeCorrelator.hpp"
 #include "TimingInformation.hpp"
@@ -28,10 +28,8 @@ class EventProcessor : public TimingInformation{
     
  protected:
     // things associated with timing
-    tms tmsBegin;
-    double userTime;
-    double systemTime;
-    double clocksPerSecond;
+	long total_time;
+	clock_t start_time;
 
     // define the associated detector types and only initialize if present
     std::string name;
@@ -65,9 +63,7 @@ class EventProcessor : public TimingInformation{
     EventProcessor(int offset, int range, std::string);
     virtual ~EventProcessor();
 
-    virtual void Status(unsigned int);
-
-    // Declare associated damm plots (called by drrsub_)
+    virtual float Status(unsigned int);
     virtual bool InitDamm();
     virtual const std::set<std::string>& GetTypes(void) const {
       return associatedTypes; 
@@ -75,13 +71,20 @@ class EventProcessor : public TimingInformation{
     virtual bool DidProcess(void) const {
       return didProcess;
     }
+    
     // Return true on success
     virtual bool HasEvent(void) const;
     virtual bool Init(RawEvent&);
     virtual bool CheckInit();
     virtual bool PreProcess(RawEvent &event);   
     virtual bool Process(RawEvent &event); 
-    void EndProcess(void); // stop the process timer
+    
+    // Start the process timer
+    void StartProcess(){ start_time = clock(); }
+    
+    // Update the amount of time taken by the processor
+    void EndProcess(void){ total_time += (clock() - start_time); }
+    
     std::string GetName(void) const {
       return name;
     }

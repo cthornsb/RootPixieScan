@@ -26,8 +26,9 @@ private:
 		      
     bool isRead;
 public:
-    MapFile(const std::string &filename = "map2.txt");
     static const std::string defaultFile; ///< default map file
+
+    MapFile(const std::string &filename = "map2.txt");
 
     operator bool() {return isRead;} ///< is the map file valid
 };

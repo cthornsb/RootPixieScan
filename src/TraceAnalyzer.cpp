@@ -29,13 +29,16 @@ using std::string;
 using namespace dammIds::trace;
 
 void TraceAnalyzer::_initialize(){
-    userTime = 0.0; systemTime = 0.0;
     name = "Trace";
+    initDone = true;
+	use_root = false; 
+	use_damm = false; 
     
     // start at -1 so that when incremented on first trace analysis,
     //   row 0 is respectively filled in the trace spectrum of inheritees 
-    numTracesAnalyzed = -1;    
-    clocksPerSecond = sysconf(_SC_CLK_TCK);
+    numTracesAnalyzed = -1; 
+	total_time = 0;
+	start_time = clock();
 }
 
 TraceAnalyzer::TraceAnalyzer() : histo(OFFSET, RANGE) 
@@ -63,7 +66,17 @@ TraceAnalyzer::TraceAnalyzer(int offset, int range, std::string name_) : histo(o
 /** Output time processing traces */
 TraceAnalyzer::~TraceAnalyzer() 
 {
-    cout << " " << name << "Analyzer : User Time = " << userTime << ", System Time = " << systemTime << endl;
+}
+
+float TraceAnalyzer::Status()
+{
+	float time_taken = 0.0;
+	if(initDone){
+		// output the time usage and the number of valid events
+		time_taken = ((float)total_time)/CLOCKS_PER_SEC;
+		cout << " " << name << "Analyzer: Used " << time_taken << " seconds of CPU time\n";
+	}
+	return time_taken;
 }
 
 /**
@@ -72,16 +85,24 @@ TraceAnalyzer::~TraceAnalyzer()
  */
 bool TraceAnalyzer::Init(void)
 {   
+	initDone = true;
     return true;
+}
+
+bool TraceAnalyzer::CheckInit(){
+	if(!initDone){
+		std::cout << " " << name << "Analyzer: Warning! Processor has not been initialized\n";
+		return false;
+	}
+	if(!use_root && !use_damm){
+		std::cout << " " << name << "Analyzer: Warning! Both output types are marked inactive\n";
+		return false;
+	}
+	return true;
 }
 
 /** declare the damm plots */
 bool TraceAnalyzer::InitDamm()
-{
-    return false;
-}
-
-bool TraceAnalyzer::CheckInit()
 {
     return false;
 }
@@ -91,7 +112,7 @@ bool TraceAnalyzer::CheckInit()
  */
 void TraceAnalyzer::Analyze(Trace &trace, const string &detType, const string &detSubtype)
 {
-    times(&tmsBegin); // begin timing process
+    StartAnalyze(); // begin timing process
     numTracesAnalyzed++;
     EndAnalyze(trace);
     return;
@@ -104,20 +125,4 @@ void TraceAnalyzer::EndAnalyze(Trace &trace)
 {
     trace.SetValue("analyzedLevel", level);
     EndAnalyze();
-}
-
-/**
- * Finish analysis updating the analyzer timing information
- */
-void TraceAnalyzer::EndAnalyze(void)
-{    
-    tms tmsEnd;
-    times(&tmsEnd);
-
-    userTime += (tmsEnd.tms_utime - tmsBegin.tms_utime) / clocksPerSecond;
-    systemTime += (tmsEnd.tms_stime - tmsBegin.tms_stime) / clocksPerSecond;
-
-    // reset the beginning time so multiple calls of EndAnalyze from
-    // derived classes work properly
-    times(&tmsBegin);
 }

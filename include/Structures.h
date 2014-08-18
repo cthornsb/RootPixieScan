@@ -26,8 +26,7 @@ class TriggerStructure : public TObject {
 
 class TriggerWaveform : public TObject {
   public:
-	std::vector<int> trigger_wave; // Integer vector for waveform
-	unsigned int trigger_wave_mult;
+	std::vector<int> trigger_wave; // Integer vector for trigger pulses
 	
 	// Fill the root variable with raw waveform data
 	void Append(std::vector<int>&);
@@ -57,6 +56,19 @@ class RuntimeStructure : public TObject {
     ClassDefNV(RuntimeStructure, 1); // Runtime
 };
 
+class RuntimeWaveform : public TObject {
+  public:
+	std::vector<int> rtime_wave; // Integer vectors for left and right vandle pulses
+	
+	// Fill the root variable with raw waveform data
+	void Append(std::vector<int>&);
+	
+	// Zero the waveform
+	void Zero();
+	
+	ClassDefNV(RuntimeWaveform, 1); // RuntimeWaveform
+};	
+
 ///////////////////////////////////////////////////////////
 // LiquidProcessor
 ///////////////////////////////////////////////////////////
@@ -80,8 +92,7 @@ class LiquidStructure : public TObject {
 
 class LiquidWaveform : public TObject {
   public:
-	std::vector<int> liquid_wave; // Integer array for waveform
-	unsigned int liquid_wave_mult;
+	std::vector<int> liquid_wave; // Integer vector for liquid pulses
 	
 	// Fill the root variable with raw waveform data
 	void Append(std::vector<int>&);
@@ -112,6 +123,19 @@ class VandleStructure : public TObject {
     void Zero();
     
     ClassDefNV(VandleStructure, 1); // Vandle
+};
+
+class VandleWaveform : public TObject {
+  public:
+	std::vector<int> left_wave, right_wave; // Integer vectors for left and right vandle pulses
+	
+	// Fill the root variable with raw waveform data
+	void Append(std::vector<int>&, std::vector<int>&);
+	
+	// Zero the waveform
+	void Zero();
+	
+	ClassDefNV(VandleWaveform, 1); // VandleWaveform
 };
 
 #endif

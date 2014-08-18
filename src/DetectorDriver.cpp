@@ -109,6 +109,24 @@ std::string GetArgument(int i){
 	return output;
 }
 
+// Convert a time in seconds to a time string with format hh:mm:ss
+std::string ConvTime(int myTime){ 
+	int hrs = myTime / 3600;
+	int min = myTime % 3600;
+	int sec = min % 60;
+	min = min / 60;	
+	
+	std::stringstream output;
+	if(hrs < 10){ output << "0" << hrs; }
+	else{ output << hrs; }
+	if(min < 10){ output << ":0" << min; }
+	else{ output << ":" << min; }
+	if(sec < 10){ output << ":0" << sec; }
+	else{ output << ":" << sec; }
+	
+	return output.str();
+}
+
 /*!
   detector driver constructor
 
@@ -126,6 +144,7 @@ DetectorDriver* DetectorDriver::get() {
 
 DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE) 
 {
+	time(&start_time); // Start the master timer
 	is_init = false;
 	root_fname = "";
 	num_files = 0;
@@ -141,7 +160,7 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
 	}
 	else{ 
 		if(!LoadConfigFile()){
-			std::cout << "DetectorDriver: Fatal error! Failed to load default config file 'setup/config/default.config'!\n";
+			std::cout << "DetectorDriver: Fatal error! Failed to load default config file 'setup/default.config'!\n";
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -242,10 +261,11 @@ bool DetectorDriver::Delete()
 	std::cout << "DetectorDriver: Wrote " << num_fills << " (" << 100.0*num_fills/num_events << "%) events to file\n";
 
 	// Iterate over processors and delete them
+	float total_cpu_time = 0.0;
 	if(vecProcess.size() > 0){ 
 		std::cout << "DetectorDriver: Killing processors\n";
 		for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
-			(*it)->Status(num_fills);
+			total_cpu_time += (*it)->Status(num_fills);
 			delete *it;
 		}
 	}
@@ -255,11 +275,18 @@ bool DetectorDriver::Delete()
 	if(vecAnalyzer.size() > 0){ 
 		std::cout << "DetectorDriver: Killing analyzers\n";
 		for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
+			//total_cpu_time += (*it)->Status(num_fills);
+			total_cpu_time += (*it)->Status();
 			delete *it;
 		}
 	}
 	vecAnalyzer.clear();
-
+	
+	double total_real_time = difftime(time(NULL), start_time);
+	std::cout << "DetectorDriver: Total CPU Time = " << total_cpu_time << " seconds (" << ConvTime((int)total_cpu_time) << ")\n";
+	std::cout << "DetectorDriver: Total time taken = " << total_real_time << " seconds (" << ConvTime((int)total_real_time) << ")\n";
+	std::cout << "DetectorDriver: Done! Cleanup was successful!
+	
 	return true;
 }
 
@@ -303,7 +330,7 @@ bool DetectorDriver::Init(RawEvent& rawev)
 	return true;
 }
 
-bool DetectorDriver::LoadConfigFile(const char* fname /*="setup/config/default.config"*/){
+bool DetectorDriver::LoadConfigFile(const char* fname /*="setup/default.config"*/){
 #define CONF_VERSION "1.0"
 	std::cout << "DetectorDriver: Loading config file '" << fname << "'\n";
 	std::ifstream config(fname);

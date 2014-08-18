@@ -1,19 +1,16 @@
 #include "ChanIdentifier.hpp"
-#include <string>
-#include <iomanip>
-#include <iostream>
 
 using namespace std;
 
 /** 
  * Return the value of a tag 
  */
-Identifier::TagValue Identifier::GetTag(const string &s) const
+int Identifier::GetTag(const string &s) const
 {
-    map<string, TagValue>::const_iterator it = tag.find(s);
+    map<string, int>::const_iterator it = tag.find(s);
     
     if (it == tag.end()) {
-        return TagValue();
+        return int();
     }
     return it->second;
 }
@@ -51,11 +48,7 @@ void Identifier::Zero()
  */
 void Identifier::PrintHeaders(void) 
 {
-    cout << setw(10) << "Type"
-	 << setw(10) << "Subtype"
-	 << setw(4)  << "Loc"
-	 << setw(6)  << "DammID"
-	 << "    TAGS" << endl;	 
+    cout << setw(10) << "Type" << setw(10) << "Subtype" << setw(4)  << "Loc" << setw(6)  << "DammID" << "    TAGS" << endl;	 
 }
 
 /**
@@ -63,16 +56,10 @@ void Identifier::PrintHeaders(void)
  */
 void Identifier::Print(void) const
 {
-    cout << setw(10) << type
-	 << setw(10) << subtype
-	 << setw(4)  << location
-	 << setw(6)  << dammID
-	 << "    ";
-    for (map<string, TagValue>::const_iterator it = tag.begin();
-	 it != tag.end(); it++) {
-	if (it != tag.begin())
-	    cout << ", ";
-	cout << it->first << "=" << it->second;
+    cout << setw(10) << type << setw(10) << subtype << setw(4)  << location << setw(6)  << dammID << "    ";
+    for (map<string, int>::const_iterator it = tag.begin(); it != tag.end(); it++) {
+		if (it != tag.begin()){ cout << ", "; }
+		cout << it->first << "=" << it->second;
     }
     cout << endl;
 }

@@ -71,6 +71,9 @@ bool TriggerProcessor::PreProcess(RawEvent &event){
     if(!initDone){ return (didProcess = false); }
     bool output = false;
 
+	// Start the process timer
+	StartProcess();
+
     static const vector<ChanEvent*> &scintTriggerEvents =  event.GetSummary("scint:trigger")->GetList();
 
     unsigned int multiplicity = 0;
@@ -87,17 +90,7 @@ bool TriggerProcessor::PreProcess(RawEvent &event){
         }
     }
     if(use_damm){ plot(D_MULT_TRIGGER, multiplicity); }
-    return output;
-}
-
-// Returns true ONLY if there is data to fill to the root tree
-bool TriggerProcessor::Process(RawEvent &event)
-{
-    if(!initDone){ return (didProcess = false); }
-
-    // start the process timer
-    times(&tmsBegin);
-        
+    
     EndProcess();
-    return false;
+    return output;
 }

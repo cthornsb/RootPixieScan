@@ -18,9 +18,9 @@ class VandleProcessor : public EventProcessor{
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
     virtual void Zero(){ structure.Zero(); }
-        
-    //VMLMap vmlMap; 
+
     VandleStructure structure;
+    VandleWaveform waveform;
 
  protected:
     //define the maps
@@ -28,14 +28,12 @@ class VandleProcessor : public EventProcessor{
     TimingDataMap bigMap;
     TimingDataMap smallMap;
     TimingDataMap startMap;
-    TimingDataMap tvandleMap;
  
  private:
     virtual bool RetrieveData(RawEvent &event);
     virtual bool AnalyzeData(RawEvent& rawev);
     virtual void ClearMaps(void);
     virtual void CrossTalk(void);
-    virtual void Tvandle(void);
     virtual void BuildBars(const TimingDataMap &endMap, const std::string &type, BarMap &barMap);    
     virtual void FillMap(const vector<ChanEvent*> &eventList, const std::string type, TimingDataMap &eventMap);    
     virtual void WalkTriggerVandle(const TimingInformation::TimingDataMap &trigger, const TimingInformation::BarData &bar);

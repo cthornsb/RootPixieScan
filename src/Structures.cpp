@@ -16,18 +16,14 @@ void TriggerStructure::Zero(){
 	trigger_mult = 0;
 }
 
-void TriggerWaveform::Append(std::vector<int> &pulse){
+void TriggerWaveform::Append(std::vector<int> &pulse){ // trigger_wave.size()/trigger_mult will give pulse size
 	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		trigger_wave.push_back((*iter));
 	}
-	trigger_wave_mult++; // trigger_wave.size()/trigger_wave_mult will give pulse size
 }
 
 void TriggerWaveform::Zero(){
-	if(trigger_wave_mult > 0){
-		trigger_wave.clear();
-		trigger_wave_mult = 0;
-	}
+	if(trigger_wave.size() > 0){ trigger_wave.clear(); }
 }
 
 ///////////////////////////////////////////////////////////
@@ -44,6 +40,16 @@ void RuntimeStructure::Zero(){
 	if(rtime_mult == 0){ return ; } // Structure is already empty
 	rtime_energy.clear();
 	rtime_mult = 0;
+}
+
+void RuntimeWaveform::Append(std::vector<int> &pulse){ // rtime_wave.size()/rtime_mult will give pulse size
+	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
+		rtime_wave.push_back((*iter));
+	}
+}
+
+void RuntimeWaveform::Zero(){
+	if(rtime_wave.size() > 0){ rtime_wave.clear(); }
 }
 
 ///////////////////////////////////////////////////////////
@@ -69,18 +75,14 @@ void LiquidStructure::Zero(){
 	liquid_mult = 0;
 }
 
-void LiquidWaveform::Append(std::vector<int> &pulse){
+void LiquidWaveform::Append(std::vector<int> &pulse){ // liquid_wave.size()/liquid_mult will give pulse size
 	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		liquid_wave.push_back((*iter));
 	}
-	liquid_wave_mult++; // liquid_wave.size()/liquid_wave_mult will give pulse size
 }
 
 void LiquidWaveform::Zero(){
-	if(liquid_wave_mult > 0){
-		liquid_wave.clear();
-		liquid_wave_mult = 0;
-	}
+	if(liquid_wave.size() > 0){ liquid_wave.clear(); }
 }
 
 ///////////////////////////////////////////////////////////
@@ -116,4 +118,16 @@ void VandleStructure::Zero(){
 	vandle_qdc.clear();
 	vandle_energy.clear();
 	vandle_mult = 0;
+}
+
+void VandleWaveform::Append(std::vector<int> &l_pulse, std::vector<int> &r_pulse){ // left(right)_wave.size()/vandle_mult will give pulse size
+	for(std::vector<int>::iterator iter1 = l_pulse.begin(), iter2 = r_pulse.begin(); iter1 != l_pulse.end() && iter2 != r_pulse.end(); iter1++, iter2++){
+		left_wave.push_back((*iter1));
+		right_wave.push_back((*iter2));
+	}
+}
+
+void VandleWaveform::Zero(){
+	if(left_wave.size() > 0){ left_wave.clear(); }
+	if(right_wave.size() > 0){ right_wave.clear(); }
 }

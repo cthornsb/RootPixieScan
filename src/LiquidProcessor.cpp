@@ -99,7 +99,7 @@ bool LiquidProcessor::Process(RawEvent &event) {
     bool output = false;
 
     // start the process timer
-    times(&tmsBegin);
+    StartProcess();
 
     static const vector<ChanEvent*> &liquidEvents = event.GetSummary("scint:liquid")->GetList();
     static const vector<ChanEvent*> &triggerStartEvents = event.GetSummary("scint:trigger:start")->GetList();
@@ -174,6 +174,7 @@ bool LiquidProcessor::Process(RawEvent &event) {
 		    } //Loop over starts
 		} // Good Liquid Check
     }//end loop over liquid events
+    
     EndProcess();
     return output;
 }
