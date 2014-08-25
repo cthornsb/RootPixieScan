@@ -53,7 +53,7 @@ int main(int argc, char* argv[]){
 	branch_name << argv[3];
 	TBranch *b_wave, *b_mult;
 	tree->SetBranchAddress((branch_name.str()+"_wave").c_str(), &wave, &b_wave);
-	tree->SetBranchAddress((branch_name.str()+"_wave_mult").c_str(), &mult, &b_mult);
+	tree->SetBranchAddress((branch_name.str()+"_mult").c_str(), &mult, &b_mult);
 	
 	if(!b_wave){
 		std::cout << " Failed to load the input branch '" << branch_name.str() << "_wave'\n";
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
 		return 1;
 	}
 	if(!b_mult){
-		std::cout << " Failed to load the input branch '" << branch_name.str() << "_wave_mult'\n";
+		std::cout << " Failed to load the input branch '" << branch_name.str() << "_mult'\n";
 		file->Close();
 		return 1;
 	}
@@ -98,6 +98,7 @@ int main(int argc, char* argv[]){
 		if(mult > 0 && count > skip){
 			count = 0;
 			index = 0;
+			std::cout << "  " << i << std::endl;
 			for(std::vector<int>::iterator iter = wave.begin(); iter != wave.end(); iter++){
 				if(index >= wave_size){ break; } // Reached maximum graph container size
 				graph->SetPoint(index, x[index], (*iter));

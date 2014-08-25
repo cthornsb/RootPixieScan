@@ -285,7 +285,7 @@ bool DetectorDriver::Delete()
 	double total_real_time = difftime(time(NULL), start_time);
 	std::cout << "DetectorDriver: Total CPU Time = " << total_cpu_time << " seconds (" << ConvTime((int)total_cpu_time) << ")\n";
 	std::cout << "DetectorDriver: Total time taken = " << total_real_time << " seconds (" << ConvTime((int)total_real_time) << ")\n";
-	std::cout << "DetectorDriver: Done! Cleanup was successful!
+	std::cout << "DetectorDriver: Done! Cleanup was successful!\n";
 	
 	return true;
 }
