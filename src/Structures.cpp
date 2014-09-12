@@ -152,3 +152,23 @@ void VandleWaveform::Zero(){
 	if(left_wave.size() > 0){ left_wave.clear(); }
 	if(right_wave.size() > 0){ right_wave.clear(); }
 }
+
+///////////////////////////////////////////////////////////
+// IonChamberProcessor
+///////////////////////////////////////////////////////////
+IonChamberStructure::IonChamberStructure(){ ion_mult = 0; }
+
+void IonChamberStructure::Append(double delta_, double energy_){
+	ion_dE.push_back(delta_);
+	ion_E.push_back(energy_);
+	ion_sum.push_back(delta_+energy_);
+	ion_mult++;
+}
+
+void IonChamberStructure::Zero(){
+	if(ion_mult == 0){ return ; } // Structure is already empty
+	ion_dE.clear();
+	ion_E.clear();
+	ion_sum.clear();
+	ion_mult = 0;
+}

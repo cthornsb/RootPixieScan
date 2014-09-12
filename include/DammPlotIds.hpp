@@ -7,6 +7,12 @@
 namespace dammIds {
     const int GENERIC_CHANNEL = 10;
 
+	namespace ionChamber {
+        const int D_MULT_ION = 10;
+        const int D_DE_E_ION = 11;
+        const int D_SUM_ION = 12;
+	}
+
     namespace raw {
         const int OFFSET = 1;
         const int RANGE = 1899;

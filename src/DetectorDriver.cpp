@@ -203,6 +203,10 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
 		if(config_args.HasName("VANDLE_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new VandleProcessor(true)); }
 		else{ vecProcess.push_back(new VandleProcessor(false)); }
 	}
+	if(config_args.HasName("ION", arg_value) && arg_value == "1"){ // VandleProcessor
+		if(config_args.HasName("ION_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new IonChamberProcessor(true)); }
+		else{ vecProcess.push_back(new IonChamberProcessor(false)); }
+	}
 
 	// ROOT output is ON by default!
 	if(config_args.HasName("ROOT", arg_value) && arg_value == "1"){ 

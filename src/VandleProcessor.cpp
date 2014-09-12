@@ -479,6 +479,10 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 								 vmldata.qdc, vmldata.energy, vmldata.recoilEnergy, vmldata.recoilAngle, vmldata.ejectAngle, vmldata.exciteEnergy,
 								 vmldata.flightPath, vmldata.xflightPath, vmldata.yflightPath, vmldata.zflightPath);
 			}
+			
+			//if(save_waveforms){ waveform.Append(trigger.trace); }
+			if(!output){ output = true; }
+			count++;
 		} //vmlMAP
 	}
 

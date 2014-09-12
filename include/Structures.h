@@ -144,4 +144,24 @@ class VandleWaveform : public TObject {
 	ClassDefNV(VandleWaveform, 1); // VandleWaveform
 };
 
+///////////////////////////////////////////////////////////
+// IonChamberProcessor
+///////////////////////////////////////////////////////////
+class IonChamberStructure : public TObject {
+  public:
+    std::vector<double> ion_dE, ion_E, ion_sum;
+    unsigned int ion_mult; 
+
+    IonChamberStructure();
+    
+    // Add an entry to the data vector
+    // Calling this method will mark the event as valid
+    void Append(double, double);
+    
+    // Zero the data structure
+    void Zero();
+    
+    ClassDefNV(IonChamberStructure, 1); // Vandle
+};
+
 #endif
