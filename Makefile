@@ -1,10 +1,10 @@
 # Set the hhirf directory
-#HHIRF_DIR = /usr/hhirf-intel64
-HHIRF_DIR = /usr/hhirf
+HHIRF_DIR = /usr/hhirf-intel64
+#HHIRF_DIR = /usr/hhirf
 
 # Set the ACQ2 library directory
-#ACQ2_LIBDIR = /usr/hhirf-intel64
-ACQ2_LIBDIR = /usr/hhirf
+ACQ2_LIBDIR = /usr/hhirf-intel64
+#ACQ2_LIBDIR = /usr/hhirf
 
 # Scan libraries
 LIBS = $(HHIRF_DIR)/scanorlib.a $(HHIRF_DIR)/orphlib.a\
@@ -78,12 +78,6 @@ ROOTOBJ = $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
 ROOTOBJ += $(C_OBJ_DIR)/$(STRUCT_FILE).o
 SFLAGS = $(addprefix -l,$(DICT_SOURCE))
 
-TOOL_DIR = $(TOP_LEVEL)/tools
-TOOL_SRC_DIR = $(TOOL_DIR)/src
-
-VIEWER = PulseViewer
-ANALYZER = PulseAnalyzer
-
 #####################################################################
 
 all: directory $(FORTOBJ) $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
@@ -117,10 +111,6 @@ $(C_OBJ_DIR):
 $(DICT_OBJ_DIR):
 #	Make root dictionary object file directory
 	mkdir $(DICT_OBJ_DIR)
-
-$(TOOL_OBJ_DIR):
-#	Make root tool object file directory
-	mkdir $(TOOL_OBJ_DIR)
 
 ########################################################################
 
@@ -156,7 +146,7 @@ $(EXECUTABLE): $(FORTOBJ) $(OBJECTS)
 
 tidy: clean_obj
 
-clean: clean_obj clean_dict clean_tools
+clean: clean_obj clean_dict
 
 clean_obj:
 	@echo "Cleaning up..."
@@ -165,17 +155,3 @@ clean_obj:
 clean_dict:
 	@echo "Removing ROOT dictionaries..."
 	@rm -f $(DICT_DIR)/$(DICT_SOURCE).cpp $(DICT_DIR)/$(DICT_SOURCE).h $(DICT_OBJ_DIR)/*.o  $(DICT_OBJ_DIR)/*.so
-	
-clean_tools:
-	@echo "Removing ROOT tools..."
-	@rm -f $(TOOL_DIR)/$(VIEWER) $(TOOL_DIR)/$(ANALYZER)
-	
-#####################################################################
-
-$(ANALYZER): $(TOOL_SRC_DIR)/$(ANALYZER).cpp
-#	Make the PulseAnalyzer tool
-	$(CC) -O2 $(TOOL_SRC_DIR)/$(ANALYZER).cpp `root-config --cflags --glibs` -o $(TOOL_DIR)/$@
-
-$(VIEWER): $(TOOL_SRC_DIR)/$(VIEWER).cpp
-#	Make the PulseViewer tool
-	$(CC) -O2 $(TOOL_SRC_DIR)/$(VIEWER).cpp `root-config --cflags --glibs` -o $(TOOL_DIR)/$@
