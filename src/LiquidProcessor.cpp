@@ -152,12 +152,12 @@ bool LiquidProcessor::Process(RawEvent &event) {
 					else{ tofOffset = calibration.tofOffset1; }
 				            
 					double TOF = liquid.highResTime - start.highResTime - tofOffset; //in ns
-					double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
+					double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r);
 				                                
 					//Root stuff
 					if(use_root){ 
 						structure.Append(loc, TOF, liquid.tqdc, start.tqdc);
-						if(save_waveforms){ waveform.Append(liquid.trace); }
+						//if(save_waveforms){ waveform.Append(liquid.trace); }
 						if(!output){ output = true; }
 						count++;
 					}

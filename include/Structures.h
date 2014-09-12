@@ -110,6 +110,11 @@ class VandleStructure : public TObject {
   public:
     std::vector<double> vandle_TOF, vandle_lqdc, vandle_rqdc, vandle_tsLow, vandle_tsHigh;
     std::vector<double> vandle_lMaxVal, vandle_rMaxVal, vandle_qdc, vandle_energy;
+    
+    std::vector<double> vandle_recoilEnergy, vandle_recoilAngle, vandle_ejectAngle;
+    std::vector<double> vandle_exciteEnergy, vandle_flightPath, vandle_xflightPath;
+    std::vector<double> vandle_yflightPath, vandle_zflightPath;
+    
     std::vector<int> vandle_loc;
     unsigned int vandle_mult; 
 
@@ -117,7 +122,8 @@ class VandleStructure : public TObject {
     
     // Add an entry to the data vector
     // Calling this method will mark the event as valid
-    void Append(unsigned int, double, double, double, double, double, double, double, double, double);
+    void Append(unsigned int, double, double, double, double, double, double, double, double,
+    			double, double, double, double, double, double, double, double, double);
     
     // Zero the data structure
     void Zero();

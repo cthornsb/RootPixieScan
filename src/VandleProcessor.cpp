@@ -15,6 +15,8 @@
 #include <TFile.h>
 #include <TTree.h>
 
+#define PI  3.14159265358
+
 #include "DetectorDriver.hpp"
 #include "DammPlotIds.hpp"
 #include "RawEvent.hpp"
@@ -63,6 +65,13 @@ namespace dammIds {
 	const int DD_GAMMAENERGYVSTOF = 24;
 	const int DD_TQDCAVEVSTOF_VETO= 25;
 	const int DD_TOFBARS_VETO  = 26;
+
+	//Plots related to Energies, Angles
+	const int DD_EJECTEvsEJECTANG  = 27;
+	const int DD_RECOILEvsRECOILANG = 28;
+	const int DD_EXEvsEJECTANG = 29;
+	const int DD_CORTOFvsEJECTANG = 30;
+	const int D_EXE = 31;
 		
 	//Plots used for debugging
 	const int D_PROBLEMS	 = 0+MISC_OFFSET;
@@ -362,35 +371,36 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 			unsigned int barPlusStartLoc = barLoc*2 + startLoc;
 			double tofOffset;
 			if(startLoc == 0)
-			tofOffset = calibration.tofOffset0;
+				tofOffset = calibration.tofOffset0;
 			else 
-			tofOffset = calibration.tofOffset1;
+				tofOffset = calibration.tofOffset1;
 		
 			//times are calculated in ns, energy in keV
 			double TOF = bar.walkCorTimeAve - (*itStart).second.walkCorTime + tofOffset; 
-			double corTOF = CorrectTOF(TOF, bar.flightPath, calibration.z0); 
-			double energy = CalcEnergy(corTOF, calibration.z0);
+			double corTOF = CorrectTOF(TOF, bar.flightPath, calibration.r); 
+			double energy = CalcEnergy(corTOF, calibration.r);
+			double recoilEnergy = CalcRecoilEnergy(energy, bar.flightPath, bar.zflightPath, bar.ejectAngle, bar.recoilAngle, bar.exciteEnergy);
 
-			//--- have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
-		   		static const vector<ChanEvent*> & validEvents = rawev.GetSummary("valid")->GetList();
+			//have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
+			static const vector<ChanEvent*> & validEvents = rawev.GetSummary("valid")->GetList();
 
 	   		double timeLow = 0.0;
 	   		double timeHigh = 0.0;
-			for(vector<ChanEvent*>::const_iterator itValid = validEvents.begin();
-			itValid != validEvents.end(); itValid++) { //--- is it output type?
-			if ((*itValid)->GetChanID().GetTag("output")) {
-				timeLow = (*itValid)->GetQdcValue(0);
-				timeHigh = (*itValid)->GetQdcValue(1); 
-			} 
-				}
-			//VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh))).first;
-			if(use_root){ 
+			for(vector<ChanEvent*>::const_iterator itValid = validEvents.begin(); itValid != validEvents.end(); itValid++) { //--- is it output type?
+				if ((*itValid)->GetChanID().GetTag("output")) {
+					timeLow = (*itValid)->GetQdcValue(0);
+					timeHigh = (*itValid)->GetQdcValue(1); 
+				} 
+			}
+			
+			VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh, recoilEnergy))).first;
+			/*if(use_root){ 
 				// This will automatically mark the event as valid
-				structure.Append(barLoc, TOF, bar.lqdc, bar.rqdc, timeLow, timeHigh, bar.lMaxVal, bar.rMaxVal, bar.qdc, energy); 
-				//if(save_waveforms){ waveform.Append(trigger.trace); }
+				structure.Append(barLoc, TOF, bar.lqdc, bar.rqdc, timeLow, timeHigh, bar.lMaxVal, bar.rMaxVal, bar.qdc, energy);
+				if(save_waveforms){ waveform.Append(trigger.trace); }
 				if(!output){ output = true; }
 				count++;
-			}
+			}*/
 
 			bar.timeOfFlight.insert(make_pair(startLoc, TOF));
 			bar.corTimeOfFlight.insert(make_pair(startLoc, corTOF));
@@ -400,7 +410,7 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 				if(corTOF >= 5) // cut out the gamma prompt
 				//plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
 				plot(DD_TOFBARS+idOffset, TOF*resMult+resOffset, barPlusStartLoc);
-					plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
+				plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
 				plot(DD_MAXRVSTOF+idOffset, TOF*resMult+resOffset, bar.rMaxVal);
 				plot(DD_MAXLVSTOF+idOffset, TOF*resMult+resOffset, bar.lMaxVal);
 				plot(DD_TQDCAVEVSTOF+idOffset, TOF*resMult+resOffset, bar.qdc);
@@ -410,7 +420,24 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 				plot(DD_MAXRVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.rMaxVal);
 				plot(DD_MAXLVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.lMaxVal);
 				plot(DD_TQDCAVEVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.qdc);
-		
+
+				if(corTOF >= 5 && bar.flightPath > 0 ){ // cut out the gamma prompt (gamma flash) & bad flight paths
+					plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
+				
+					//conversions to degrees && convert from MeV -> keV
+					double ejectAng = bar.ejectAngle*180/PI;
+					double recoilAng = bar.recoilAngle*180/PI;
+					double recoilE = recoilEnergy*1000;
+					double exciteE = bar.exciteEnergy*1000 + 1000;
+			
+					//plot these calculated values--important that rejected values do not make it here
+					plot(DD_EJECTEvsEJECTANG+idOffset, ejectAng, energy);
+					plot(DD_RECOILEvsRECOILANG+idOffset, recoilAng, recoilE);
+					plot(DD_EXEvsEJECTANG+idOffset, ejectAng, exciteE);
+					plot(DD_CORTOFvsEJECTANG+idOffset, ejectAng, corTOF * 2.0 );
+					plot(D_EXE+idOffset, exciteE);
+				}
+
 				if(startLoc == 0) {
 						plot(DD_MAXSTART0VSTOF+idOffset, TOF*resMult+resOffset, (*itStart).second.maxval);
 						plot(DD_MAXSTART0VSCORTOF+idOffset, corTOF*resMult+resOffset, (*itStart).second.maxval);
@@ -425,20 +452,36 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 		
 			if (geSummary && use_damm) {
 				if (geSummary->GetMult() > 0) {
-				const vector<ChanEvent *> &geList = geSummary->GetList();
-				for (vector<ChanEvent *>::const_iterator itGe = geList.begin(); itGe != geList.end(); itGe++) {
-					double calEnergy = (*itGe)->GetCalEnergy();
-				plot(DD_GAMMAENERGYVSTOF+idOffset, TOF, calEnergy);
-				}   
-			} else {
-				// vetoed stuff
-				plot(DD_TQDCAVEVSTOF_VETO+idOffset, TOF, bar.qdc);
-				plot(DD_TOFBARS_VETO+idOffset, TOF, barPlusStartLoc);
-			}
+					const vector<ChanEvent *> &geList = geSummary->GetList();
+					for (vector<ChanEvent *>::const_iterator itGe = geList.begin(); itGe != geList.end(); itGe++) {
+						double calEnergy = (*itGe)->GetCalEnergy();
+						plot(DD_GAMMAENERGYVSTOF+idOffset, TOF, calEnergy);
+					}   
+				} else {
+					// vetoed stuff
+					plot(DD_TQDCAVEVSTOF_VETO+idOffset, TOF, bar.qdc);
+					plot(DD_TOFBARS_VETO+idOffset, TOF, barPlusStartLoc);
+				}
 			} 
 		} // for(TimingDataMap::iterator itStart
 	} //(BarMap::iterator itBar
-	
+
+	if(use_root){
+		for(VMLMap::const_iterator itTempA = vmlMap.begin(); itTempA != vmlMap.end(); itTempA++) { //creating root structure
+		    unsigned int vmllocation = (*itTempA).first;
+		    vmlData vmldata = (*itTempA).second; //--- filled from barMap
+
+			double corrTOF = (*itTempA).second.tof;
+			double fliPath = (*itTempA).second.flightPath;
+
+			if (corrTOF > 0 && fliPath > 0){ //filling root only with real values
+				structure.Append(vmllocation, vmldata.tof, vmldata.lqdc, vmldata.rqdc, vmldata.tsLow, vmldata.tsHigh, vmldata.lMaxVal, vmldata.rMaxVal,
+								 vmldata.qdc, vmldata.energy, vmldata.recoilEnergy, vmldata.recoilAngle, vmldata.ejectAngle, vmldata.exciteEnergy,
+								 vmldata.flightPath, vmldata.xflightPath, vmldata.yflightPath, vmldata.zflightPath);
+			}
+		} //vmlMAP
+	}
+
 	return output;
 } //void VandleProcessor::AnalyzeData
 
@@ -488,7 +531,7 @@ void VandleProcessor::ClearMaps(void)
 	bigMap.clear();
 	smallMap.clear();
 	startMap.clear();
-	//vmlMap.clear();
+	vmlMap.clear();
 }
 
 //********** CrossTalk **********

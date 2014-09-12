@@ -91,7 +91,8 @@ void LiquidWaveform::Zero(){
 VandleStructure::VandleStructure(){ vandle_mult = 0; }
 
 void VandleStructure::Append(unsigned int location_, double tof_, double lqdc_, double rqdc_, double tsLow_, 
-			     double tsHigh_, double lMaxVal_, double rMaxVal_, double qdc_, double energy_){
+			     double tsHigh_, double lMaxVal_, double rMaxVal_, double qdc_, double energy_, double recoilE_,
+			     double recoilAngle_, double ejectAngle_, double excitedE_, double flightPath_, double x_, double y_, double z_){
 	vandle_loc.push_back(location_);
 	vandle_TOF.push_back(tof_);
 	vandle_lqdc.push_back(lqdc_);
@@ -102,6 +103,16 @@ void VandleStructure::Append(unsigned int location_, double tof_, double lqdc_, 
 	vandle_rMaxVal.push_back(rMaxVal_);
 	vandle_qdc.push_back(qdc_);
 	vandle_energy.push_back(energy_);
+	
+    vandle_recoilEnergy.push_back(recoilE_);
+    vandle_recoilAngle.push_back(recoilAngle_);
+    vandle_ejectAngle.push_back(ejectAngle_);
+    vandle_exciteEnergy.push_back(excitedE_);
+    vandle_flightPath.push_back(flightPath_);
+    vandle_xflightPath.push_back(x_);
+    vandle_yflightPath.push_back(y_);
+    vandle_zflightPath.push_back(z_);
+	
 	vandle_mult++;
 }
 
@@ -117,6 +128,16 @@ void VandleStructure::Zero(){
 	vandle_rMaxVal.clear();
 	vandle_qdc.clear();
 	vandle_energy.clear();
+	
+    vandle_recoilEnergy.clear();
+    vandle_recoilAngle.clear();
+    vandle_ejectAngle.clear();
+    vandle_exciteEnergy.clear();
+    vandle_flightPath.clear();
+    vandle_xflightPath.clear();
+    vandle_yflightPath.clear();
+    vandle_zflightPath.clear();
+	
 	vandle_mult = 0;
 }
 

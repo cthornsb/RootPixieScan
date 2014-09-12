@@ -84,7 +84,7 @@ bool TriggerProcessor::PreProcess(RawEvent &event){
         if(use_damm){ plot(D_ENERGY_TRIGGER, energy); }
         if(use_root){ 
             structure.Append(energy);
-            if(save_waveforms){ waveform.Append(trigger.trace); }
+            //if(save_waveforms){ waveform.Append(trigger.trace); }
             if(!output){ output = true; }
             count++;
         }
