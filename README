@@ -1,1 +1,132 @@
-RootPixieScan
+--RootPixieScan README
+--Cory R. Thornsberry
+--cthornsb@vols.utk.edu
+--Sept. 22, 2014
+
+This README file details the compilation and use of RootPixieScan. No information
+is included in this file for the use of the original Pixie scan code or for the
+installation and/or use of hhirf or Cern ROOT libraries.
+
+--Compilation-----------------------------------------------------------------------
+
+This code requires the use of the ORNL hhirf package and several ROOT libraries.
+Compilation from source has been completed successfully using ROOT 5.34/18 and 
+hhirf/hhirf-intel64. Once installation of the pre-requisite libraries has been
+completed, the 'HHIRF_DIR' variable must be changed in the Makefile to point to
+the hhirf installation location on your machine. Depending on your setup, you
+may also need change 'ACQ2_LIBDIR' to the correct path. 'root-config' will
+automatically link the required root libraries for your machine.
+
+To make compilation faster, several of the unused processors and analyzers have
+been commented out in the Makefile. Depending on your needs, you may need to
+reactivate some of these source files. Be aware that not all of the processors
+and analyzers listed in the Makefile have been updated to include root output.
+
+Typing 
+
+	make 
+
+will compile all the source files, generate ROOT dictionaries, and link the 
+'PixieLDF' executable.
+
+--Cleaning Up-----------------------------------------------------------------------
+
+Should you wish to clean up the directory and start fresh, using 'make clean' or
+'make tidy' will clean up your installation directory. The 'clean' target will
+remove all files related to the root dictionary as well as all compiled source
+code. While 'tidy' will remove only the compiled source code. Tidy may be useful
+in the event that you want to recompile the source code, but do not wish to modify
+the root dictionaries (they can be slow to compile).
+
+--Running the Code--
+Before running the executable, ensure that the symbolic link named 'setup' is
+pointing to your desired directory. By default, this link points to the directory
+./config/ND_7Be, but the path is arbitrary. The program loads configuration
+settings from the directory pointed to by this symbolic link. This makes it easy
+to change configuration directories on the fly.
+
+The configuration directory contains several files. The most important of these
+files are 'default.config', 'map2.txt', and 'timingConstants.txt'. I won't go
+into detail on how map2.txt and timingConstants.txt work, because they are
+more closely detailed in the original Pixie scan code. 'default.config' is a new
+file which directs the scan code on how to process the data and how to handle
+the output.
+
+I recommend looking at default.config in the ND_7Be directory to see how it works.
+Individual analyzers and processors may be turned on or off using this file. It
+also tells PixieLDF whether or not to use DAMM/ROOT output. You may also tell
+the code to output raw waveform traces to the .root file.
+
+This is all that is required for configuration of the executable. The correct syntax 
+for running the PixieLDF executable is
+
+	./PixieLDF {hist_name}
+	
+'hist_name' is the name given to the output ROOT file and the output DAMM .his file.
+By default, the program will load 'default.config' from the setup directory. But,
+it is possible to pass the name of the .config file when starting the program.
+
+	./PixieLDF {hist_name} {config_name}
+	
+will attempt to load 'config_name' as the configuration file. If the file does not
+exist, the program will exit.
+
+NOTE: Before you may run the PixieLDF executable, you will most likely need to
+tell your shell where to find the ROOT dictionaries. By default, the dictionary
+files (.so) are located in the ./dict/obj directory. If you get an error saying
+libRootDict.so cannot be found, add the obj directory to your library path...
+
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/yourName/RootPixieScan/dict/obj
+	
+This is a known "bug" that I haven't taken the time to fix. If you intend to use
+this code alot, you may wish to add this path to your .bash_profile.
+
+--Reading Output From the Code------------------------------------------------------
+
+While running, the program will output status messages. Upon starting, the program
+will initialize the ROOT output, the required analyzers and processors, and will
+initialize the DAMM histograms (if activated). Each of these initializations will
+output a status message. This is useful for ensuring that the configuration file
+was read correctly and that all required processors are turned on.
+
+When initialization is complete, the
+
+	SCANOR->
+	
+prompt will be displayed (as with the normal Pixie scan). 
+
+--Exiting the Code------------------------------------------------------------------
+
+When 'end' is eventually called using
+
+	SCANOR->end
+
+the program will write the ROOT tree to the file 
+and will clean up all analyzers and processors. The program will then list the total
+number of entries written to the ROOT file as well as the total number of events 
+found for each processor. Note that the total number of entries written will almost
+certainly not match the number of events found for each processor.
+
+In general, you should expect to see a roughly one to one ratio of tree entries to
+trigger events (TriggerProcessor should report ~100%, i.e. the multiplicity of each
+trigger entry is 1), but other processors may have more or less events than the number 
+of entries. This is due to the way events are stored in the ROOT tree. Processors
+store events into vectors having a size() equal to the multiplicity for that entry.
+Each trigger window (tree entry) SHOULD only contain one trigger event, but may 
+contain any number of events for Vandle, let's say. These numbers are really only
+useful for determining the rate for the run, and for ensuring everything is working
+correctly.
+
+For example, if TriggerProcessor reports a certain number of events, but Vandle
+reports 0 events were found, this could mean that something is wrong with the
+Vandle channels in the map file. Or if the program reports that no entries were
+found, this could mean that the start detector is defined incorrectly in the map file.
+
+If the program exits normally, you should see a line of text that says
+
+	DetectorDriver: Done! Cleanup was successful!
+	
+This means that the ROOT tree was successfully written to the file, and the file
+was closed. If the program crashes before this cleanup can be completed, the ROOT
+file headers may become corrupted. If this occurs, you may be able to recover the
+file using ROOT, but it is not guaranteed.
