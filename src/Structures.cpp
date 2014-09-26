@@ -5,13 +5,15 @@
 ///////////////////////////////////////////////////////////
 TriggerStructure::TriggerStructure(){ trigger_mult = 0; }
 
-void TriggerStructure::Append(double energy_){
+void TriggerStructure::Append(double time_, double energy_){
+	trigger_time.push_back(time_);
 	trigger_energy.push_back(energy_);
 	trigger_mult++;
 }
 
 void TriggerStructure::Zero(){
 	if(trigger_mult == 0){ return ; } // Structure is already empty
+	trigger_time.clear();
 	trigger_energy.clear();
 	trigger_mult = 0;
 }
@@ -24,32 +26,6 @@ void TriggerWaveform::Append(std::vector<int> &pulse){ // trigger_wave.size()/tr
 
 void TriggerWaveform::Zero(){
 	if(trigger_wave.size() > 0){ trigger_wave.clear(); }
-}
-
-///////////////////////////////////////////////////////////
-// LogicProcessor:Runtime
-///////////////////////////////////////////////////////////
-RuntimeStructure::RuntimeStructure(){ rtime_mult = 0; }
-
-void RuntimeStructure::Append(double energy_){
-	rtime_energy.push_back(energy_);
-	rtime_mult++;
-}
-
-void RuntimeStructure::Zero(){
-	if(rtime_mult == 0){ return ; } // Structure is already empty
-	rtime_energy.clear();
-	rtime_mult = 0;
-}
-
-void RuntimeWaveform::Append(std::vector<int> &pulse){ // rtime_wave.size()/rtime_mult will give pulse size
-	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
-		rtime_wave.push_back((*iter));
-	}
-}
-
-void RuntimeWaveform::Zero(){
-	if(rtime_wave.size() > 0){ rtime_wave.clear(); }
 }
 
 ///////////////////////////////////////////////////////////

@@ -1,3 +1,16 @@
+/** \file Structures.h
+ * \brief Data structures for root output
+ * 
+ * Special data types for Root output. Each individual processor which is
+ * is used in the scan code should have its own Structure class. These classes
+ * should contain simple C++ data types or vectors of simple C++ data types.
+ * Vectors should be used for processors which are likely to have multiplicities
+ * greater than one.
+ *
+ * \author C. Thornsbery
+ * \date Sept. 25, 2014
+ */
+
 #ifndef ROOTDATAStructure_H
 #define ROOTDATAStructure_H
 
@@ -5,87 +18,58 @@
 
 #include <vector>
 
-///////////////////////////////////////////////////////////
-// TriggerProcessor
-///////////////////////////////////////////////////////////
+/** TriggerStructure
+ * \brief Trigger detector data structure
+ * 
+ * Structure for detectors of type "trigger"
+ */
 class TriggerStructure : public TObject {
   public:
-    std::vector<double> trigger_energy;
-    unsigned int trigger_mult;
+	std::vector<double> trigger_time; /**< Raw pixie time */
+    std::vector<double> trigger_energy; /**< Raw pixie energy */
+    unsigned int trigger_mult; /**< Multiplicity of the trigger detector */
 
     TriggerStructure();
-
-    // Fill the root variables with processed data
-    void Append(double);
-
-    // Zero the data structure
-    void Zero();
+    
+    void Append(double, double); /**< Fill the root variables with processed data */
+    
+    void Zero(); /**< Zero the data structure */
     
     ClassDefNV(TriggerStructure, 1); // Trigger
 };
 
+/** TriggerWaveform
+ * \brief Trigger detector trace
+ * 
+ * Structure for detectors of type "trigger"
+ */
 class TriggerWaveform : public TObject {
   public:
-	std::vector<int> trigger_wave; // Integer vector for trigger pulses
+	std::vector<int> trigger_wave; /**< Integer vector for trigger pulses */
 	
-	// Fill the root variable with raw waveform data
-	void Append(std::vector<int>&);
+	void Append(std::vector<int>&); /**< Fill the root variable with raw waveform data */
 	
-	// Zero the waveform
-	void Zero();
+	void Zero(); /**< Zero the waveform */
 	
 	ClassDefNV(TriggerWaveform, 1); // TriggerWaveform
 };
 
-///////////////////////////////////////////////////////////
-// LogicProcessor:Runtime
-///////////////////////////////////////////////////////////
-class RuntimeStructure : public TObject {
-  public:
-    std::vector<double> rtime_energy;
-    unsigned int rtime_mult;
-
-    RuntimeStructure();
-
-    // Fill the root variables with processed data
-    void Append(double);
-
-    // Zero the data structure    
-    void Zero();
-    
-    ClassDefNV(RuntimeStructure, 1); // Runtime
-};
-
-class RuntimeWaveform : public TObject {
-  public:
-	std::vector<int> rtime_wave; // Integer vectors for left and right vandle pulses
-	
-	// Fill the root variable with raw waveform data
-	void Append(std::vector<int>&);
-	
-	// Zero the waveform
-	void Zero();
-	
-	ClassDefNV(RuntimeWaveform, 1); // RuntimeWaveform
-};	
-
-///////////////////////////////////////////////////////////
-// LiquidProcessor
-///////////////////////////////////////////////////////////
+/** LiquidStructure
+ * \brief Liquid scintillator data structure
+ * 
+ * Structure for detectors of type "liquid"
+ */
 class LiquidStructure : public TObject {
   public:
-    std::vector<double> liquid_TOF, liquid_tqdc, start_tqdc;
-    std::vector<int> liquid_loc;
-    unsigned int liquid_mult;
+    std::vector<double> liquid_TOF, liquid_tqdc, start_tqdc; /**< Double vectors for liquid scintillator detector variables */
+    std::vector<int> liquid_loc; /**< Integer vector for liquid detector location */
+    unsigned int liquid_mult; /**< Multiplicity of liquid detector event */
 
     LiquidStructure();
 
-    // Fill the root variables with processed data
-    //void Append(unsigned int, double, double, double, double, double);
-    void Append(unsigned int, double, double, double);
-    
-    // Zero the data structure    
-    void Zero();
+    void Append(unsigned int, double, double, double); /**< Fill the root variables with processed data */
+       
+    void Zero(); /**< Zero the data structure */ 
         
     ClassDefNV(LiquidStructure, 1); // Liquid
 };
@@ -103,9 +87,11 @@ class LiquidWaveform : public TObject {
 	ClassDefNV(LiquidWaveform, 1); // LiquidWaveform
 };
 
-///////////////////////////////////////////////////////////
-// VandleProcessor
-///////////////////////////////////////////////////////////
+/** VandleStructure
+ * \brief Vandle bar data structure
+ * 
+ * Structure for detectors of type "vandlesmall" or "vandlebig"
+ */
 class VandleStructure : public TObject {
   public:
     std::vector<double> vandle_TOF, vandle_lqdc, vandle_rqdc, vandle_tsLow, vandle_tsHigh;

@@ -83,7 +83,7 @@ bool TriggerProcessor::PreProcess(RawEvent &event){
         if (energy > detectors::triggerThreshold){ ++multiplicity; }
         if(use_damm){ plot(D_ENERGY_TRIGGER, energy); }
         if(use_root){ 
-            structure.Append(energy);
+            structure.Append((*it)->GetTime(), energy);
             if(save_waveforms){ waveform.Append(trigger.trace); }
             if(!output){ output = true; }
             count++;

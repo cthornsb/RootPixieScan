@@ -43,7 +43,8 @@ namespace pixie {
 
     /** The time widht of an event in seconds.*/
     /** 3Hen -> 50 us, LeRIBBS -> 3 us */
-    const double eventInSeconds = 3e-6;
+    //const double eventInSeconds = 3e-6;
+    const double eventInSeconds = 0.5e-6;
     /** The time width of an event in units of pixie16 clock ticks */
     const int eventWidth = (int)(eventInSeconds / pixie::clockInSeconds);
 
@@ -52,7 +53,8 @@ namespace pixie {
      * changed to 4.0 for LeRIBBS experiment (93Br)
      * Set to 1.0, looks like ADC range is 16K
      * */
-    const double energyContraction = 2.0; 
+    //const double energyContraction = 2.0; 
+    const double energyContraction = 1.0; 
 };
 
 /**

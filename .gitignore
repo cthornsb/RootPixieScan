@@ -1,0 +1,21 @@
+# Compiled Source #
+###################
+*.o
+*.so
+
+# DAMM Files #
+##############
+*.drr
+*.his
+*.list
+*.log
+
+# ROOT Files #
+##############
+*.root
+RootDict.cpp
+RootDict.h
+
+# Executable #
+##############
+PixieLDF

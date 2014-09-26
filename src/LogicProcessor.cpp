@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "DammPlotIds.hpp"
 #include "Globals.hpp"
 #include "RawEvent.hpp"
 #include "LogicProcessor.hpp"
@@ -33,16 +32,16 @@ LogicProcessor::LogicProcessor(void) : EventProcessor(OFFSET, RANGE), lastStartT
   lastStopTime(MAX_LOGIC, NAN), logicStatus(MAX_LOGIC), stopCount(MAX_LOGIC), startCount(MAX_LOGIC){
     name = "Logic";
     associatedTypes.insert("logic");
-    save_waveforms = false;
     plotSize = SA;
+    for(unsigned int i = 0; i < MAX_LOGIC; i++){ logic_counts[i] = 0; }
 }
 
 LogicProcessor::LogicProcessor(bool save_waveforms_) : EventProcessor(OFFSET, RANGE), lastStartTime(MAX_LOGIC, NAN), 
   lastStopTime(MAX_LOGIC, NAN), logicStatus(MAX_LOGIC), stopCount(MAX_LOGIC), startCount(MAX_LOGIC){
     name = "Logic";
     associatedTypes.insert("logic"); 
-    save_waveforms = save_waveforms_;
     plotSize = SA;
+    for(unsigned int i = 0; i < MAX_LOGIC; i++){ logic_counts[i] = 0; }
 }
 
 bool LogicProcessor::InitDamm()
@@ -67,31 +66,20 @@ bool LogicProcessor::InitDamm()
 
     DeclareHistogram2D(DD_RUNTIME_LOGIC, plotSize, plotSize, "runtime logic [1ms]");
     for (int i=1; i < MAX_LOGIC; i++) {
-	DeclareHistogram2D(DD_RUNTIME_LOGIC+i, plotSize, plotSize, "runtime logic [1ms]");
+		DeclareHistogram2D(DD_RUNTIME_LOGIC+i, plotSize, plotSize, "runtime logic [1ms]");
     }
     
     use_damm = true;
     return true;
 }
 
-// Initialize for root output
-bool LogicProcessor::InitRoot(TTree* top_tree){
-    if(!top_tree){
-        use_root = false;
-        return false;
-    }
-	
-    // Create the branch
-    local_branch = top_tree->Branch("Runtime", &structure);
-    if(save_waveforms){
-    	std::cout << " LogicProcessor: Writing of raw waveforms is disabled!\n";
-    }
- 
+/**< Nothing to do to init Root output for logic, return true */
+bool LogicProcessor::InitRoot(TTree *tree){
     use_root = true;
     return true;
 }
 
-// Returns true ONLY if there is data to fill to the root tree
+/**< Returns true ONLY if there is data to fill to the root tree */
 bool LogicProcessor::Process(RawEvent &event)
 {
     if(!initDone){ return (didProcess = false); }
@@ -106,57 +94,55 @@ bool LogicProcessor::Process(RawEvent &event)
     return output;
 }
 
-// Returns true ONLY if there is data to fill to the root tree
+/**< Returns true ONLY if there is data to fill to the root tree */
 bool LogicProcessor::BasicProcessing(RawEvent &event) {
     const double logicPlotResolution = 10e-6 / pixie::clockInSeconds;    
     static const vector<ChanEvent*> &events = sumMap["logic"]->GetList(); // This crashes the program sometimes
     
     for (vector<ChanEvent*>::const_iterator it = events.begin(); it != events.end(); it++) {
-	ChanEvent *chan = *it;
-        
-	string subtype   = chan->GetChanID().GetSubtype();
-	unsigned int loc = chan->GetChanID().GetLocation();
-	double time = chan->GetTime();
-	double timediff;
+		ChanEvent *chan = *it;
+		    
+		string subtype   = chan->GetChanID().GetSubtype();
+		unsigned int loc = chan->GetChanID().GetLocation();
+		double time = chan->GetTime();
+		double timediff;
 
-	if(subtype == "start") {
-	    if (!isnan(lastStartTime.at(loc)) && use_damm) {
-	        timediff = time - lastStartTime.at(loc);
-	        //PackRoot(timediff, loc, true);
-		plot(D_TDIFF_STARTX + loc, timediff / logicPlotResolution);
-		plot(D_TDIFF_SUMX + loc,   timediff / logicPlotResolution);
-	    }
+		if(subtype == "start") {
+			if (!isnan(lastStartTime.at(loc)) && use_damm) {
+			    timediff = time - lastStartTime.at(loc);
+				plot(D_TDIFF_STARTX + loc, timediff / logicPlotResolution);
+				plot(D_TDIFF_SUMX + loc,   timediff / logicPlotResolution);
+			}
 
-	    //? bounds checking
-	    lastStartTime.at(loc) = time;
-	    logicStatus.at(loc) = true;
+			//? bounds checking
+			lastStartTime.at(loc) = time;
+			logicStatus.at(loc) = true;
 
-	    startCount.at(loc)++;
-	    if(use_damm){ plot(D_COUNTER_START, loc); }
-	} else if (subtype == "stop") {
-  	    if (!isnan(lastStopTime.at(loc)) && use_damm) {
-		timediff = time - lastStopTime.at(loc);
-		//PackRoot(timediff, loc, false);
-		plot(D_TDIFF_STOPX + loc, timediff / logicPlotResolution);
-		plot(D_TDIFF_SUMX + loc,  timediff / logicPlotResolution);
-		if (!isnan(lastStartTime.at(loc))) {
-  		    double moveTime = time - lastStartTime.at(loc);    
-		    plot(D_TDIFF_LENGTHX + loc, moveTime / logicPlotResolution);
+			startCount.at(loc)++;
+			if(use_damm){ plot(D_COUNTER_START, loc); }
+		} else if (subtype == "stop") {
+	  	    if (!isnan(lastStopTime.at(loc)) && use_damm) {
+			timediff = time - lastStopTime.at(loc);
+			plot(D_TDIFF_STOPX + loc, timediff / logicPlotResolution);
+			plot(D_TDIFF_SUMX + loc,  timediff / logicPlotResolution);
+				if (!isnan(lastStartTime.at(loc))) {
+		  		    double moveTime = time - lastStartTime.at(loc);    
+					plot(D_TDIFF_LENGTHX + loc, moveTime / logicPlotResolution);
+				}
+			}
+			//? bounds checking
+			lastStopTime.at(loc) = time;
+			logicStatus.at(loc) = false;
+
+			stopCount.at(loc)++;
+			if(use_damm){ plot(D_COUNTER_STOP, loc); }
 		}
-	    }
-	    //? bounds checking
-	    lastStopTime.at(loc) = time;
-	    logicStatus.at(loc) = false;
-
-	    stopCount.at(loc)++;
-	    if(use_damm){ plot(D_COUNTER_STOP, loc); }
-	}
     }
     
     return false; // Fix later, this method is un-used anyway at the moment
 }
 
-// Returns true ONLY if there is data to fill to the root tree
+/**< Returns true ONLY if there is data to fill to the root tree */
 bool LogicProcessor::TriggerProcessing(RawEvent &event) {
     bool output = false;
     const double logicPlotResolution = 1e-3 / pixie::clockInSeconds;
@@ -164,47 +150,46 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
     
     static DetectorSummary *stopsSummary = event.GetSummary("logic:stop");
     static DetectorSummary *triggersSummary = event.GetSummary("logic:trigger");
+    static DetectorSummary *scalersSummary = event.GetSummary("logic:scaler");
 
     static const vector<ChanEvent*> &stops = stopsSummary->GetList();
     static const vector<ChanEvent*> &triggers = triggersSummary->GetList();
+    static const vector<ChanEvent*> &scalers = scalersSummary->GetList();
     static int firstTimeBin = -1;
     
     for (vector<ChanEvent*>::const_iterator it = stops.begin(); it != stops.end(); it++) {
-	ChanEvent *chan = *it;
-        
-	unsigned int loc = chan->GetChanID().GetLocation();
-	int timeBin = int(chan->GetTime() / logicPlotResolution);
-	int startTimeBin = 0;
-        
-	if (!isnan(lastStartTime.at(loc))) {
-            startTimeBin = int(lastStartTime.at(loc) / logicPlotResolution);
-            if (firstTimeBin == -1) {
-                firstTimeBin = startTimeBin;
-            }
-	} else if (firstTimeBin == -1) {
-	    firstTimeBin = startTimeBin;
-	}
-	startTimeBin = max(0, startTimeBin - firstTimeBin);
-	timeBin -= firstTimeBin;
-        
-        if(use_damm){ 
-	    for (int bin=startTimeBin; bin < timeBin; bin++) {
-                int row = bin / plotSize;
-                int col = bin % plotSize;
-                plot(DD_RUNTIME_LOGIC, col, row, loc + 1); // add one since first logic location might be 0
-                plot(DD_RUNTIME_LOGIC + loc, col, row, 1);
-	    }
-	}
+    	if((*it)->GetChanID().GetLocation() < MAX_LOGIC){ logic_counts[(*it)->GetChanID().GetLocation()]++; }
+		ChanEvent *chan = *it;
+		    
+		unsigned int loc = chan->GetChanID().GetLocation();
+		int timeBin = int(chan->GetTime() / logicPlotResolution);
+		int startTimeBin = 0;
+		    
+		if (!isnan(lastStartTime.at(loc))) {
+			startTimeBin = int(lastStartTime.at(loc) / logicPlotResolution);
+			if (firstTimeBin == -1) {
+				firstTimeBin = startTimeBin;
+			}
+		} else if (firstTimeBin == -1) {
+			firstTimeBin = startTimeBin;
+		}
+		startTimeBin = max(0, startTimeBin - firstTimeBin);
+		timeBin -= firstTimeBin;
+		    
+		if(use_damm){ 
+			for (int bin=startTimeBin; bin < timeBin; bin++) {
+				int row = bin / plotSize;
+				int col = bin % plotSize;
+				plot(DD_RUNTIME_LOGIC, col, row, loc + 1); // add one since first logic location might be 0
+				plot(DD_RUNTIME_LOGIC + loc, col, row, 1);
+			}
+		}
     }
     
     for (vector<ChanEvent*>::const_iterator it = triggers.begin(); it != triggers.end(); it++) {
+    	if((*it)->GetChanID().GetLocation() < MAX_LOGIC){ logic_counts[(*it)->GetChanID().GetLocation()]++; }
         int timeBin = int((*it)->GetTime() / logicPlotResolution);
         timeBin -= firstTimeBin;
-        if(use_root){ 
-        	structure.Append((*it)->GetEnergy()); 
-        	if(!output){ output = true; }
-        	count++;
-        }
         if (timeBin >= maxBin || timeBin < 0)
             continue;
         
@@ -218,6 +203,24 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
             }
         }
     }
+
+    for (vector<ChanEvent*>::const_iterator it = scalers.begin(); it != scalers.end(); it++) {
+    	if((*it)->GetChanID().GetLocation() < MAX_LOGIC){ logic_counts[(*it)->GetChanID().GetLocation()]++; }
+    }
     
     return output;
+}
+
+float LogicProcessor::Status(unsigned int total_events)
+{
+	float time_taken = 0.0;
+	if (initDone) {
+		// output the time usage and the number of valid events
+		time_taken = ((float)total_time)/CLOCKS_PER_SEC;
+		cout << " " << name << "Processor: Used " << time_taken << " seconds of CPU time\n";
+		for(unsigned int i = 0; i < MAX_LOGIC; i++){
+			if(logic_counts[i] > 0){ cout << " " << name << "Processor: Location " << i << " received " << logic_counts[i] << " counts\n"; }
+		}
+	}
+	return time_taken;
 }
