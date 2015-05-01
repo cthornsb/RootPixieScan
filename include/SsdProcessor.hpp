@@ -16,7 +16,9 @@ class SsdProcessor : public EventProcessor
 {
   public:
     SsdProcessor(); // no virtual c'tors
+#ifdef USE_HHIRF
     virtual void DeclarePlots(void);
+#endif
     virtual bool Process(RawEvent &event);
 };
 

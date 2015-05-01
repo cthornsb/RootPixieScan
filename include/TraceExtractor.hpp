@@ -11,8 +11,6 @@
 
 #include "TraceAnalyzer.hpp"
 
-#include "DammPlotIds.hpp"
-
 class Trace;
 
 class TraceExtractor : public TraceAnalyzer {
@@ -25,10 +23,11 @@ class TraceExtractor : public TraceAnalyzer {
  public:
     TraceExtractor(const std::string &aType, const std::string &aSubtype);
     ~TraceExtractor();    
-    
+
+#ifdef USE_HHIRF  
     virtual void DeclarePlots(void);
-    virtual void Analyze(Trace &trace, 
-			 const std::string &type, const std::string &subtype);
+#endif   
+    virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
 };
 
 #endif // __TRACEEXTRACTOR_HPP_

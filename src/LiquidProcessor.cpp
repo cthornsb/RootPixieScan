@@ -47,8 +47,8 @@ LiquidProcessor::LiquidProcessor(bool save_waveforms_) : EventProcessor(OFFSET, 
 }
 
 //******* Declare Plots *******
-bool LiquidProcessor::InitDamm()
-{
+bool LiquidProcessor::InitDamm(){
+#ifdef USE_HHIRF
     std::cout << " LiquidProcessor: Initializing the damm output\n";
     if(use_damm){
         std::cout << " LiquidProcessor: Warning! Damm output already initialized\n";
@@ -72,6 +72,9 @@ bool LiquidProcessor::InitDamm()
     
     use_damm = true;
     return true;
+#else
+	return false;
+#endif
 }
 
 // Initialize for root output
@@ -115,44 +118,44 @@ bool LiquidProcessor::Process(RawEvent &event) {
 
         //Graph traces for the Liquid Scintillators
         if(liquid.discrimination == 0) {
+#ifdef USE_HHIRF
             if(use_damm){
                 for(Trace::const_iterator i = liquid.trace.begin(); i != liquid.trace.end(); i++){
                     plot(DD_TRCLIQUID, int(i-liquid.trace.begin()), counter, int(*i)-liquid.aveBaseline);
                 }
             }
+#endif
             counter++;
         }
            
         // Valid Liquid
 		if(liquid.dataValid) {
-			double discrimNorm = liquid.discrimination/liquid.tqdc;	    
+			TimingInformation::TimingCal calibration = TimingInformation::GetTimingCal(make_pair(loc, "liquid"));
+
+#ifdef USE_HHIRF	
+	        double discrimNorm = liquid.discrimination/liquid.tqdc;	    
 			double discRes = 1000;
 			double discOffset = 100;
-		        
-			TimingInformation::TimingCal calibration = TimingInformation::GetTimingCal(make_pair(loc, "liquid"));
-		        
 			if(use_damm){
 				if(discrimNorm > 0){ plot(DD_DISCRIM, discrimNorm*discRes+discOffset, loc); }
 				plot(DD_TQDCVSDISCRIM, discrimNorm*discRes+discOffset, liquid.tqdc);
 				plot(DD_TQDCLIQUID, liquid.tqdc, loc);
 				plot(DD_MAXLIQUID, liquid.maxval, loc);
 			}
+#endif
 		        
 			if((*itLiquid)->GetChanID().HasTag("start")){ continue; }
 		            
 			for(vector<ChanEvent*>::iterator itStart = startEvents.begin(); itStart != startEvents.end(); itStart++){            
 				unsigned int startLoc = (*itStart)->GetChanID().GetLocation();
 				TimingInformation::TimingData start((*itStart));
-				int histLoc = loc + startLoc;
-				const int resMult = 2;
-				const int resOffset = 2000;
+
 				if(start.dataValid) {
 					double tofOffset;
 					if(startLoc == 0){ tofOffset = calibration.tofOffset0; }
 					else{ tofOffset = calibration.tofOffset1; }
 				            
 					double TOF = liquid.highResTime - start.highResTime - tofOffset; //in ns
-					double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
 				                                
 					//Root stuff
 					if(use_root){ 
@@ -161,8 +164,13 @@ bool LiquidProcessor::Process(RawEvent &event) {
 						if(!output){ output = true; }
 						count++;
 					}
-				            
+
+#ifdef USE_HHIRF				            
 					//Damm stuff
+					double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
+					int histLoc = loc + startLoc;
+					const int resMult = 2;
+					const int resOffset = 2000;					
 					if(use_damm){
 						plot(DD_TOFLIQUID, TOF*resMult+resOffset, histLoc);
 						plot(DD_TOFVSDISCRIM+histLoc, discrimNorm*discRes+discOffset, TOF*resMult+resOffset);
@@ -170,6 +178,7 @@ bool LiquidProcessor::Process(RawEvent &event) {
 						plot(DD_TQDCVSLIQTOF+histLoc, TOF*resMult+resOffset, liquid.tqdc);
 						plot(DD_TQDCVSENERGY+histLoc, nEnergy, liquid.tqdc);
 					}
+#endif
 				}
 		    } //Loop over starts
 		} // Good Liquid Check

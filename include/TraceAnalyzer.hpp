@@ -10,7 +10,9 @@
 #include <string>
 #include <time.h>
 
+#ifdef USE_HHIRF	
 #include "Plots.hpp"
+#endif
 
 class Trace;
 
@@ -34,6 +36,7 @@ class TraceAnalyzer {
     bool use_root, use_damm;
     bool initDone;
 
+#ifdef USE_HHIRF
     Plots histo;
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
@@ -44,6 +47,7 @@ class TraceAnalyzer {
     virtual void DeclareHistogram2D(int dammId, int xSize, int ySize, const char* title) {
         histo.DeclareHistogram2D(dammId, xSize, ySize, title);
     }
+#endif
 
  public:
     TraceAnalyzer();

@@ -38,8 +38,6 @@
 #include "TimingInformation.hpp"
 #include "TreeCorrelator.hpp"
 
-#include "DammPlotIds.hpp"
-
 #include "TriggerProcessor.hpp"
 #include "DssdProcessor.hpp"
 #include "GeProcessor.hpp"
@@ -65,6 +63,15 @@
 #include "TraceExtractor.hpp"
 #include "WaveformAnalyzer.hpp"
 
+#ifdef USE_HHIRF
+#include "DammPlotIds.hpp"
+using namespace dammIds::raw;
+#endif
+
+using namespace std;
+
+#ifdef USE_HHIRF
+
 #ifdef LINK_GFORTRAN
 #define GETARG__GETARGS _gfortran_getarg_i4
 #define IARGC__GETARGS _gfortran_iargc
@@ -72,9 +79,6 @@
 #define GETARG__GETARGS getarg_
 #define IARGC__GETARGS iargc_
 #endif
-
-using namespace std;
-using namespace dammIds::raw;
 
 extern "C" char* GETARG__GETARGS(const int &, char *, int);
 extern "C" int IARGC__GETARGS(void);
@@ -108,6 +112,7 @@ std::string GetArgument(int i){
 	}
 	return output;
 }
+#endif
 
 // Convert a time in seconds to a time string with format hh:mm:ss
 std::string ConvTime(int myTime){ 
@@ -142,7 +147,11 @@ DetectorDriver* DetectorDriver::get() {
 	return instance;
 }
 
+#ifdef USE_HHIRF
 DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE) 
+#else
+DetectorDriver::DetectorDriver()
+#endif
 {
 	time(&start_time); // Start the master timer
 	is_init = false;
@@ -150,7 +159,7 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
 	num_files = 0;
 	
 	// Load the configuration file
-	if(GetNumberArguments() > 1){
+/*	if(GetNumberArguments() > 1){
 		std::string fname = GetArgument(2);
 
 		if(!LoadConfigFile(fname.c_str())){
@@ -158,12 +167,12 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
 			exit(EXIT_FAILURE);
 		}
 	}
-	else{ 
+	else{ */
 		if(!LoadConfigFile()){
 			std::cout << "DetectorDriver: Fatal error! Failed to load default config file 'setup/default.config'!\n";
 			exit(EXIT_FAILURE);
 		}
-	}
+//	}
 	
 	bool use_pfit = false;
 	bool use_dcfd = false;
@@ -207,18 +216,22 @@ DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE)
 	// ROOT output is ON by default!
 	if(config_args.HasName("ROOT", arg_value) && arg_value == "1"){ 
 		use_root = true; 
-		root_fname = GetArgument(1);
+		root_fname = "output"; //GetArgument(1);
 		std::cout << "DetectorDriver: Using ROOT output\n";
 		OpenNewFile();
 	}
 	else{ use_root = false; }
 	
+#ifdef USE_HHIRF
 	// DAMM output is OFF by default!
 	if(config_args.HasName("DAMM", arg_value) && arg_value == "1"){ 
 		use_damm = true; 
 		std::cout << "DetectorDriver: Using DAMM output\n";
 	}
 	else{ use_damm = false; }
+#else
+	use_damm = false;
+#endif
 
 	if(!use_root && !use_damm){ std::cout << "DetectorDriver: Warning! Neither output method is turned on\n"; }
 
@@ -305,9 +318,9 @@ bool DetectorDriver::Init(RawEvent& rawev)
 	
 	// initialize the trace analysis routine
 	for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
-	(*it)->Init();
+		(*it)->Init();
 		if(use_damm){ (*it)->InitDamm(); }
-	(*it)->SetLevel(20); //! Plot traces
+		(*it)->SetLevel(20); //! Plot traces
 	}
 
 	// initialize processors in the event processing vector
@@ -457,7 +470,9 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 	  Begin the event processing looping over all the channels
 	  that fired in this particular event.
 	*/
+#ifdef USE_HHIRF
 	plot(dammIds::raw::D_NUMBER_OF_EVENTS, dammIds::GENERIC_CHANNEL);
+#endif
 	num_events++; // Count the number of raw events
 	
 	for (vector<ChanEvent*>::const_iterator it = rawev.GetEventList().begin(); it != rawev.GetEventList().end(); ++it) {
@@ -466,10 +481,12 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 			continue;
 		
 		ThreshAndCal((*it), rawev); // check threshold and calibrate
+#ifdef USE_HHIRF
 		if(use_damm){ 
 			PlotRaw((*it));
 			PlotCal((*it));
 		}
+#endif
 
 		double time = (*it)->GetTime();
 		double energy = (*it)->GetCalEnergy();
@@ -514,7 +531,8 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 {
 	DetectorLibrary* modChan = DetectorLibrary::get();
 	DetectorLibrary::size_type maxChan = (theMapFile ? modChan->size() : 192);
-	
+
+#ifdef USE_HHIRF	
 	if(use_damm){ // Declare plots for each channel
 		for (vector<TraceAnalyzer *>::const_iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) { (*it)->InitDamm(); }
 		for (vector<EventProcessor *>::const_iterator it = vecProcess.begin(); it != vecProcess.end(); it++) { (*it)->InitDamm(); }
@@ -532,6 +550,7 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 		DeclareHistogram1D(D_NUMBER_OF_EVENTS, S4, "event counter");
 	}
 	DeclareHistogram1D(D_HAS_TRACE, S7, "channels with traces");
+#endif
 
 	for (DetectorLibrary::size_type i = 0; i < maxChan; i++) {	 
 		if (theMapFile && !modChan->HasValue(i)) { continue; }
@@ -544,7 +563,8 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 			idstr << " - " << id.GetType() << ":" << id.GetSubtype() << " L" << id.GetLocation();
 		} 
 		else { idstr << "id " << i; }
-		
+
+#ifdef USE_HHIRF		
 		if(use_damm){
 			DeclareHistogram1D(D_RAW_ENERGY + i, SE, ("RawE " + idstr.str()).c_str() );
 			DeclareHistogram1D(D_FILTER_ENERGY + i, SE, ("FilterE " + idstr.str()).c_str() );
@@ -555,6 +575,7 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 			DeclareHistogram1D(D_CAL_ENERGY + i, SE, ("CalE " + idstr.str()).c_str() );
 			DeclareHistogram1D(D_CAL_ENERGY_REJECT + i, SE, ("CalE NoSat " + idstr.str()).c_str() );
 		}
+#endif
 	}
 }
 
@@ -590,7 +611,9 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 	  If the channel has a trace get it, analyze it and set the energy.
 	*/
 	if ( !trace.empty() ) {
+#ifdef USE_HHIRF
 		if(use_damm){ plot(D_HAS_TRACE, id); }
+#endif
 		for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {	
 				(*it)->Analyze(trace, type, subtype);
 		}
@@ -598,7 +621,9 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 		if (trace.HasValue("filterEnergy") ) {	 
 			if (trace.GetValue("filterEnergy") > 0) {
 				energy = trace.GetValue("filterEnergy");
+#ifdef USE_HHIRF
 				if(use_damm){ plot(D_FILTER_ENERGY + id, energy); }
+#endif
 			} 
 			else { energy = 2; }
 		}
@@ -650,10 +675,12 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 */
 int DetectorDriver::PlotRaw(const ChanEvent *chan)
 {
+#ifdef USE_HHIRF	
 	int id = chan->GetID();
 	float energy = chan->GetEnergy() / ChanEvent::pixieEnergyContraction;
-	
+
 	plot(D_RAW_ENERGY + id, energy);
+#endif
 	
 	return 0;
 }
@@ -664,6 +691,7 @@ int DetectorDriver::PlotRaw(const ChanEvent *chan)
 */
 int DetectorDriver::PlotCal(const ChanEvent *chan)
 {
+#ifdef USE_HHIRF
 	int id = chan->GetID();
 	// int dammid = chan->GetChanID().GetDammID();
 	float calEnergy = chan->GetCalEnergy();
@@ -671,6 +699,8 @@ int DetectorDriver::PlotCal(const ChanEvent *chan)
 	plot(D_CAL_ENERGY + id, calEnergy);
 	if (!chan->IsSaturated() && !chan->IsPileup())
 		plot(D_CAL_ENERGY_REJECT + id, calEnergy);
+#endif
+
 	return 0;
 }
 

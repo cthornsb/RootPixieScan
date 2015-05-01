@@ -10,7 +10,10 @@
 #include <string>
 #include <time.h>
 
+#ifdef USE_HHIRF
 #include "Plots.hpp"
+#endif
+
 #include "TreeCorrelator.hpp"
 #include "TimingInformation.hpp"
 
@@ -42,6 +45,7 @@ class EventProcessor : public TimingInformation{
     // map of associated detector summary
     std::map<std::string, const DetectorSummary *> sumMap;
 
+#ifdef USE_HHIRF
     // Plots class for given Processor, takes care of declaration
     // and plotting within boundries allowed by PlotsRegistry
     Plots histo;
@@ -55,6 +59,7 @@ class EventProcessor : public TimingInformation{
     virtual void DeclareHistogram2D(int dammId, int xSize, int ySize, const char* title) {
         histo.DeclareHistogram2D(dammId, xSize, ySize, title);
     }
+#endif
 
  public:
     EventProcessor();

@@ -10,7 +10,6 @@
 #include <string>
 
 #include "TraceAnalyzer.hpp"
-#include "DammPlotIds.hpp"
 
 class Trace;
 
@@ -22,10 +21,11 @@ class TracePlotter : public TraceAnalyzer {
     TracePlotter();
     TracePlotter(int offset, int range);
     ~TracePlotter();    
-    
+
+#ifdef USE_HHIRF
     virtual void DeclarePlots(void);
-    virtual void Analyze(Trace &trace, 
-			 const std::string &type, const std::string &subtype);
+#endif
+    virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
 };
 
 #endif // __TRACEPLOTTER_HPP_

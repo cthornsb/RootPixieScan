@@ -47,9 +47,10 @@ class TraceFilterer : public TracePlotter {
     virtual ~TraceFilterer();
 
     virtual bool Init(const std::string &filterFileName = "filter.txt");
+#ifdef USE_HHIRF
     virtual void DeclarePlots(void);
-    virtual void Analyze(Trace &trace, 
-			 const std::string &type, const std::string &subtype);
+#endif
+    virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
 };
 
 #endif // __TRACEFILTERER_HPP_
