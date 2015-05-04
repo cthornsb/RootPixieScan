@@ -58,11 +58,12 @@
 #include "PlotsRegister.hpp"
 #include "TreeCorrelator.hpp"
 
-#include "NewPixieStd.h"
+#include "NewPixieStd.hpp"
 
-using namespace std;
 using namespace dammIds::raw;
 using pixie::word_t;
+
+#define VERBOSE
 
 /**
  * Contains event information, the information is filled in ScanList() and is 
@@ -94,7 +95,7 @@ const unsigned int maxWords = EXTERNAL_FIFO_LENGTH; //Revision D
 const unsigned int maxWords = IO_BUFFER_LENGTH; // Revision A
 #endif
 
-// Catch the exit call from scanor and clean up c++ objects CRT
+// Clean up the c++ objects
 void cleanup(){
 	std::cout << "\nCleaning up..\n";
 	DetectorDriver* driver = DetectorDriver::get();
@@ -112,11 +113,10 @@ void cleanup(){
  * If the old pixie readout is used then this function is
  * redefined as hissub_.
  */
-bool ReadSpill(char *ibuf[], unsigned int nWords){
+bool ReadSpill(char *ibuf, unsigned int nWords){
 	const unsigned int maxVsn = 14; // No more than 14 pixie modules per crate
 	unsigned int nWords_read = 0;
 	
-	static float hz = sysconf(_SC_CLK_TCK); // Get the number of clock ticks per second
 	static clock_t clockBegin; // Initialization time
 	static struct tms tmsBegin;
 
@@ -129,7 +129,7 @@ bool ReadSpill(char *ibuf[], unsigned int nWords){
 	DetectorDriver* driver = DetectorDriver::get();
 
 	// Local version of ibuf pointer
-	word_t *data = (word_t *)&ibuf[0];
+	word_t *data = (word_t *)ibuf;
 
 	int retval = 0; // return value from various functions
 	
@@ -148,12 +148,11 @@ bool ReadSpill(char *ibuf[], unsigned int nWords){
 		// running time of the analysis.
 		clockBegin = times(&tmsBegin);
 
-		cout << "First buffer at " << clockBegin << " sys time" << endl;
+		std::cout << "\nFirst buffer at " << clockBegin << " sys time" << std::endl;
 		// After completion the descriptions of all channels are in the modChan
 		// vector, the DetectorDriver and rawevent have been initialized with the
 		// detectors that will be used in this analysis.
-		cout << "Using event width " << pixie::eventInSeconds * 1e6 << " us" << endl;
-		cout << "				  " << pixie::eventWidth << " in pixie16 clock tics." << endl;
+		std::cout << "Using event width " << pixie::eventInSeconds * 1e6 << " us (" << pixie::eventWidth << " in pixie16 clock tics).\n\n";
 
 		modChan->PrintUsedDetectors(rawev);
 		if (verbose::MAP_INIT)
@@ -164,182 +163,169 @@ bool ReadSpill(char *ibuf[], unsigned int nWords){
 		// Make a last check to see that everything is in order for the driver 
 		// before processing data
 		if ( !driver->SanityCheck() ) {
-			cout << "Detector driver did not pass sanity check!" << endl;
+			std::cout << "Detector driver did not pass sanity check!" << std::endl;
 			return false;
 		}
 
 		lastVsn=-1; // Set last vsn to -1 so we expect vsn 0 first 	
 
-		cout << "Init done at " << times(&tmsBegin) << " sys time." << endl;
+		std::cout << "Init done at " << times(&tmsBegin) << " sys time.\n\n";
 	}
 	counter++;
  
-	// True if the buffer being analyzed is split across a spill from pixie
-	bool multSpill = true;
+	word_t lenRec = U_DELIMITER;
+	word_t vsn = U_DELIMITER;
+	bool fullSpill=false; // True if spill had all vsn's
 
-	while (multSpill){
-		word_t vsn = U_DELIMITER;
-		bool fullSpill=false; // True if spill had all vsn's
-		multSpill=false; // Assume all buffers are not split between spills	
-
-		// While the current location in the buffer has not gone beyond the end
-		// of the buffer (ignoring the last three delimiters, continue reading
-		while (nWords_read < (nWords - 6)) {
-			// Retrieve the record length and the vsn number
-			word_t lenRec = data[nWords_read];	
-			word_t vsn = data[nWords_read+1];
-		
-			// Check sanity of record length and vsn
-			if(lenRec > maxWords || (vsn > maxVsn && vsn != 9999 && vsn != 1000)) { 
+	// While the current location in the buffer has not gone beyond the end
+	// of the buffer (ignoring the last three delimiters, continue reading
+	while (nWords_read <= nWords) {
+		// Retrieve the record length and the vsn number
+		lenRec = data[nWords_read]; // Number of words in this record
+		vsn = data[nWords_read+1]; // Module number
+	
+		// Check sanity of record length and vsn
+		if(lenRec > maxWords || (vsn > maxVsn && vsn != 9999 && vsn != 1000)) { 
 #ifdef VERBOSE
-				cout << "SANITY CHECK FAILED: lenRec = " << lenRec << ", vsn = " << vsn << ", inWords = " << inWords;
-				cout << " of " << nWords << ", outWords = " << outWords << endl;
+			std::cout << "SANITY CHECK FAILED: lenRec = " << lenRec << ", vsn = " << vsn << ", read " << nWords_read << " of " << nWords << "\n";
 #endif
-				return false;  
-			}
+			return false;  
+		}
 
-			// Buffer with vsn 1000 was inserted with the time for superheavy exp't
-			if (vsn == clockVsn) {
-				memcpy(&theTime, &data[nWords_read+2], sizeof(time_t));
-				nWords_read += lenRec;
+		// If the record length is 6, this is an empty channel.
+		// Skip this vsn and continue with the next
+		//! Revision specific, so move to ReadBuffData
+		if (lenRec==6) {
+			nWords_read += lenRec;
+			lastVsn=vsn;
+			continue;
+		}
+
+		// If both the current vsn inspected is within an acceptable 
+		// range, begin reading the buffer.
+		if ( vsn < modChan->GetPhysicalModules() ) {
+			if ( lastVsn != U_DELIMITER ) {
+				// the modules should be read out cyclically
+				if ( ((lastVsn+1) % modChan->GetPhysicalModules()) != vsn ) {
+#ifdef VERBOSE
+					std::cout << " MISSING BUFFER " << vsn << "/" << modChan->GetPhysicalModules();
+					std::cout << " -- lastVsn = " << lastVsn << "  " << ", length = " << lenRec << std::endl;
+#endif
+					RemoveList(eventList);
+					fullSpill=true;
+				}
 			}
 			
-			// If the record length is 6, this is an empty channel.
-			// Skip this vsn and continue with the next
-			//! Revision specific, so move to ReadBuffData
-			if (lenRec==6) {
-				nWords_read += lenRec;
-				lastVsn=vsn;
-				continue;
-			}
+			// Read the buffer.  After read, the vector eventList will 
+			//contain pointers to all channels that fired in this buffer
+			retval= ReadBuffData(&data[nWords_read], &bufLen, eventList);
 
-			// If both the current vsn inspected is within an acceptable 
-			// range, begin reading the buffer.
-			if ( vsn < modChan->GetPhysicalModules() ) {
-				if ( lastVsn != U_DELIMITER ) {
-					// the modules should be read out cyclically
-					if ( ((lastVsn+1) % modChan->GetPhysicalModules()) != vsn ) {
+			// If the return value is less than the error code, 
+			//reading the buffer failed for some reason.  
+			//Print error message and reset variables if necessary
+			if ( retval <= readbuff::ERROR ) {
+				std::cout << " READOUT PROBLEM " << retval << " in event " << counter << std::endl;
+				if ( retval == readbuff::ERROR ) {
+					std::cout << "  Remove list " << lastVsn << " " << vsn << std::endl;
+					RemoveList(eventList); 							
+				}
+				return false;
+			} else if ( retval > 0 ) {		
+				// Increment the total number of events observed 
+				numEvents += retval;
+			}
+			
+			// Update the variables that are keeping track of what has been
+			// analyzed and increment the location in the current buffer
+			lastVsn = vsn;
+			nWords_read += lenRec;
+		} 
+		else if (vsn == clockVsn) { // Buffer with vsn 1000 was inserted with the time for superheavy exp't
+			memcpy(&theTime, &data[nWords_read+2], sizeof(time_t));
 #ifdef VERBOSE
-						cout << " MISSING BUFFER " << vsn << "/" << modChan->GetPhysicalModules();
-						cout << " -- lastVsn = " << lastVsn << "  " << ", length = " << lenRec << endl;
+			struct tm * timeinfo;
+			timeinfo = localtime (&theTime);
+			std::cout << " Read wall clock time of " << asctime(timeinfo);
 #endif
-						RemoveList(eventList);
-						fullSpill=true;
-					}
-				}
-				
-				// Read the buffer.  After read, the vector eventList will 
-				//contain pointers to all channels that fired in this buffer
-				//retval= ReadBuffData(&lbuf[nWords_read], &bufLen, eventList);
-
-				// If the return value is less than the error code, 
-				//reading the buffer failed for some reason.  
-				//Print error message and reset variables if necessary
-				if ( retval <= readbuff::ERROR ) {
-					cout << " READOUT PROBLEM " << retval << " in event " << counter << endl;
-					if ( retval == readbuff::ERROR ) {
-						cout << "  Remove list " << lastVsn << " " << vsn << endl;
-						RemoveList(eventList); 							
-					}
-					return false;
-				} else if ( retval == 0 ) {
-					// Empty buffers are regular in Rev. D data
-					nWords_read += lenRec;
-					lastVsn = vsn;
-					continue;
-				} else if ( retval > 0 ) {		
-					// Increment the total number of events observed 
-					numEvents += retval;
-				}
-				
-				// Update the variables that are keeping track of what has been
-				// analyzed and increment the location in the current buffer
-				lastVsn = vsn;
-				nWords_read += lenRec;
-			} 
-			else {
-				// Bail out if we have lost our place,		
-				// (bad vsn) and process events	 
-				if (vsn != 9999 && vsn != clockVsn) {
-#ifdef VERBOSE		
-					cout << "UNEXPECTED VSN " << vsn << endl;
+			nWords_read += lenRec;
+			continue;
+		}
+		else if(vsn == 9999){
+			// End spill vsn
+			break;
+		}
+		else{
+#ifdef VERBOSE
+			// Bail out if we have lost our place,		
+			// (bad vsn) and process events	 
+			std::cout << "UNEXPECTED VSN " << vsn << std::endl;
 #endif
-				}
-				break;
-			}
-		} // while still have words
-		if (nWords_read > nWords - 6) {
-			cout << "This actually happens!" << endl;		
+			break;
 		}
+	} // while still have words
 
-		if(nWords > TOTALREAD || nWords_read > TOTALREAD) {
-			cout << "Values of nn - " << nWords << " nk - "<< nWords_read << " TOTALREAD - " << TOTALREAD << endl;
-			Pixie16Error(2); 
-			return false;
-		}
+	if(nWords > TOTALREAD || nWords_read > TOTALREAD) {
+		std::cout << "Values of nn - " << nWords << " nk - "<< nWords_read << " TOTALREAD - " << TOTALREAD << std::endl;
+		Pixie16Error(2); 
+		return false;
+	}
 
-		/* If the vsn is 9999 this is the end of a spill, signal this buffer
-		for processing and determine if the buffer is split between spills.
-		*/
-		if ( vsn == 9999 || vsn == clockVsn ) {
-			fullSpill = true;
-			nWords_read += 3; // Skip it
-			if (data[nWords_read+1] != U_DELIMITER) {
-				cout << "this actually happens!" << endl;
-				multSpill = true;
-			}
-			lastVsn=U_DELIMITER;
-		}
+	/* If the vsn is 9999 this is the end of a spill, signal this buffer
+	for processing and determine if the buffer is split between spills.
+	*/
+	if ( vsn == 9999 || vsn == clockVsn ) {
+		fullSpill = true;
+		nWords_read += 2; // Skip it
+		lastVsn=U_DELIMITER;
+	}
 
-		/* if there are events to process, continue */
-		if( numEvents>0 ) {
-			if (fullSpill) { // if full spill process events
-				// sort the vector of pointers eventlist according to time
-				double lastTimestamp = (*(eventList.rbegin()))->GetTime();
+#ifdef VERBOSE
+	// Check the number of read words
+	if(nWords_read != nWords){
+		std::cout << "Received spill of " << nWords << " words, but only read " << nWords_read << " words\n";
+	}
+#endif
 
-				sort(eventList.begin(),eventList.end(),CompareTime);
-				driver->CorrelateClock(lastTimestamp, theTime);
+	/* if there are events to process, continue */
+	if( numEvents>0 ) {
+		if (fullSpill) { // if full spill process events
+			// sort the vector of pointers eventlist according to time
+			double lastTimestamp = (*(eventList.rbegin()))->GetTime();
 
-				/* once the vector of pointers eventlist is sorted based on time,
-				begin the event processing in ScanList()
-				*/
-				ScanList(eventList, rawev);
+			sort(eventList.begin(),eventList.end(),CompareTime);
+			driver->CorrelateClock(lastTimestamp, theTime);
 
-				/* once the eventlist has been scanned, remove it from memory
-				and reset the number of events to zero and update the event
-				counter
-				*/
-				evCount++;
-				
-				/*
-				every once in a while (when evcount is a multiple of 1000)
-				print the time elapsed doing the analysis
-				*/
-				if(evCount % 1000 == 0 || evCount == 1) {
-					tms tmsNow;
-					clock_t clockNow = times(&tmsNow);
+			/* once the vector of pointers eventlist is sorted based on time,
+			begin the event processing in ScanList()
+			*/
+			ScanList(eventList, rawev);
 
-					if (theTime != 0) {
-						cout << " data read up to poll status time " << ctime(&theTime);
-					}
-					cout << "   buffer = " << evCount << ", user time = " << (tmsNow.tms_utime - tmsBegin.tms_utime) / hz;
-					cout << ", system time = " << (tmsNow.tms_stime - tmsBegin.tms_stime) / hz << ", real time = ";
-					cout << (clockNow - clockBegin) / hz << ", ts = " << lastTimestamp << endl;
-				}		
-				RemoveList(eventList);
-				numEvents=0;
-			} // end fullSpill 
-			else {
-				cout << "Spill split between buffers" << endl;
-				return false; //! this tosses out all events read into the vector so far
+			/* once the eventlist has been scanned, remove it from memory
+			and reset the number of events to zero and update the event
+			counter
+			*/
+			evCount++;
+			
+			/*
+			every once in a while (when evcount is a multiple of 1000)
+			print the time elapsed doing the analysis
+			*/
+			if((evCount % 1000 == 0 || evCount == 1) && theTime != 0) {
+				std::cout << "\n Data read up to poll status time " << ctime(&theTime);
 			}		
-		}  // end numEvents > 0
-		else if (retval != readbuff::STATS) {
-			cout << "bad buffer, numEvents = " << numEvents << endl;
-			return false;
-		}
+			RemoveList(eventList);
+			numEvents=0;
+		} // end fullSpill 
+		else {
+			std::cout << "Spill split between buffers" << std::endl;
+			return false; //! this tosses out all events read into the vector so far
+		}		
+	}  // end numEvents > 0
+	else if (retval != readbuff::STATS) {
+		std::cout << "bad buffer, numEvents = " << numEvents << std::endl;
+		return false;
+	}
 
-	} // end while loop over multiple spills
 	return true;	  
 }
 
@@ -398,10 +384,10 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 	for(; iEvent != eventList.end(); iEvent++) { 
 		id = (*iEvent)->GetID();
 		if (id == U_DELIMITER) {
-			cout << "pattern 0 ignore" << endl;
+			std::cout << "pattern 0 ignore" << std::endl;
 			continue;
 		}
-		if ((*modChan)[id].GetType() == "ignore") {
+		if ((*modChan).at(id).GetType() == "ignore") {
 			continue;
 		}
 
@@ -409,21 +395,18 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 		chanTime  = (*iEvent)->GetTrigTime(); 
 		eventTime = (*iEvent)->GetEventTimeLo();
 
-		/* retrieve the current event time and determine the time difference 
-		between the current and previous events. 
-		*/
+		// retrieve the current event time and determine the time difference 
+		// between the current and previous events. 
 		currTime = (*iEvent)->GetTime();
 		diffTime = currTime - lastTime;
 
-		/* if the time difference between the current and previous event is 
-		larger than the event width, finalize the current event, otherwise
-		treat this as part of the current event
-		*/
+		// if the time difference between the current and previous event is 
+		//larger than the event width, finalize the current event, otherwise
+		//treat this as part of the current event
 		if ( diffTime > pixie::eventWidth ) {
 			if(rawev.Size() > 0) {
-			/* detector driver accesses rawevent externally in order to
-			have access to proper detector_summaries
-			*/
+			// detector driver accesses rawevent externally in order to
+			//have access to proper detector_summaries
 				driver->ProcessEvent(scanMode, rawev);
 			}
 	
@@ -443,12 +426,12 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 
 		unsigned long dtimebin = 2000 + eventTime - chanTime;
 		if (dtimebin < 0 || dtimebin > (unsigned)(SE)) {
-			cout << "strange dtime for id " << id << ":" << dtimebin << endl;
+			std::cout << "strange dtime for id " << id << ":" << dtimebin << std::endl;
 		}
 #ifdef USE_HHIRF
 		driver->plot(D_TIME + id, dtimebin);
 #endif
-		usedDetectors.insert((*modChan)[id].GetType());
+		usedDetectors.insert((*modChan).at(id).GetType());
 		rawev.AddChan(*iEvent);
 
 		// update the time of the last event
@@ -493,8 +476,8 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
 	DetectorDriver* driver = DetectorDriver::get();
 
 	if (firstTime > clock) {
-		cout << "Backwards clock jump detected: prior start " << firstTime
-			<< ", now " << clock << endl;
+		std::cout << "Backwards clock jump detected: prior start " << firstTime
+			<< ", now " << clock << std::endl;
 		// detect a backwards clock jump which occurs when some of the
 		//   last buffers of a previous run sneak into the beginning of the 
 		//   next run, elapsed time of last buffers is usually small but 
@@ -503,8 +486,8 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
 		// make an artificial 10 second gap by 
 		//   resetting the first time accordingly
 		firstTime = clock - 10 / pixie::clockInSeconds - elapsed;
-		cout << elapsed*pixie::clockInSeconds << " prior seconds elapsed "
-			<< ", resetting first time to " << firstTime << endl;	
+		std::cout << elapsed*pixie::clockInSeconds << " prior seconds elapsed "
+			<< ", resetting first time to " << firstTime << std::endl;	
 	}
 
 	switch (event) {
@@ -539,7 +522,7 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
 			stop = clock;
 			break;
 		default:
-			cout << "Unexpected type " << event << " given to HistoStats" << endl;
+			std::cout << "Unexpected type " << event << " given to HistoStats" << std::endl;
 	}
 
 	//fill these spectra on all events, id plots and runtime.
@@ -564,24 +547,24 @@ bool Pixie16Error(int errorNum){
 	//print error message depending on errornum
 	switch (errorNum) {
 		case 1:
-		cout << endl;
-		cout << " **************  SCAN ERROR  ****************** " << endl;
-		cout << "There appears to be more modules in the data " << endl;
-		cout << "stream than are present in the map.txt file. " << endl;
-		cout << "Please verify that the map.txt file is correct " << endl;
-		cout << "This is a fatal error, program terminating" << endl;
+		std::cout << std::endl;
+		std::cout << " **************  SCAN ERROR  ****************** " << std::endl;
+		std::cout << "There appears to be more modules in the data " << std::endl;
+		std::cout << "stream than are present in the map.txt file. " << std::endl;
+		std::cout << "Please verify that the map.txt file is correct " << std::endl;
+		std::cout << "This is a fatal error, program terminating" << std::endl;
 		return false;
 		case 2:
-		cout << endl;
-		cout << "***************  SCAN ERROR  ******************* "<<endl;
-		cout << "One of the variables named nn, nk, or mm" << endl;
-		cout << "have exceeded the value of TOTALREAD. The value of" << endl;
-		cout << "TOTALREAD MUST NEVER exceed 1000000 for correct " << endl;
-		cout << "opertation of code between 32-bit and 64-bit architecture " << endl;
-		cout << "Either these variables have not been zeroed correctly or" << endl;
-		cout << "the poll program controlling pixie16 is trying to send too " << endl;
-		cout << "much data at once" << endl;
-		cout << "This is a fatal error, program terminating " << endl;
+		std::cout << std::endl;
+		std::cout << "***************  SCAN ERROR  ******************* "<<std::endl;
+		std::cout << "One of the variables named nn, nk, or mm" << std::endl;
+		std::cout << "have exceeded the value of TOTALREAD. The value of" << std::endl;
+		std::cout << "TOTALREAD MUST NEVER exceed 1000000 for correct " << std::endl;
+		std::cout << "opertation of code between 32-bit and 64-bit architecture " << std::endl;
+		std::cout << "Either these variables have not been zeroed correctly or" << std::endl;
+		std::cout << "the poll program controlling pixie16 is trying to send too " << std::endl;
+		std::cout << "much data at once" << std::endl;
+		std::cout << "This is a fatal error, program terminating " << std::endl;
 		return false;
 	}
 	return true;

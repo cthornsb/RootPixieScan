@@ -2,8 +2,12 @@
 #include <iostream>
 #include <string.h>
 
-#include "NewPixieStd.h"
+#include "MapFile.hpp"
+#include "NewPixieStd.hpp"
 #include "hribf_buffers.h"
+
+// Everything in this code is global, so putting this here is perfectly fine :-P
+MapFile theMapFile;
 
 int main(int argc, char *argv[]){
 	if(argc < 2){
@@ -17,7 +21,9 @@ int main(int argc, char *argv[]){
 	DATA_buffer databuff;
 	EOF_buffer eofbuff;
 
+	bool debug_mode = false;
 	if(argc >= 3 && strcmp(argv[2], "debug") == 0){ 
+		debug_mode = true;
 		dirbuff.SetDebugMode();
 		headbuff.SetDebugMode();
 		databuff.SetDebugMode();
@@ -38,7 +44,7 @@ int main(int argc, char *argv[]){
 	headbuff.Read(&input_file);
 	
 	// Let's read out the file information from these buffers
-	std::cout << " 'DIR ' buffer-\n";
+	std::cout << "\n 'DIR ' buffer-\n";
 	std::cout << "  Run number: " << dirbuff.GetRunNumber() << std::endl;
 	std::cout << "  Number buffers: " << num_buffers << std::endl << std::endl;
 	
@@ -53,13 +59,13 @@ int main(int argc, char *argv[]){
 	// Now we're ready to read the first data buffer
 	char data[1000000];
 	bool full_spill;
-	unsigned int nWords;
-	while(databuff.Read(&input_file, data, nWords, full_spill)){ 
+	unsigned int nBytes;
+	while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill)){ 
 		if(full_spill){ 
-			std::cout << " Retrieved spill of " << nWords << " words (" << nWords*4 << " bytes)\n"; 
-			ReadSpill(data, nWords);
+			if(debug_mode){ std::cout << " Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			ReadSpill(data, nBytes/4);
 		}
-		else{ std::cout << " Retrieved spill fragment of " << nWords << " words (" << nWords*4 << " bytes)\n"; }
+		else if(debug_mode){ std::cout << " Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
 	}
 	
 	if(eofbuff.Read(&input_file) && eofbuff.Read(&input_file)){
@@ -70,6 +76,8 @@ int main(int argc, char *argv[]){
 	}
 
 	input_file.close();	
+
+	cleanup(); // Clean up detector driver
 
 	return 0;
 }
