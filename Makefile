@@ -139,29 +139,45 @@ dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
 
 #####################################################################
 
-ifeq ($(USE_HHIRF), 1)
 directory: $(OBJ_DIR) $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
-	@if [ ! -d "$(TOP_LEVEL)/config/default" ]; then {$(shell tar -xf $(TOP_LEVEL)/config.tar)}; fi
-else
-directory: $(OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
-	@if [ ! -d "$(TOP_LEVEL)/config/default" ]; then {$(shell tar -xf $(TOP_LEVEL)/config.tar)}; fi
-endif
+# Setup the configuration directory
+	@if [ ! -d "$(TOP_LEVEL)/config/default" ]; then \
+		tar -xf $(TOP_LEVEL)/config.tar; \
+		echo "Building configuration directory"; \
+	fi
+# Create a symbolic link to the default config directory
+	@if [ ! -e "$(TOP_LEVEL)/setup" ]; then \
+		ln -s $(TOP_LEVEL)/config/default $(TOP_LEVEL)/setup; \
+		echo "Creating symbolic link to default configuration directory"; \
+	fi
 
 $(OBJ_DIR):
 #	Make the object file directory
-	mkdir $(OBJ_DIR)
+	@if [ ! -d "$@" ]; then \
+		echo "Making directory: "$@; \
+		mkdir $@; \
+	fi
 
 $(FORT_OBJ_DIR):
 #	Make fortran object file directory
-	mkdir $(FORT_OBJ_DIR)
+	@if [ ! -d "$@" ]; then \
+		echo "Making directory: "$@; \
+		mkdir $@; \
+	fi
 
 $(C_OBJ_DIR):
 #	Make c++ object file directory
-	mkdir $(C_OBJ_DIR)
+	@if [ ! -d "$@" ]; then \
+		echo "Making directory: "$@; \
+		mkdir $@; \
+	fi
 
 $(DICT_OBJ_DIR):
 #	Make root dictionary object file directory
-	mkdir $(DICT_OBJ_DIR)
+	@if [ ! -d "$@" ]; then \
+		echo "Making directory: "$@; \
+		mkdir $@; \
+	fi
 
 ########################################################################
 
