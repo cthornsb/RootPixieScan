@@ -2,34 +2,35 @@
  * \brief The SSD processor handles detectors of type ssd 
  */
 
-#include "DammPlotIds.hpp"
+#include <iostream>
 
 #include "SsdProcessor.hpp"
 #include "RawEvent.hpp"
 
-#include <iostream>
- 
+#ifdef USE_HHIRF
+#include "DammPlotIds.hpp"
+using namespace dammIds::ssd;
+#endif
+
 using std::cout;
 using std::endl;
 
-using namespace dammIds::ssd;
+#define NUM_DETECTORS 4
+#define DD_POSITION__ENERGY_DETX 1 // for x detectors
 
-namespace dammIds {
-    namespace ssd {
-        const int NUM_DETECTORS = 4;
-        const int DD_POSITION__ENERGY_DETX = 1; // for x detectors
-    }
-} // ssd namespace
-
+#ifdef USE_HHIRF
 SsdProcessor::SsdProcessor() : EventProcessor(OFFSET, RANGE)
+#else
+SsdProcessor::SsdProcessor()
+#endif
 {
     name = "ssd";
     associatedTypes.insert("ssd");
 }
 
+#ifdef USE_HHIRF
 void SsdProcessor::DeclarePlots(void)
 {
-    using namespace dammIds::ssd;
     
     const int energyBins    = SE; 
     const int positionBins  = S5;
@@ -40,10 +41,10 @@ void SsdProcessor::DeclarePlots(void)
                 energyBins, positionBins, "SSD Strip vs E");
     }
 }
+#endif
 
 bool SsdProcessor::Process(RawEvent &event)
 {
-    using namespace dammIds::ssd;
     if (!EventProcessor::Process(event))
 	return false;
 
@@ -61,11 +62,12 @@ bool SsdProcessor::Process(RawEvent &event)
     for (int i = 0; i < NUM_DETECTORS; i++) {
         if (ssdSummary[i]->GetMult() == 0)
             continue;
+#ifdef USE_HHIRF
         const ChanEvent *ch = ssdSummary[i]->GetMaxEvent();
         int position = ch->GetChanID().GetLocation();
         double energy   = ch->GetCalEnergy();
-
         plot(DD_POSITION__ENERGY_DETX + i, energy, position);
+#endif
     }
 
     EndProcess(); // update the processing time

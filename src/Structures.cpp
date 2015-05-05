@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////
 TriggerStructure::TriggerStructure(){ trigger_mult = 0; }
 
-void TriggerStructure::Append(double time_, double energy_){
+void TriggerStructure::Append(const double &time_, const double &energy_){
 	trigger_time.push_back(time_);
 	trigger_energy.push_back(energy_);
 	trigger_mult++;
@@ -18,8 +18,8 @@ void TriggerStructure::Zero(){
 	trigger_mult = 0;
 }
 
-void TriggerWaveform::Append(std::vector<int> &pulse){ // trigger_wave.size()/trigger_mult will give pulse size
-	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
+void TriggerWaveform::Append(const std::vector<int> &pulse){ // trigger_wave.size()/trigger_mult will give pulse size
+	for(std::vector<int>::const_iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		trigger_wave.push_back((*iter));
 	}
 }
@@ -33,8 +33,7 @@ void TriggerWaveform::Zero(){
 ///////////////////////////////////////////////////////////
 LiquidStructure::LiquidStructure(){ liquid_mult = 0; }
 
-//void LiquidStructure::Append(unsigned int location_, double TOF_, double S_, double L_, double ltqdc_, double stqdc_){
-void LiquidStructure::Append(unsigned int location_, double TOF_, double ltqdc_, double stqdc_){
+void LiquidStructure::Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_){
 	liquid_loc.push_back(location_);
 	liquid_TOF.push_back(TOF_);
 	liquid_tqdc.push_back(ltqdc_);
@@ -51,8 +50,8 @@ void LiquidStructure::Zero(){
 	liquid_mult = 0;
 }
 
-void LiquidWaveform::Append(std::vector<int> &pulse){ // liquid_wave.size()/liquid_mult will give pulse size
-	for(std::vector<int>::iterator iter = pulse.begin(); iter != pulse.end(); iter++){
+void LiquidWaveform::Append(const std::vector<int> &pulse){ // liquid_wave.size()/liquid_mult will give pulse size
+	for(std::vector<int>::const_iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		liquid_wave.push_back((*iter));
 	}
 }
@@ -66,9 +65,9 @@ void LiquidWaveform::Zero(){
 ///////////////////////////////////////////////////////////
 VandleStructure::VandleStructure(){ vandle_mult = 0; }
 
-void VandleStructure::Append(unsigned int location_, double tof_, double lqdc_, double rqdc_, double tsLow_, 
-			     double tsHigh_, double lMaxVal_, double rMaxVal_, double qdc_, double energy_, double recoilE_,
-			     double recoilAngle_, double ejectAngle_, double excitedE_, double flightPath_, double x_, double y_, double z_){
+void VandleStructure::Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
+			     const double &tsHigh_, const double &lMaxVal_, const double &rMaxVal_, const double &qdc_, const double &energy_, const double &recoilE_,
+			     const double &recoilAngle_, const double &ejectAngle_, const double &excitedE_, const double &flightPath_, const double &x_, const double &y_, const double &z_){
 	vandle_loc.push_back(location_);
 	vandle_TOF.push_back(tof_);
 	vandle_lqdc.push_back(lqdc_);
@@ -117,8 +116,8 @@ void VandleStructure::Zero(){
 	vandle_mult = 0;
 }
 
-void VandleWaveform::Append(std::vector<int> &l_pulse, std::vector<int> &r_pulse){ // left(right)_wave.size()/vandle_mult will give pulse size
-	for(std::vector<int>::iterator iter1 = l_pulse.begin(), iter2 = r_pulse.begin(); iter1 != l_pulse.end() && iter2 != r_pulse.end(); iter1++, iter2++){
+void VandleWaveform::Append(const std::vector<int> &l_pulse, const std::vector<int> &r_pulse){ // left(right)_wave.size()/vandle_mult will give pulse size
+	for(std::vector<int>::const_iterator iter1 = l_pulse.begin(), iter2 = r_pulse.begin(); iter1 != l_pulse.end() && iter2 != r_pulse.end(); iter1++, iter2++){
 		left_wave.push_back((*iter1));
 		right_wave.push_back((*iter2));
 	}
@@ -134,7 +133,7 @@ void VandleWaveform::Zero(){
 ///////////////////////////////////////////////////////////
 IonChamberStructure::IonChamberStructure(){ ion_mult = 0; }
 
-void IonChamberStructure::Append(double delta_, double energy_){
+void IonChamberStructure::Append(const double &delta_, const double &energy_){
 	ion_dE.push_back(delta_);
 	ion_E.push_back(energy_);
 	ion_sum.push_back(delta_+energy_);

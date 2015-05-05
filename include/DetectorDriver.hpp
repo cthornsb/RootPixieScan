@@ -22,7 +22,10 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#ifdef USE_HHIRF
 #include "Plots.hpp"
+#endif
+
 #include "Globals.hpp"
 #include "MapFile.hpp"
 #include "ChanEvent.hpp"
@@ -99,21 +102,26 @@ class DetectorDriver {
     set<string> knownDetectors; /**< list of valid detectors that can be used as detector types */
     pair<double, time_t> pixieToWallClock; /**< rough estimate of pixie to wall clock */ 
 
+#ifdef USE_HHIRF
     virtual void DeclareHistogram1D(int dammId, int xSize, const char* title) {
         histo.DeclareHistogram1D(dammId, xSize, title);
     }
     virtual void DeclareHistogram2D(int dammId, int xSize, int ySize, const char* title) {
         histo.DeclareHistogram2D(dammId, xSize, ySize, title);
     }
+#endif
 
  public:    
     static DetectorDriver* get();
     vector<Calibration> cal; /**<the calibration vector*/ 
+
+#ifdef USE_HHIRF
     Plots histo;
     
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
     }
+#endif
 
     int ProcessEvent(const string &, RawEvent& rawev);
     int ThreshAndCal(ChanEvent *, RawEvent& rawev);

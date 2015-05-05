@@ -38,27 +38,43 @@ void EventProcessor::_initialize(){
 	start_time = clock();
 }
 
-EventProcessor::EventProcessor() : histo(0, 0)
-{
+#ifdef USE_HHIRF
+EventProcessor::EventProcessor() : histo(0, 0){
 	_initialize();
 }
 
-EventProcessor::EventProcessor(int offset, int range) : histo(offset, range) 
-{
+EventProcessor::EventProcessor(int offset, int range) : histo(offset, range){
 	_initialize();
 }
 
-EventProcessor::EventProcessor(std::string name_) : histo(0, 0) 
-{
+EventProcessor::EventProcessor(std::string name_) : histo(0, 0){
 	_initialize();
 	name = name_;
 }
 
-EventProcessor::EventProcessor(int offset, int range, std::string name_) : histo(offset, range) 
-{
+EventProcessor::EventProcessor(int offset, int range, std::string name_) : histo(offset, range){
 	_initialize();
 	name = name_;
 }
+#else
+EventProcessor::EventProcessor(){
+	_initialize();
+}
+
+EventProcessor::EventProcessor(int offset, int range){
+	_initialize();
+}
+
+EventProcessor::EventProcessor(std::string name_){
+	_initialize();
+	name = name_;
+}
+
+EventProcessor::EventProcessor(int offset, int range, std::string name_){
+	_initialize();
+	name = name_;
+}
+#endif
 
 EventProcessor::~EventProcessor() 
 {

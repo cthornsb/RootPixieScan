@@ -17,10 +17,10 @@ class FittingAnalyzer : public TraceAnalyzer, public TimingInformation
     virtual ~FittingAnalyzer() {};
  
     struct FitData{
-	size_t n;
-	double *y;
-	double *sigma;
-	double beta,gamma,qdc;
+		size_t n;
+		double *y;
+		double *sigma;
+		double beta,gamma,qdc;
     };
     
  private:

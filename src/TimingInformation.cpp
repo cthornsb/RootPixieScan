@@ -297,6 +297,10 @@ void TimingInformation::ReadTimingCalibration(void)
 				timingCalFile >> timingcal.barPosPhi >> timingcal.orientTheta >> timingcal.orientPhi >> timingcal.lrtOffset;
 				timingCalFile >> timingcal.tofOffset0 >> timingcal.tofOffset1;
 
+				std::cout << location << " " << type << " " << timingcal.x << " " << timingcal.y << " " << timingcal.z << " " << timingcal.r << " " << timingcal.barPosTheta;
+				std::cout << timingcal.barPosPhi << " " << timingcal.orientTheta << " " << timingcal.orientPhi << " " << timingcal.lrtOffset;
+				std::cout << timingcal.tofOffset0 << " " << timingcal.tofOffset1 << std::endl;
+
 				//Coordinate Conversions
 				if ( (timingcal.x!=0 || timingcal.y!=0 || timingcal.z!=0) && timingcal.r!=0){ //error -- only specify one coor. system
 					cout << endl << "ERROR--Specify only one position coordinate system for bar #" << location << endl;
