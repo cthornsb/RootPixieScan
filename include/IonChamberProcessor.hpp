@@ -1,43 +1,34 @@
 /** \file IonChamberProcessor.hpp
- * \brief Processor for ion chamber
+ *
+ * Processor for trigger scintillator detectors
  */
 
 #ifndef __IONCHAMBERPROCESSOR_HPP_
 #define __IONCHAMBERPROCESSOR_HPP_
 
-#include <deque>
+#include <vector>
 
 #include "EventProcessor.hpp"
+#include "Structures.h"
 
-struct IonChamberDataStructure{
-    // Add some variables later
-};
-
-class IonChamberProcessor : public EventProcessor 
+class IonChamberProcessor : public EventProcessor
 {
- private:  
-    static const size_t noDets = 6;
-    static const size_t timesToKeep = 1000;
-    static const double minTime;
-
-    struct Data {
-        double raw[noDets];
-        double cal[noDets];
-        int mult;
-
-        void Clear(void);
-    } data;
-
-    double lastTime[noDets];
-    std::deque<double> timeDiffs[noDets];
-public:
-    IonChamberProcessor(); // no virtual c'tors
+  public:
+    IonChamberProcessor();
+    IonChamberProcessor(bool);
     virtual bool InitDamm();
     virtual bool InitRoot(TTree*);
     virtual bool Process(RawEvent &event);
-    void PackRoot();
+    virtual void Zero(){ 
+    	structure.Zero();
+    	//if(save_waveforms){ waveform.Zero(); }
+    }
     
-    IonChamberDataStructure structure;
+    IonChamberStructure structure;
+    //IonChamberWaveform waveform;
+    
+  private:
+	bool save_waveforms;
 };
 
-#endif // __IONCHAMBERPROCSSEOR_HPP_
+#endif // __TRIGGERPROCESSOR_HPP_

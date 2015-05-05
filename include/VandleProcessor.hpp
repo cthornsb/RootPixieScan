@@ -21,6 +21,7 @@ class VandleProcessor : public EventProcessor{
 
     VandleStructure structure;
     VandleWaveform waveform;
+    VMLMap vmlMap;
 
  protected:
     //define the maps
