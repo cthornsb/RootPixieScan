@@ -15,4 +15,6 @@
 #pragma link C++ class VandleStructure+;
 #pragma link C++ class VandleWaveform+;
 
+#pragma link C++ class IonChamberStructure+;
+
 #endif

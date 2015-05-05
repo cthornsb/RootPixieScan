@@ -20,7 +20,7 @@ LIBS = $(HHIRF_DIR)/scanorlib.a $(HHIRF_DIR)/orphlib.a\
 	   $(ACQ2_LIBDIR)/acqlib.a $(ACQ2_LIBDIR)/ipclib.a
 
 # Flag for turning UPAK on or off
-USE_HHIRF = 0
+USE_HHIRF = 1
 
 # Flag for verbosity
 VERBOSE = 0
@@ -53,6 +53,7 @@ C_OBJ_DIR = $(OBJ_DIR)/c++
 DICT_OBJ_DIR = $(DICT_DIR)/obj
 
 EXECUTABLE = PixieLDF
+DAMM_EXECUTABLE = DammPixieLDF
 
 # FORTRAN
 FORTRAN = messlog.f mildatim.f scanor.f set2cc.f
@@ -85,7 +86,7 @@ SOURCES += WaveformAnalyzer.cpp
 #SOURCES += DssdProcessor.cpp
 #SOURCES += GeProcessor.cpp
 #SOURCES += ImplantSsdProcessor.cpp
-#SOURCES += IonChamberProcessor.cpp
+SOURCES += IonChamberProcessor.cpp
 SOURCES += LiquidProcessor.cpp
 SOURCES += LogicProcessor.cpp
 #SOURCES += McpProcessor.cpp
@@ -120,7 +121,7 @@ SFLAGS = $(addprefix -l,$(DICT_SOURCE))
 #####################################################################
 
 ifeq ($(USE_HHIRF), 1)
-all: directory $(FORTOBJ) $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
+all: directory $(FORTOBJ) $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(DAMM_EXECUTABLE)
 #	Create all directories, make all objects, and link executable
 else
 all: directory $(OBJECTS) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
@@ -140,8 +141,10 @@ dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
 
 ifeq ($(USE_HHIRF), 1)
 directory: $(OBJ_DIR) $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
+	@if [ ! -d "$(TOP_LEVEL)/config/default" ]; then {$(shell tar -xf $(TOP_LEVEL)/config.tar)}; fi
 else
 directory: $(OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
+	@if [ ! -d "$(TOP_LEVEL)/config/default" ]; then {$(shell tar -xf $(TOP_LEVEL)/config.tar)}; fi
 endif
 
 $(OBJ_DIR):
@@ -195,7 +198,7 @@ $(DICT_DIR)/%.cpp: $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
 #####################################################################
 
 ifeq ($(USE_HHIRF), 1)
-$(EXECUTABLE): $(FORTOBJ) $(OBJECTS)
+$(DAMM_EXECUTABLE): $(FORTOBJ) $(OBJECTS)
 #	Link the executable
 	$(FC) $(LDFLAGS) $(FORTOBJ) $(OBJECTS) $(ROOTOBJ) $(LIBS) -L$(DICT_OBJ_DIR) $(SFLAGS) -o $@ $(LDLIBS)
 else
@@ -213,11 +216,11 @@ clean: clean_obj clean_dict
 ifeq ($(USE_HHIRF), 1)
 clean_obj:
 	@echo "Cleaning up..."
-	@rm -f $(FORT_OBJ_DIR)/*.o $(C_OBJ_DIR)/*.o ./PixieLDF
+	@rm -f $(FORT_OBJ_DIR)/*.o $(C_OBJ_DIR)/*.o ./$(DAMM_EXECUTABLE)
 else
 clean_obj:
 	@echo "Cleaning up..."
-	@rm -f $(C_OBJ_DIR)/*.o ./PixieLDF
+	@rm -f $(C_OBJ_DIR)/*.o ./$(EXECUTABLE)
 endif
 	
 clean_dict:

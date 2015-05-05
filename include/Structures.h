@@ -31,7 +31,7 @@ class TriggerStructure : public TObject {
 
     TriggerStructure();
     
-    void Append(double, double); /**< Fill the root variables with processed data */
+    void Append(const double &time_, const double &energy_); /**< Fill the root variables with processed data */
     
     void Zero(); /**< Zero the data structure */
     
@@ -47,7 +47,7 @@ class TriggerWaveform : public TObject {
   public:
 	std::vector<int> trigger_wave; /**< Integer vector for trigger pulses */
 	
-	void Append(std::vector<int>&); /**< Fill the root variable with raw waveform data */
+	void Append(const std::vector<int> &pulse); /**< Fill the root variable with raw waveform data */
 	
 	void Zero(); /**< Zero the waveform */
 	
@@ -67,7 +67,7 @@ class LiquidStructure : public TObject {
 
     LiquidStructure();
 
-    void Append(unsigned int, double, double, double); /**< Fill the root variables with processed data */
+    void Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_); /**< Fill the root variables with processed data */
        
     void Zero(); /**< Zero the data structure */ 
         
@@ -79,7 +79,7 @@ class LiquidWaveform : public TObject {
 	std::vector<int> liquid_wave; // Integer vector for liquid pulses
 	
 	// Fill the root variable with raw waveform data
-	void Append(std::vector<int>&);
+	void Append(const std::vector<int> &pulse);
 	
 	// Zero the waveform
 	void Zero();
@@ -96,6 +96,11 @@ class VandleStructure : public TObject {
   public:
     std::vector<double> vandle_TOF, vandle_lqdc, vandle_rqdc, vandle_tsLow, vandle_tsHigh;
     std::vector<double> vandle_lMaxVal, vandle_rMaxVal, vandle_qdc, vandle_energy;
+    
+    std::vector<double> vandle_recoilEnergy, vandle_recoilAngle, vandle_ejectAngle;
+    std::vector<double> vandle_exciteEnergy, vandle_flightPath, vandle_xflightPath;
+    std::vector<double> vandle_yflightPath, vandle_zflightPath;
+    
     std::vector<int> vandle_loc;
     unsigned int vandle_mult; 
 
@@ -103,7 +108,9 @@ class VandleStructure : public TObject {
     
     // Add an entry to the data vector
     // Calling this method will mark the event as valid
-    void Append(unsigned int, double, double, double, double, double, double, double, double, double);
+	void Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
+			     const double &tsHigh_, const double &lMaxVal_, const double &rMaxVal_, const double &qdc_, const double &energy_, const double &recoilE_,
+			     const double &recoilAngle_, const double &ejectAngle_, const double &excitedE_, const double &flightPath_, const double &x_, const double &y_, const double &z_);
     
     // Zero the data structure
     void Zero();
@@ -116,12 +123,32 @@ class VandleWaveform : public TObject {
 	std::vector<int> left_wave, right_wave; // Integer vectors for left and right vandle pulses
 	
 	// Fill the root variable with raw waveform data
-	void Append(std::vector<int>&, std::vector<int>&);
+	void Append(const std::vector<int> &l_pulse, const std::vector<int> &r_pulse);
 	
 	// Zero the waveform
 	void Zero();
 	
 	ClassDefNV(VandleWaveform, 1); // VandleWaveform
+};
+
+///////////////////////////////////////////////////////////
+// IonChamberProcessor
+///////////////////////////////////////////////////////////
+class IonChamberStructure : public TObject {
+  public:
+    std::vector<double> ion_dE, ion_E, ion_sum;
+    unsigned int ion_mult; 
+
+    IonChamberStructure();
+    
+    // Add an entry to the data vector
+    // Calling this method will mark the event as valid
+    void Append(const double &, const double &);
+    
+    // Zero the data structure
+    void Zero();
+    
+    ClassDefNV(IonChamberStructure, 1); // Vandle
 };
 
 #endif

@@ -160,17 +160,17 @@ bool LiquidProcessor::Process(RawEvent &event) {
 					//Root stuff
 					if(use_root){ 
 						structure.Append(loc, TOF, liquid.tqdc, start.tqdc);
-						if(save_waveforms){ waveform.Append(liquid.trace); }
+						//if(save_waveforms){ waveform.Append(liquid.trace); }
 						if(!output){ output = true; }
 						count++;
 					}
 
 #ifdef USE_HHIRF				            
 					//Damm stuff
-					double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r0);
 					int histLoc = loc + startLoc;
 					const int resMult = 2;
-					const int resOffset = 2000;					
+					const int resOffset = 2000;	
+					double nEnergy = timeInfo.CalcEnergy(TOF, calibration.r);		
 					if(use_damm){
 						plot(DD_TOFLIQUID, TOF*resMult+resOffset, histLoc);
 						plot(DD_TOFVSDISCRIM+histLoc, discrimNorm*discRes+discOffset, TOF*resMult+resOffset);

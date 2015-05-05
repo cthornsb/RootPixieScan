@@ -93,12 +93,11 @@ TimingInformation::BarData::BarData(const TimingData &Right, const TimingData &L
 
 	//Calculate some useful quantities for the bar analysis.
 	event = BarEventCheck(timeDiff, type);
-	flightPath = CalcFlightPath(timeDiff, cal, type); //in cm
-	theta = acos(cal.z0/flightPath);
+	flightPath = CalcFlightPath(timeDiff, cal, type, xflightPath, yflightPath, zflightPath); //in cm
 }
 
 //********** VMLData **********
-TimingInformation::vmlData::vmlData(const BarData bar, double corTOF, double enrgy, double tLow, double tHigh) 
+TimingInformation::vmlData::vmlData(const BarData bar, double corTOF, double enrgy, double tLow, double tHigh, double recoilE) 
 {
 	//Set the values for the useful bar stuff. 
 	tof = corTOF;
@@ -109,7 +108,15 @@ TimingInformation::vmlData::vmlData(const BarData bar, double corTOF, double enr
 	lMaxVal = bar.lMaxVal;
 	rMaxVal = bar.rMaxVal;
 	qdc = bar.qdc;
-	energy = enrgy;
+    energy = enrgy; //already in keV
+    ejectAngle = bar.ejectAngle*180/PI; //Conversion from radians->Degrees
+    recoilEnergy = recoilE*1000; //Energies conversion to keV
+    recoilAngle = bar.recoilAngle*180/PI;
+    exciteEnergy = bar.exciteEnergy*1000;
+    flightPath = bar.flightPath;
+    xflightPath = bar.xflightPath;
+    yflightPath = bar.yflightPath;
+    zflightPath = bar.zflightPath;
 }
 
 //********** BarEventCheck **********
@@ -128,30 +135,84 @@ bool TimingInformation::BarData::BarEventCheck(const double &timeDiff, const str
 
 
 //********** CalcFlightPath **********
-double TimingInformation::BarData::CalcFlightPath(double &timeDiff, const TimingCal& cal, const string &type)
+double TimingInformation::BarData::CalcFlightPath(double &timeDiff, const TimingCal &cal, const string &type, 
+								double &xflightPath, double &yflightPath, double &zflightPath)
 {
-	if(type == "small") {
-		double speedOfLightSmall = TimingInformation::GetConstant("speedOfLightSmall");
-		return(sqrt(cal.z0*cal.z0 + pow(speedOfLightSmall*0.5*timeDiff+cal.xOffset,2)));
-		//return(sqrt(pow(speedOfLightSmall*0.5*timeDiff+cal.xOffset,2)));
-	} 
-	else if(type == "big") {
-		double speedOfLightBig = 
-		TimingInformation::GetConstant("speedOfLightBig");
-		return(sqrt(cal.z0*cal.z0 + pow(speedOfLightBig*0.5*timeDiff+cal.xOffset,2)));
+	if ( fabs(timeDiff) < 16 ){//maximum amount of time for time difference between signal, otherwise bad event
+		
+		double rad = PI/180;
+		double speedOfLightInBar = 0.0;
+		if(type == "small"){
+			speedOfLightInBar = TimingInformation::GetConstant("speedOfLightSmall");
+		}
+		else if(type == "big"){
+			speedOfLightInBar = TimingInformation::GetConstant("speedOfLightBig");
+		}
+		else{
+			return(numeric_limits<double>::quiet_NaN());
+		}
+    		
+		//Calculate components of flight path from center of bar
+		xflightPath = cal.x - 0.5*speedOfLightInBar*timeDiff*sin(cal.orientTheta*rad)*cos(cal.orientPhi*rad);
+		yflightPath = cal.y - 0.5*speedOfLightInBar*timeDiff*sin(cal.orientTheta*rad)*sin(cal.orientPhi*rad);
+		zflightPath = cal.z - 0.5*speedOfLightInBar*timeDiff*cos(cal.orientTheta*rad);	
+		return(sqrt( pow(xflightPath,2) + pow(yflightPath,2) + pow(zflightPath,2) ));
+	
 	}
- 	return(numeric_limits<double>::quiet_NaN());
+	return(-1);//not a correct event that we want to calculate, so set to -1
 }
 
 //********** CalculateEnergy **********
-double TimingInformation::CalcEnergy(const double &corTOF, const double &z0)
-{
+double TimingInformation::CalcEnergy(const double &corTOF, const double &r)
+{	
+	//calculates energy of the ejected particle (neutron)
 	double speedOfLight = TimingInformation::GetConstant("speedOfLight");
-	double neutronMass = TimingInformation::GetConstant("neutronMass");
-	return((0.5*neutronMass*pow((z0/corTOF)/speedOfLight, 2))*1000);
+   	double neutronMass  = TimingInformation::GetConstant("neutronMass");
+
+   	if (corTOF > 5) //do not calculate neutron energies for gammas
+    		return((0.5*neutronMass*pow((r/corTOF)/speedOfLight, 2))*1000);
+
+	return(0);
 }
 
- 
+//********** CalculateRecoilEnergy *********
+double TimingInformation::CalcRecoilEnergy(const double &energy, const double &flightPath, double &zflightPath, double &ejectAngle, double &recoilAngle, double &exciteEnergy)
+{
+    /* There are four particles involved in calculating the energy of the recoiling particle:
+	m1 is the beam particle, m2 is the target, m3 is the ejectile that is measured
+	and m4 is the particle whose energy and angle we would like to calculate. 
+    */
+	
+    //read in constants
+	double m1 = TimingInformation::GetConstant("beamMass");	//masses in MeV/c^2
+	double m2 = TimingInformation::GetConstant("targetMass");
+	double m3 = TimingInformation::GetConstant("ejectMass");
+	double m4 = TimingInformation::GetConstant("recoilMass");
+	double Ebeam = TimingInformation::GetConstant("beamEnergy");	//beam energy in MeV
+
+    //calculate needed quantities
+    	double ejectEnergy = energy/1000; 		//energy of eject in MeV
+	double Etotal = (Ebeam + m1) + m2;		//if m2 is stationary target
+	double E1 = Ebeam + m1;
+	double E3 = ejectEnergy + m3; 			//ejectile energy (neutron)
+	double P1 = sqrt(Ebeam*Ebeam + 2*m1*Ebeam);	//relativistic momentum for beam and eject
+	double P3 = sqrt(ejectEnergy*ejectEnergy + 2*m3*ejectEnergy); 
+	ejectAngle = acos(zflightPath/flightPath); 	//angle from z-axis to ejected neutron path
+	recoilAngle = atan( (-P3*sin(ejectAngle))/ (P1-P3*cos(ejectAngle)) ) + PI/2; // angle from z-axis to recoil path
+
+    //calculate Qs
+    	double Qconst = m1+m2-m3-m4;
+	double Qreact = m1+m2-m3-sqrt(m1*m1 + m2*m2 + m3*m3 + 2*m2*E1 - 2*E3*(E1+m2) + 2*P1*P3*cos(ejectAngle));
+
+	exciteEnergy = Qconst-Qreact;	//excitation energy of recoil in MeV
+
+    //calulate Recoil energy
+	double T4 = Etotal -E3 - (m1+m2-m3-Qreact); //Kinetic Energy of Recoil
+
+	return(T4);
+	//return(T4+m4); //total energy of Recoil
+}
+
 //********** GetConstant **********
 double TimingInformation::GetConstant(const string &name)
 {
@@ -167,7 +228,6 @@ double TimingInformation::GetConstant(const string &name)
 	}
 	return (numeric_limits<double>::quiet_NaN());
 }
-
 
 //********** GetTimingCalParameter **********
 TimingInformation::TimingCal TimingInformation::GetTimingCal(const IdentKey &identity)
@@ -214,34 +274,56 @@ void TimingInformation::ReadTimingConstants(void)
 	constantsMap.insert(make_pair("lengthSmallTime", lengthSmallTime));
 } //void TimingInformation::ReadTimingConstants
 
-
 //********** ReadTimingCalibration **********
 void TimingInformation::ReadTimingCalibration(void)
 {
 	TimingCal timingcal;
+	//ifstream timingCalFile("./setup/timingCal.txt");
 	ifstream timingCalFile("./setup/timingCal.txt");
 	if (!timingCalFile) {
+		//cout << endl << "Cannot open file 'timingCal.txt'" << "-- This is Fatal! Exiting..." << endl << endl;
 		cout << endl << "Cannot open file 'timingCal.txt'" << "-- This is Fatal! Exiting..." << endl << endl;
 		exit(EXIT_FAILURE);
 	} 
-	else {
+    else{
+		double rad = PI/180;
+
 		while(timingCalFile) {
 			if (isdigit(timingCalFile.peek())) {
-			unsigned int location = -1;
-			string type = "";
-	
-			timingCalFile >> location >> type >> timingcal.z0; //position stuff
-			timingCalFile >> timingcal.xOffset >> timingcal.zOffset;
-			timingCalFile >> timingcal.lrtOffset; //time stuff
-			timingCalFile >> timingcal.tofOffset0 >> timingcal.tofOffset1;
-		
-			//minimum distance to the bar
-			timingcal.z0 += timingcal.zOffset; 
-			IdentKey calKey(location, type);
-			calibrationMap.insert(make_pair(calKey, timingcal));
-			} 
-			else{ timingCalFile.ignore(1000, '\n'); }
+				unsigned int location = -1;
+				string type = "";
+
+				timingCalFile >> location >> type >> timingcal.x >> timingcal.y >> timingcal.z >> timingcal.r >> timingcal.barPosTheta;
+				timingCalFile >> timingcal.barPosPhi >> timingcal.orientTheta >> timingcal.orientPhi >> timingcal.lrtOffset;
+				timingCalFile >> timingcal.tofOffset0 >> timingcal.tofOffset1;
+
+				std::cout << location << " " << type << " " << timingcal.x << " " << timingcal.y << " " << timingcal.z << " " << timingcal.r << " " << timingcal.barPosTheta;
+				std::cout << timingcal.barPosPhi << " " << timingcal.orientTheta << " " << timingcal.orientPhi << " " << timingcal.lrtOffset;
+				std::cout << timingcal.tofOffset0 << " " << timingcal.tofOffset1 << std::endl;
+
+				//Coordinate Conversions
+				if ( (timingcal.x!=0 || timingcal.y!=0 || timingcal.z!=0) && timingcal.r!=0){ //error -- only specify one coor. system
+					cout << endl << "ERROR--Specify only one position coordinate system for bar #" << location << endl;
+				}
+				else if (timingcal.x==0 && timingcal.y==0 && timingcal.z==0 && timingcal.r!=0 ){//from spherical to cartesian
+			
+					timingcal.x = timingcal.r*sin(timingcal.barPosTheta*rad)*cos(timingcal.barPosPhi*rad);
+					timingcal.y = timingcal.r*sin(timingcal.barPosTheta*rad)*sin(timingcal.barPosPhi*rad);
+					timingcal.z = timingcal.r*cos(timingcal.barPosTheta*rad);
+					cout << location << " : " << "x = " << timingcal.x << ", y = " << timingcal.y << ", z = " << timingcal.z << endl;
+				   	
+				}
+				else if((timingcal.r==0 && timingcal.barPosTheta==0 && timingcal.barPosPhi==0) && (timingcal.x!=0 || timingcal.y!=0 || timingcal.z!=0)){
+					//from cartesian to spherical
+					timingcal.r = sqrt(pow(timingcal.x,2)+pow(timingcal.y,2)+pow(timingcal.z,2));
+					timingcal.barPosTheta = acos(timingcal.z/timingcal.r)*180/PI;
+					timingcal.barPosPhi = atan2(timingcal.y,timingcal.x)*180/PI; //specifies correct quadrant
+					cout << location <<" : radius : " << timingcal.r << ",  Theta : " << timingcal.barPosTheta << ",  Phi : " << timingcal.barPosPhi << endl;
+				}			
+				IdentKey calKey(location, type);
+				calibrationMap.insert(make_pair(calKey, timingcal));
+			}else{ timingCalFile.ignore(1000, '\n'); }
 		} // end while (!timingCalFile) loop 
-	}
-	timingCalFile.close();
+    }
+    timingCalFile.close();
 }

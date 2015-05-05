@@ -15,6 +15,8 @@
 #include <TFile.h>
 #include <TTree.h>
 
+#define PI  3.14159265358
+
 #include "DetectorDriver.hpp"
 #include "DammPlotIds.hpp"
 #include "RawEvent.hpp"
@@ -63,6 +65,13 @@ namespace dammIds {
 	const int DD_GAMMAENERGYVSTOF = 24;
 	const int DD_TQDCAVEVSTOF_VETO= 25;
 	const int DD_TOFBARS_VETO  = 26;
+
+	//Plots related to Energies, Angles
+	const int DD_EJECTEvsEJECTANG  = 27;
+	const int DD_RECOILEvsRECOILANG = 28;
+	const int DD_EXEvsEJECTANG = 29;
+	const int DD_CORTOFvsEJECTANG = 30;
+	const int D_EXE = 31;
 		
 	//Plots used for debugging
 	const int D_PROBLEMS	 = 0+MISC_OFFSET;
@@ -340,21 +349,18 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 		BarData bar = (*itBar).second; //--- bar is filled with values from the second part of barMap, the struct
 
 		//Set some useful values.
-		const int resMult = 2; //set resolution of histograms
-		const int resOffset = 600; // offset of histograms
 		unsigned int barLoc = (*itBar).first.first; //--- IdentKey, unsigned int
 		unsigned int idOffset = -1;
 		if((*itBar).first.second == "small")
 			idOffset = 0;
 		else
 		   idOffset = dammIds::BIG_OFFSET;
-		//cout << "Vandle true " << barLoc << endl; //--- ERROR CHECK
-		TimingCal calibration =
-			GetTimingCal((*itBar).first);
+		TimingCal calibration = GetTimingCal((*itBar).first);
 	
-		double timeDiff = bar.timeDiff;
-
 #ifdef USE_HHIRF
+		const int resMult = 2; //set resolution of histograms
+		const int resOffset = 600; // offset of histograms
+		double timeDiff = bar.timeDiff;
 		if(use_damm){
 			plot(DD_DEBUGGING0, bar.qdcPos*resMult+resOffset, timeDiff*resMult+resOffset);
 			plot(DD_TIMEDIFFBARS+idOffset, timeDiff*resMult+resOffset, barLoc);
@@ -372,30 +378,33 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 			unsigned int startLoc = (*itStart).first.first;
 			double tofOffset;
 			if(startLoc == 0)
-			tofOffset = calibration.tofOffset0;
+				tofOffset = calibration.tofOffset0;
 			else 
-			tofOffset = calibration.tofOffset1;
+				tofOffset = calibration.tofOffset1;
 		
 			//times are calculated in ns, energy in keV
 			double TOF = bar.walkCorTimeAve - (*itStart).second.walkCorTime + tofOffset; 
-			double corTOF = CorrectTOF(TOF, bar.flightPath, calibration.z0); 
-			double energy = CalcEnergy(corTOF, calibration.z0);
+			double corTOF = CorrectTOF(TOF, bar.flightPath, calibration.r); 
+			double energy = CalcEnergy(corTOF, calibration.r);
+			double recoilEnergy = CalcRecoilEnergy(energy, bar.flightPath, bar.zflightPath, bar.ejectAngle, bar.recoilAngle, bar.exciteEnergy);
 
-			//--- have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
-		   		static const vector<ChanEvent*> & validEvents = rawev.GetSummary("valid")->GetList();
+			//have everything at this point, need to fill VMLMap here from barMap. add timestamp at this point 
+			static const vector<ChanEvent*> & validEvents = rawev.GetSummary("valid")->GetList();
 
 	   		double timeLow = 0.0;
 	   		double timeHigh = 0.0;
 			for(vector<ChanEvent*>::const_iterator itValid = validEvents.begin(); itValid != validEvents.end(); itValid++) { //--- is it output type?
-			if ((*itValid)->GetChanID().GetTag("output")) {
-				timeLow = (*itValid)->GetQdcValue(0);
-				timeHigh = (*itValid)->GetQdcValue(1); 
-			} 
-				}
-			//VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh))).first;
+				if ((*itValid)->GetChanID().GetTag("output")) {
+					timeLow = (*itValid)->GetQdcValue(0);
+					timeHigh = (*itValid)->GetQdcValue(1); 
+				} 
+			}
+			
+			//VMLMap::iterator itVML = vmlMap.insert(make_pair(barLoc, vmlData(bar, TOF, energy, timeLow, timeHigh, recoilEnergy))).first;
 			if(use_root){ 
 				// This will automatically mark the event as valid
-				structure.Append(barLoc, TOF, bar.lqdc, bar.rqdc, timeLow, timeHigh, bar.lMaxVal, bar.rMaxVal, bar.qdc, energy); 
+				structure.Append(barLoc, TOF, bar.lqdc, bar.rqdc, timeLow, timeHigh, bar.lMaxVal, bar.rMaxVal, bar.qdc, energy, recoilEnergy,
+				                 bar.recoilAngle, bar.ejectAngle, bar.exciteEnergy, bar.flightPath, bar.xflightPath, bar.yflightPath, bar.zflightPath);
 				//if(save_waveforms){ waveform.Append(trigger.trace); }
 				if(!output){ output = true; }
 				count++;
@@ -409,9 +418,9 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 			unsigned int barPlusStartLoc = barLoc*2 + startLoc;	
 			if(use_damm){
 				//if(corTOF >= 5) // cut out the gamma prompt
-					//plot(DD_TQDCAVEVSENERGY+idOffset, (*itVML).second.energy, (*itVML).second.qdc);
+					//plot(DD_TQDCAVEVSENERGY+idOffset, energy, bar.qdc);
 				plot(DD_TOFBARS+idOffset, TOF*resMult+resOffset, barPlusStartLoc);
-					plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
+				plot(DD_TOFVSTDIFF+idOffset, timeDiff*resMult+resOffset, TOF*resMult+resOffset);
 				plot(DD_MAXRVSTOF+idOffset, TOF*resMult+resOffset, bar.rMaxVal);
 				plot(DD_MAXLVSTOF+idOffset, TOF*resMult+resOffset, bar.lMaxVal);
 				plot(DD_TQDCAVEVSTOF+idOffset, TOF*resMult+resOffset, bar.qdc);
@@ -421,7 +430,24 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 				plot(DD_MAXRVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.rMaxVal);
 				plot(DD_MAXLVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.lMaxVal);
 				plot(DD_TQDCAVEVSCORTOF+idOffset, corTOF*resMult+resOffset, bar.qdc);
-	
+
+				if(corTOF >= 5 && bar.flightPath > 0 ){ // cut out the gamma prompt (gamma flash) & bad flight paths
+					plot(DD_TQDCAVEVSENERGY+idOffset, energy, bar.qdc);
+				
+					//conversions to degrees && convert from MeV -> keV
+					double ejectAng = bar.ejectAngle*180/PI;
+					double recoilAng = bar.recoilAngle*180/PI;
+					double recoilE = recoilEnergy*1000;
+					double exciteE = bar.exciteEnergy*1000 + 1000;
+			
+					//plot these calculated values--important that rejected values do not make it here
+					plot(DD_EJECTEvsEJECTANG+idOffset, ejectAng, energy);
+					plot(DD_RECOILEvsRECOILANG+idOffset, recoilAng, recoilE);
+					plot(DD_EXEvsEJECTANG+idOffset, ejectAng, exciteE);
+					plot(DD_CORTOFvsEJECTANG+idOffset, ejectAng, corTOF * 2.0 );
+					plot(D_EXE+idOffset, exciteE);
+				}
+
 				if(startLoc == 0) {
 					plot(DD_MAXSTART0VSTOF+idOffset, TOF*resMult+resOffset, (*itStart).second.maxval);
 					plot(DD_MAXSTART0VSCORTOF+idOffset, corTOF*resMult+resOffset, (*itStart).second.maxval);
@@ -441,18 +467,18 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 					for (vector<ChanEvent *>::const_iterator itGe = geList.begin(); itGe != geList.end(); itGe++) {
 						double calEnergy = (*itGe)->GetCalEnergy();
 						plot(DD_GAMMAENERGYVSTOF+idOffset, TOF, calEnergy);
-					}   
-					else {
-						// vetoed stuff
-						plot(DD_TQDCAVEVSTOF_VETO+idOffset, TOF, bar.qdc);
-						plot(DD_TOFBARS_VETO+idOffset, TOF, barPlusStartLoc);
 					}
-				} 
+				}   
+				else {
+					// vetoed stuff
+					plot(DD_TQDCAVEVSTOF_VETO+idOffset, TOF, bar.qdc);
+					plot(DD_TOFBARS_VETO+idOffset, TOF, barPlusStartLoc);
+				}
 			} 
 #endif
 		}// for(TimingDataMap::iterator itStart
 	} //(BarMap::iterator itBar
-	
+
 	return output;
 } //void VandleProcessor::AnalyzeData
 
@@ -504,7 +530,7 @@ void VandleProcessor::ClearMaps(void)
 	bigMap.clear();
 	smallMap.clear();
 	startMap.clear();
-	//vmlMap.clear();
+	vmlMap.clear();
 }
 
 //********** CrossTalk **********
@@ -541,10 +567,9 @@ void VandleProcessor::CrossTalk(void)
 	CrossTalkKey barsOfInterest(barA.first, barB.first);
 	CrossTalkMap::iterator itBars = crossTalk.find(barsOfInterest);
 	
+#ifdef USE_HHIRF	
 	const int resMult = 2; //set resolution of histograms
 	const int resOffset = 200; // set offset of histograms
-
-#ifdef USE_HHIRF	
 	if(itBars != crossTalk.end() && use_damm){ plot(D_CROSSTALK, (*itBars).second * resMult + resOffset); }
 #endif
 	
@@ -561,16 +586,16 @@ void VandleProcessor::CrossTalk(void)
 	
 //	 double tofA = (*itTofA).second;
 //	 double tofB = (*itTofB).second;
+
+	//bool onBar = (tdiffA + tdiffB <= 0.75 && tdiffA + tdiffB >= 0.25);
+
+#ifdef USE_HHIRF
 	double tdiffA = (*itBarA).second.walkCorTimeDiff;
 	double tdiffB = (*itBarB).second.walkCorTimeDiff;
 	double qdcA = (*itBarA).second.qdc;
 	double qdcB = (*itBarB).second.qdc;
-
-	//bool onBar = (tdiffA + tdiffB <= 0.75 && tdiffA + tdiffB >= 0.25);
 	bool muon = (qdcA > 7500 && qdcB > 7500);
-	double muonTOF = (*itBarA).second.timeAve - (*itBarB).second.timeAve;
-
-#ifdef USE_HHIRF
+	double muonTOF = (*itBarA).second.timeAve - (*itBarB).second.timeAve;		
 	if(use_damm){ 
 		plot(3950, tdiffA*resMult+100, tdiffB*resMult+100);
 	

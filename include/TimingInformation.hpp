@@ -6,6 +6,7 @@
 #define __TIMINGINFORMATION_HPP_
 
 #include <map>
+#include <string>
 //#include "ChanEvent.hpp"
 
 #ifdef useroot
@@ -22,81 +23,108 @@ class TimingInformation
 {
  public:
     struct TimingCal {
-	double lrtOffset;
-	double r0;
-	double tofOffset0;
-	double tofOffset1;
-	double xOffset;
-	double z0;
-	double zOffset;
+		//constants from reading in timingCal.txt file
+		double x;
+		double y;
+		double z;
+		double r;
+		double barPosTheta;
+		double barPosPhi;
+		double orientTheta;
+		double orientPhi;
+		double lrtOffset;
+		double tofOffset0;
+		double tofOffset1;
     };
     
     struct TimingData 
     {
-	TimingData(void);
-	TimingData(ChanEvent *chan);
-    	Trace &trace;
+		TimingData(void);
+		TimingData(ChanEvent *chan);
+    	
+		const Trace &trace;
 	
-	bool dataValid;
+		bool dataValid;
 	
-	double aveBaseline;
-	double discrimination;
-	double highResTime;
-	double maxpos;
-	double maxval;
-	double phase;
-	double snr;
-	double stdDevBaseline;
-	double tqdc;
-	double walk;
-	double walkCorTime;
+		double aveBaseline;
+		double discrimination;
+		double highResTime;
+		double maxpos;
+		double maxval;
+		double phase;
+		double snr;
+		double stdDevBaseline;
+		double tqdc;
+		double walk;
+		double walkCorTime;
 
-	int numAboveThresh;
+		int numAboveThresh;
     };
     
     struct BarData
     {
-	BarData(const TimingData& Right, const TimingData& Left, const TimingCal &cal, const std::string &type);
-	bool BarEventCheck(const double &timeDiff,  const std::string &type);
-        double CalcFlightPath(double &timeDiff, const TimingCal &cal, const std::string &type);
-	
-        bool event;
-	double flightPath;
-	double lMaxVal;
-	double lqdc;
-	double lTime;
-	double qdc;
-	double qdcPos;
-	double rMaxVal;
-	double rqdc;
-	double rTime;
-	double theta;
-	double timeAve;
-	double timeDiff;
-	double walkCorTimeDiff;
-	double walkCorTimeAve;
-	
-	std::map<unsigned int, double> timeOfFlight;
-	std::map<unsigned int, double> corTimeOfFlight;
-	std::map<unsigned int, double> energy;
+		BarData(const TimingData& Right, const TimingData& Left, const TimingCal &cal, const std::string &type);
+
+		bool BarEventCheck(const double &timeDiff, const std::string &type);
+		bool event;
+		
+		double CalcFlightPath(double &timeDiff, const TimingCal &cal, const std::string &type, 
+					double &xflightPath, double &yflightPath, double &zflightPath);
+					  
+		
+		double flightPath;
+		double zflightPath;
+		double yflightPath;
+		double xflightPath;
+		double ejectAngle;
+		double recoilAngle;
+		double recoilEnergy;
+		double exciteEnergy;
+		
+		double lMaxVal;
+		double lqdc;
+		double lTime;
+		double qdc;
+		double qdcPos;
+		double rMaxVal;
+		double rqdc;
+		double rTime;
+		double theta;
+		double timeAve;
+		double timeDiff;
+		double walkCorTimeDiff;
+		double walkCorTimeAve;
+		
+		std::map<unsigned int, double> timeOfFlight;
+		std::map<unsigned int, double> corTimeOfFlight;
+		std::map<unsigned int, double> energy;
     };
 
     struct vmlData //--- needs to have same quantities as DataRoot, fill this from already processed data
     {
-	vmlData(BarData bar, double corTOF, double enrgy, double tLow, double tHigh);	
+		vmlData(BarData bar, double corTOF, double enrgy, double tLow, double tHigh, double recoilE);	
+			
+		double tof;
+		double lqdc;
+		double rqdc;
+		double tsLow;
+		double tsHigh;	
+		double lMaxVal;
+		double rMaxVal;
+		double qdc;
+		double energy;
+		double ejectAngle;
+		double recoilEnergy;
+		double recoilAngle;
+		double exciteEnergy;
+		double flightPath;
+		double xflightPath;
+		double yflightPath;
+		double zflightPath;
 
-	//bool dataValid;
-	
-	double tof;
-	double lqdc;
-	double rqdc;
-	double tsLow; //--- originally unsigned int
-	double tsHigh;	
-	double lMaxVal;
-	double rMaxVal;
-	double qdc;
-	double energy;
-	//int location;
+		int multiplicity;
+		int dummy;
+		int location;
     };
 
     //define types for the keys and maps
@@ -108,7 +136,8 @@ class TimingInformation
     typedef std::map<unsigned int, double> TimeOfFlightMap;
 
     double CalcEnergy(const double &timeOfFlight, const double &z0);
-    
+	double CalcRecoilEnergy(const double &energy, const double &flightPath, double &zflightPath, double &ejectAngle, double &recoilAngle, double &exciteEnergy);
+        
     static double GetConstant(const std::string &value);
     static TimingCal GetTimingCal(const IdentKey &identity);
     static void ReadTimingCalibration(void);
@@ -116,7 +145,6 @@ class TimingInformation
     
  private:
     static const double qdcCompression = 4.0;
-
     static std::map<std::string, double> constantsMap;
     static TimingCalMap calibrationMap;
 }; // class TimingInformation
