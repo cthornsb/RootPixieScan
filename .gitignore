@@ -6,6 +6,7 @@
 # Config files #
 ################
 config/*
+setup
 
 # DAMM Files #
 ##############

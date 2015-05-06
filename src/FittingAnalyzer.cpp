@@ -194,9 +194,6 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 	fitPars.push_back(beta);
 	fitPars.push_back(gamma);
 
-	gsl_multifit_fdfsolver_free (s);
-	gsl_matrix_free (covar);
-
 	trace.InsertValue("phase", fitPars.front()+maxPos);
 	trace.InsertValue("walk", CalcWalk(maxVal, detType, detSubtype));
 
@@ -211,6 +208,9 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 		plot(DD_QDCMASK, chisqPerDof, maxVal);
 	}
 #endif
+
+	gsl_multifit_fdfsolver_free (s);
+	gsl_matrix_free (covar);
 
 	EndAnalyze();
 } //void FittingAnalyzer::Analyze

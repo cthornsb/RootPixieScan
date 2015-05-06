@@ -327,7 +327,8 @@ bool MakeModuleData(const word_t *data, unsigned long nWords)
 	return false;
     }
 
-    unsigned int nhw = 2 * outWords; // calculate the number of half short ints
+	// Shouldn't this be 2 * outWords??? :-P
+    unsigned int nhw = 8 * outWords; // calculate the number of half short ints
 
     hissub_sec(&dataPtr, &nhw);
 

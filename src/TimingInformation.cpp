@@ -287,7 +287,7 @@ void TimingInformation::ReadTimingCalibration(void)
 	} 
     else{
 		double rad = PI/180;
-
+		unsigned int line_count = 1;
 		while(timingCalFile) {
 			if (isdigit(timingCalFile.peek())) {
 				unsigned int location = -1;
@@ -297,16 +297,11 @@ void TimingInformation::ReadTimingCalibration(void)
 				timingCalFile >> timingcal.barPosPhi >> timingcal.orientTheta >> timingcal.orientPhi >> timingcal.lrtOffset;
 				timingCalFile >> timingcal.tofOffset0 >> timingcal.tofOffset1;
 
-				std::cout << location << " " << type << " " << timingcal.x << " " << timingcal.y << " " << timingcal.z << " " << timingcal.r << " " << timingcal.barPosTheta;
-				std::cout << timingcal.barPosPhi << " " << timingcal.orientTheta << " " << timingcal.orientPhi << " " << timingcal.lrtOffset;
-				std::cout << timingcal.tofOffset0 << " " << timingcal.tofOffset1 << std::endl;
-
 				//Coordinate Conversions
 				if ( (timingcal.x!=0 || timingcal.y!=0 || timingcal.z!=0) && timingcal.r!=0){ //error -- only specify one coor. system
 					cout << endl << "ERROR--Specify only one position coordinate system for bar #" << location << endl;
 				}
 				else if (timingcal.x==0 && timingcal.y==0 && timingcal.z==0 && timingcal.r!=0 ){//from spherical to cartesian
-			
 					timingcal.x = timingcal.r*sin(timingcal.barPosTheta*rad)*cos(timingcal.barPosPhi*rad);
 					timingcal.y = timingcal.r*sin(timingcal.barPosTheta*rad)*sin(timingcal.barPosPhi*rad);
 					timingcal.z = timingcal.r*cos(timingcal.barPosTheta*rad);
@@ -319,10 +314,19 @@ void TimingInformation::ReadTimingCalibration(void)
 					timingcal.barPosTheta = acos(timingcal.z/timingcal.r)*180/PI;
 					timingcal.barPosPhi = atan2(timingcal.y,timingcal.x)*180/PI; //specifies correct quadrant
 					cout << location <<" : radius : " << timingcal.r << ",  Theta : " << timingcal.barPosTheta << ",  Phi : " << timingcal.barPosPhi << endl;
-				}			
+				}
+				else{
+					std::cout << "ERROR--Invalid entry for location " << location << " on line " << line_count << " of timingCal.txt\n";
+					// Set to some arbitrary value
+					timingcal.r = 1.0;
+					timingcal.barPosTheta = 0.0;
+					timingcal.barPosPhi = 0.0;
+					cout << location <<" : radius : " << timingcal.r << ",  Theta : " << timingcal.barPosTheta << ",  Phi : " << timingcal.barPosPhi << endl;
+				}	
 				IdentKey calKey(location, type);
 				calibrationMap.insert(make_pair(calKey, timingcal));
 			}else{ timingCalFile.ignore(1000, '\n'); }
+			line_count++;
 		} // end while (!timingCalFile) loop 
     }
     timingCalFile.close();

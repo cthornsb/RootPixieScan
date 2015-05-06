@@ -359,7 +359,7 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 	
 #ifdef USE_HHIRF
 		const int resMult = 2; //set resolution of histograms
-		const int resOffset = 600; // offset of histograms
+		const int resOffset = 200; // offset of histograms
 		double timeDiff = bar.timeDiff;
 		if(use_damm){
 			plot(DD_DEBUGGING0, bar.qdcPos*resMult+resOffset, timeDiff*resMult+resOffset);
