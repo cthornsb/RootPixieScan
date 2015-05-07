@@ -19,7 +19,6 @@ StatsData stats;
 /** Clear the statistics data structures */
 StatsData::StatsData()
 {
-  cout << "\nAllocating " << sizeof(oldData) + sizeof(data) << " bytes for statistics data" << endl;
   bzero(oldData, sizeof(oldData));
   bzero(data, sizeof(data));
 
@@ -36,12 +35,7 @@ void StatsData::DoStatisticsBlock(word_t *buf, int vsn)
     memcpy(oldData[vsn], data[vsn], sizeof(word_t)*statSize);
     memcpy(data[vsn], buf, sizeof(word_t)*statSize);    
     if (firstTime == NAN)
-	firstTime = GetRealTime();
-    if (vsn == 0) {
-#ifdef VERBOSE
-	cout << "Got stats block at time " << GetRealTime() << endl;
-#endif
-    }
+		firstTime = GetRealTime();
   }
 }
 

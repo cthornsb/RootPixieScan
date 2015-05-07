@@ -90,8 +90,8 @@ FORTRAN =
 
 # C++ CORE
 SOURCES = Places.cpp ReadBuffData.RevD.cpp Trace.cpp EventProcessor.cpp MapFile.cpp TraceExtractor.cpp ChanEvent.cpp \
-		  ChanIdentifier.cpp Correlator.cpp pugixml.cpp SsdProcessor.cpp \
-		  TreeCorrelator.cpp DetectorDriver.cpp ParseXml.cpp StatsData.cpp DetectorLibrary.cpp RandomPool.cpp  \
+		  ChanIdentifier.cpp Correlator.cpp pugixml.cpp StatsData.cpp SsdProcessor.cpp \
+		  TreeCorrelator.cpp DetectorDriver.cpp ParseXml.cpp DetectorLibrary.cpp RandomPool.cpp \
 		  DetectorSummary.cpp RawEvent.cpp TimingInformation.cpp PlaceBuilder.cpp 
 
 ifeq ($(NEW_READOUT), 1)
@@ -137,8 +137,12 @@ FORTOBJ = $(addprefix $(FORT_OBJ_DIR)/,$(FORTRAN:.f=.o))
 OBJECTS = $(addprefix $(C_OBJ_DIR)/,$(SOURCES:.cpp=.o))
 
 # This is a special object file included from PixieSuite
-HRIBF_BUFF = $(POLL_SRC_DIR)/hribf_buffers.cpp
-HRIBF_BUFF_OBJ = $(C_OBJ_DIR)/hribf_buffers.o
+HRIBF_SOURCE = $(POLL_SRC_DIR)/hribf_buffers.cpp
+HRIBF_SOURCE_OBJ = $(C_OBJ_DIR)/hribf_buffers.o
+
+# This is a special object file included from PixieSuite
+SOCKET_SOURCE = $(POLL_SRC_DIR)/poll2_socket.cpp
+SOCKET_SOURCE_OBJ = $(C_OBJ_DIR)/poll2_socket.o
 
 # If UPAK is not used, we need a new main file
 SCAN_MAIN = $(SOURCE_DIR)/ScanMain.cpp
@@ -157,10 +161,10 @@ TO_BUILD = $(OBJECTS)
 ifeq ($(NEW_READOUT), 1)
 	ifeq ($(USE_HHIRF), 1)
 		# New scan code w/ damm
-		TO_BUILD += $(FORTOBJ) $(SCAN_MAIN_OBJ) $(HRIBF_BUFF_OBJ) $(LIBS)
+		TO_BUILD += $(FORTOBJ) $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(LIBS)
 	else
 		# New scan code w/o damm
-		TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_BUFF_OBJ)
+		TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ)
 	endif
 else
 	ifeq ($(USE_HHIRF), 1)
@@ -238,12 +242,16 @@ $(C_OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp
 #	Compile C++ source files
 	$(CC) -c $(CFLAGS) $< -o $@
 
-$(HRIBF_BUFF_OBJ): $(HRIBF_BUFF)
+$(HRIBF_SOURCE_OBJ): $(HRIBF_SOURCE)
 #	Compile hribf_buffers from PixieSuite
 	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
 
+$(SOCKET_SOURCE_OBJ): $(SOCKET_SOURCE)
+#	Compile poll2_socket from PixieSuite
+	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
+
 $(SCAN_MAIN_OBJ): $(SCAN_MAIN)
-#	Compile hribf_buffers from PixieSuite
+#	Main scan function
 	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
 
 #####################################################################

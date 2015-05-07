@@ -28,7 +28,8 @@
  * David Miller - 5-5-10 - Significant changes throughout for conciseness, 
  *   optimization, and better error checking of incoming buffers
  *
- * Cory Thornsberry - 5-1-15
+ * Cory Thornsberry - 5-1-15 - Deleted hissub_ and MakeModuleData because
+ *   they are no longer needed with the new readout method.
  */
 
 #include <algorithm>
@@ -148,7 +149,6 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 		// running time of the analysis.
 		clockBegin = times(&tmsBegin);
 
-		std::cout << "\nFirst buffer at " << clockBegin << " sys time" << std::endl;
 		// After completion the descriptions of all channels are in the modChan
 		// vector, the DetectorDriver and rawevent have been initialized with the
 		// detectors that will be used in this analysis.
@@ -168,8 +168,6 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 		}
 
 		lastVsn=-1; // Set last vsn to -1 so we expect vsn 0 first 	
-
-		std::cout << "Init done at " << times(&tmsBegin) << " sys time.\n\n";
 	}
 	counter++;
  
@@ -224,9 +222,13 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 			//reading the buffer failed for some reason.  
 			//Print error message and reset variables if necessary
 			if ( retval <= readbuff::ERROR ) {
+#ifdef VERBOSE
 				std::cout << " READOUT PROBLEM " << retval << " in event " << counter << std::endl;
+#endif
 				if ( retval == readbuff::ERROR ) {
+#ifdef VERBOSE
 					std::cout << "  Remove list " << lastVsn << " " << vsn << std::endl;
+#endif
 					RemoveList(eventList); 							
 				}
 				return false;
@@ -317,12 +319,16 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 			numEvents=0;
 		} // end fullSpill 
 		else {
+#ifdef VERBOSE
 			std::cout << "Spill split between buffers" << std::endl;
+#endif
 			return false; //! this tosses out all events read into the vector so far
 		}		
 	}  // end numEvents > 0
 	else if (retval != readbuff::STATS) {
+#ifdef VERBOSE
 		std::cout << "bad buffer, numEvents = " << numEvents << std::endl;
+#endif
 		return false;
 	}
 
@@ -486,8 +492,7 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
 		// make an artificial 10 second gap by 
 		//   resetting the first time accordingly
 		firstTime = clock - 10 / pixie::clockInSeconds - elapsed;
-		std::cout << elapsed*pixie::clockInSeconds << " prior seconds elapsed "
-			<< ", resetting first time to " << firstTime << std::endl;	
+		std::cout << elapsed*pixie::clockInSeconds << " prior seconds elapsed " << ", resetting first time to " << firstTime << std::endl;	
 	}
 
 	switch (event) {
