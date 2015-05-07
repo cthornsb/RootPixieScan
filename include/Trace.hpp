@@ -109,13 +109,15 @@ class Trace : public std::vector<int>
     double DoQDC(unsigned int lo, unsigned int numBins);
     
     unsigned int FindMaxInfo(std::string);
-    
+
+#ifdef USE_HHIRF    
     void Plot(int id);           //< plot trace into a 1D histogram
     void Plot(int id, int row);  //< plot trace into row of a 2D histogram
     void ScalePlot(int id, double scale); //< plot trace absolute value and scaled into a 1D histogram
     void ScalePlot(int id, int row, double scale); //< plot trace absolute value and scaled into a 2D histogram
     void OffsetPlot(int id, double offset); // plot trace with a vertical offset in a 1D histogram
     void OffsetPlot(int id, int row, double offset); //plot trace with a vertical offset in a 2D histogram
+#endif
 };
 
 /** Parameters for your typical trapezoidal filter */

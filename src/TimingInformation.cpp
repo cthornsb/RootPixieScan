@@ -278,10 +278,8 @@ void TimingInformation::ReadTimingConstants(void)
 void TimingInformation::ReadTimingCalibration(void)
 {
 	TimingCal timingcal;
-	//ifstream timingCalFile("./setup/timingCal.txt");
 	ifstream timingCalFile("./setup/timingCal.txt");
 	if (!timingCalFile) {
-		//cout << endl << "Cannot open file 'timingCal.txt'" << "-- This is Fatal! Exiting..." << endl << endl;
 		cout << endl << "Cannot open file 'timingCal.txt'" << "-- This is Fatal! Exiting..." << endl << endl;
 		exit(EXIT_FAILURE);
 	} 
@@ -300,29 +298,32 @@ void TimingInformation::ReadTimingCalibration(void)
 				//Coordinate Conversions
 				if ( (timingcal.x!=0 || timingcal.y!=0 || timingcal.z!=0) && timingcal.r!=0){ //error -- only specify one coor. system
 					cout << endl << "ERROR--Specify only one position coordinate system for bar #" << location << endl;
+					timingcal.r = 1.0; timingcal.barPosTheta = 0.0; timingcal.barPosPhi = 0.0;
+					timingcal.x = 0.0; timingcal.y = 0.0; timingcal.z = 1.0;
 				}
-				else if (timingcal.x==0 && timingcal.y==0 && timingcal.z==0 && timingcal.r!=0 ){//from spherical to cartesian
+				else if (timingcal.x==0 && timingcal.y==0 && timingcal.z==0 && timingcal.r!=0 ){
+					//from spherical to cartesian
 					timingcal.x = timingcal.r*sin(timingcal.barPosTheta*rad)*cos(timingcal.barPosPhi*rad);
 					timingcal.y = timingcal.r*sin(timingcal.barPosTheta*rad)*sin(timingcal.barPosPhi*rad);
 					timingcal.z = timingcal.r*cos(timingcal.barPosTheta*rad);
-					cout << location << " : " << "x = " << timingcal.x << ", y = " << timingcal.y << ", z = " << timingcal.z << endl;
-				   	
 				}
 				else if((timingcal.r==0 && timingcal.barPosTheta==0 && timingcal.barPosPhi==0) && (timingcal.x!=0 || timingcal.y!=0 || timingcal.z!=0)){
 					//from cartesian to spherical
 					timingcal.r = sqrt(pow(timingcal.x,2)+pow(timingcal.y,2)+pow(timingcal.z,2));
 					timingcal.barPosTheta = acos(timingcal.z/timingcal.r)*180/PI;
 					timingcal.barPosPhi = atan2(timingcal.y,timingcal.x)*180/PI; //specifies correct quadrant
-					cout << location <<" : radius : " << timingcal.r << ",  Theta : " << timingcal.barPosTheta << ",  Phi : " << timingcal.barPosPhi << endl;
 				}
 				else{
 					std::cout << "ERROR--Invalid entry for location " << location << " on line " << line_count << " of timingCal.txt\n";
 					// Set to some arbitrary value
-					timingcal.r = 1.0;
-					timingcal.barPosTheta = 0.0;
-					timingcal.barPosPhi = 0.0;
-					cout << location <<" : radius : " << timingcal.r << ",  Theta : " << timingcal.barPosTheta << ",  Phi : " << timingcal.barPosPhi << endl;
+					timingcal.r = 1.0; timingcal.barPosTheta = 0.0; timingcal.barPosPhi = 0.0;
+					timingcal.x = 0.0; timingcal.y = 0.0; timingcal.z = 1.0;
 				}	
+
+#ifdef VERBOSE					
+				cout << location << " " << type << " : x = " << timingcal.x << ", y = " << timingcal.y << ", z = " << timingcal.z << endl;
+#endif				 
+
 				IdentKey calKey(location, type);
 				calibrationMap.insert(make_pair(calKey, timingcal));
 			}else{ timingCalFile.ignore(1000, '\n'); }

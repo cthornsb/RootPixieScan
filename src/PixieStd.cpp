@@ -73,13 +73,11 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev);
 void RemoveList(vector<ChanEvent*> &eventList);
 void HistoStats(unsigned int, double, double, HistoPoints);
 
-#ifdef newreadout
 /**
  * \brief Extract channel information from the raw parameter array ibuf
  */
 void hissub_sec(unsigned int *ibuf[],unsigned int *nhw);
 bool MakeModuleData(const word_t *data, unsigned long nWords); 
-#endif
 
 int ReadBuffData(word_t *lbuf, unsigned long *BufLen, vector<ChanEvent *> &eventList);
 void Pixie16Error(int errornum);
@@ -102,12 +100,8 @@ const string scanMode = "scan";
  *    
  * The hissub_ function is passed a pointer to an array with data (ibuf) and
  * the number of half words (nhw) contained in it.  This function is used with
- * the new Pixie16 readout (which is the default).  If the old Pixie16 readout
- * is used, the code should be recompiled without the newreadout flag in which
- * case this particular function is not used.  
+ * the new Pixie16 readout (which is the default).
 */
-
-#ifdef newreadout
 
 // THIS SHOULD NOT BE SET LARGER THAN 1,000,000
 //  this defines the maximum amount of data that will be received in a spill
@@ -334,8 +328,6 @@ bool MakeModuleData(const word_t *data, unsigned long nWords)
 
     return true;
 }
-#endif
-
 
 /**
  * If the new Pixie16 readout is used (default), this routine processes the
@@ -348,11 +340,7 @@ bool MakeModuleData(const word_t *data, unsigned long nWords)
  * If the old pixie readout is used then this function is
  * redefined as hissub_.
  */
-#ifdef newreadout
 void hissub_sec(word_t *ibuf[],unsigned int *nhw)
-#else
-extern "C" void hissub_(unsigned short *ibuf[],unsigned short *nhw)
-#endif
 {
     static float hz = sysconf(_SC_CLK_TCK); // get the number of clock ticks per second
     static clock_t clockBegin; // initialization time
@@ -393,11 +381,7 @@ extern "C" void hissub_(unsigned short *ibuf[],unsigned short *nhw)
       This results in two different assignment statements depending on 
       the readout.
     */
-#ifdef newreadout
     lbuf=(word_t *)ibuf[0];
-#else
-    lbuf=(word_t *)ibuf; //old readout
-#endif
 
     /* Initialize the scan program before the first event */
     if (counter==0) {
@@ -718,8 +702,9 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev)
         if (dtimebin < 0 || dtimebin > (unsigned)(SE)) {
             cout << "strange dtime for id " << id << ":" << dtimebin << endl;
         }
+#ifdef USE_HHIRF
         driver->plot(D_TIME + id, dtimebin);
-
+#endif
         usedDetectors.insert((*modChan)[id].GetType());
         rawev.AddChan(*iEvent);
 
@@ -743,8 +728,8 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev)
  * spectra.  The list of spectra filled includes runtime in second and
  * milliseconds, the deadtime, time between events, and time width of an event.
  */
-void HistoStats(unsigned int id, double diff, double clock, HistoPoints event)
-{
+void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
+#ifdef USE_HHIRF
     static const int specNoBins = SE;
 
     static double start, stop;
@@ -824,6 +809,7 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event)
         driver->plot(D_HIT_SPECTRUM, id);
         driver->plot(D_SCALAR + id, runTimeSecs);
     }
+#endif
 }
 
 

@@ -323,14 +323,12 @@ bool DetectorDriver::Init(RawEvent& rawev)
 	// initialize the trace analysis routine
 	for (vector<TraceAnalyzer *>::iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) {
 		(*it)->Init();
-		if(use_damm){ (*it)->InitDamm(); }
 		(*it)->SetLevel(20); //! Plot traces
 	}
 
 	// initialize processors in the event processing vector
 	for (vector<EventProcessor *>::iterator it = vecProcess.begin(); it != vecProcess.end(); it++) {
 		(*it)->Init(rawev); // Initialize EventProcessor	
-		if(use_damm){ (*it)->InitDamm(); }
 	}
 
 	/*
@@ -531,12 +529,11 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 }
 
 // declare plots for all the event processors
-void DetectorDriver::DeclarePlots(MapFile& theMapFile)
-{
+void DetectorDriver::DeclarePlots(MapFile& theMapFile){
+#ifdef USE_HHIRF
 	DetectorLibrary* modChan = DetectorLibrary::get();
 	DetectorLibrary::size_type maxChan = (theMapFile ? modChan->size() : 192);
-
-#ifdef USE_HHIRF	
+		
 	if(use_damm){ // Declare plots for each channel
 		for (vector<TraceAnalyzer *>::const_iterator it = vecAnalyzer.begin(); it != vecAnalyzer.end(); it++) { (*it)->InitDamm(); }
 		for (vector<EventProcessor *>::const_iterator it = vecProcess.begin(); it != vecProcess.end(); it++) { (*it)->InitDamm(); }
@@ -554,7 +551,6 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 		DeclareHistogram1D(D_NUMBER_OF_EVENTS, S4, "event counter");
 	}
 	DeclareHistogram1D(D_HAS_TRACE, S7, "channels with traces");
-#endif
 
 	for (DetectorLibrary::size_type i = 0; i < maxChan; i++) {	 
 		if (theMapFile && !modChan->HasValue(i)) { continue; }
@@ -568,7 +564,6 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 		} 
 		else { idstr << "id " << i; }
 
-#ifdef USE_HHIRF		
 		if(use_damm){
 			DeclareHistogram1D(D_RAW_ENERGY + i, SE, ("RawE " + idstr.str()).c_str() );
 			DeclareHistogram1D(D_FILTER_ENERGY + i, SE, ("FilterE " + idstr.str()).c_str() );
@@ -579,8 +574,12 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile)
 			DeclareHistogram1D(D_CAL_ENERGY + i, SE, ("CalE " + idstr.str()).c_str() );
 			DeclareHistogram1D(D_CAL_ENERGY_REJECT + i, SE, ("CalE NoSat " + idstr.str()).c_str() );
 		}
-#endif
 	}
+#else
+	if(use_damm){
+		std::cout << " Damm output is disabled in this build!\n";
+	}
+#endif
 }
 
 // sanity check for all our expectations
