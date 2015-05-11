@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuite
+PIXIE_SUITE_DIR = /home/pixie16/cthornsb/PixieSuite
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -54,6 +54,8 @@ ROOT_INC = `root-config --incdir`
 ifeq ($(NEW_READOUT), 0)
 	CFLAGS += -DLINK_GFORTRAN
 	LDLIBS += -lgfortran
+else
+	LDLIBS += -lncurses
 endif
 
 ifeq ($(USE_HHIRF), 1)
@@ -78,6 +80,9 @@ FORT_OBJ_DIR = $(OBJ_DIR)/fortran
 
 POLL_INC_DIR = $(PIXIE_SUITE_DIR)/Poll/include
 POLL_SRC_DIR = $(PIXIE_SUITE_DIR)/Poll/source
+
+INTERFACE_INC_DIR = $(PIXIE_SUITE_DIR)/Interface/include
+INTERFACE_SRC_DIR = $(PIXIE_SUITE_DIR)/Interface/source
 
 EXECUTABLE = PixieLDF
 
@@ -144,6 +149,10 @@ HRIBF_SOURCE_OBJ = $(C_OBJ_DIR)/hribf_buffers.o
 SOCKET_SOURCE = $(POLL_SRC_DIR)/poll2_socket.cpp
 SOCKET_SOURCE_OBJ = $(C_OBJ_DIR)/poll2_socket.o
 
+# This is a special object file included from PixieSuite
+CTERMINAL_SOURCE = $(POLL_SRC_DIR)/CTerminal.cpp
+CTERMINAL_SOURCE_OBJ = $(C_OBJ_DIR)/CTerminal.o
+
 # If UPAK is not used, we need a new main file
 SCAN_MAIN = $(SOURCE_DIR)/ScanMain.cpp
 SCAN_MAIN_OBJ = $(C_OBJ_DIR)/ScanMain.o
@@ -164,7 +173,7 @@ ifeq ($(NEW_READOUT), 1)
 		TO_BUILD += $(FORTOBJ) $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(LIBS)
 	else
 		# New scan code w/o damm
-		TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ)
+		TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ)
 	endif
 else
 	ifeq ($(USE_HHIRF), 1)
@@ -250,9 +259,13 @@ $(SOCKET_SOURCE_OBJ): $(SOCKET_SOURCE)
 #	Compile poll2_socket from PixieSuite
 	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
 
+$(CTERMINAL_SOURCE_OBJ): $(CTERMINAL_SOURCE)
+#	Compile poll2_socket from PixieSuite
+	$(CC) -c $(CFLAGS) -DUSE_NCURSES -std=c++0x -I$(POLL_INC_DIR) -I$(INTERFACE_INC_DIR) $< -o $@
+
 $(SCAN_MAIN_OBJ): $(SCAN_MAIN)
 #	Main scan function
-	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
+	$(CC) -c $(CFLAGS) -DUSE_NCURSES -std=c++0x -I$(POLL_INC_DIR) $< -o $@
 
 #####################################################################
 

@@ -25,3 +25,9 @@ RootDict.h
 ##############
 PixieLDF
 DammPixieLDF
+
+# Other #
+#########
+*.sh
+*.dat
+*.cmd

@@ -284,7 +284,7 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 #ifdef VERBOSE
 	// Check the number of read words
 	if(nWords_read != nWords){
-		std::cout << "Received spill of " << nWords << " words, but only read " << nWords_read << " words\n";
+		std::cout << "Received spill of " << nWords << " words, but read " << nWords_read << " words\n";
 	}
 #endif
 
@@ -536,7 +536,7 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
 	if ( event != BUFFER_START && event != BUFFER_END ){	  
 		driver->plot(DD_RUNTIME_SEC, remainNumSecs, rowNumSecs);
 		driver->plot(DD_RUNTIME_MSEC, remainNumMsecs, rowNumMsecs);
-		//fill scalar spectrum (per second) 
+		//fill scalar spectrum (per second) bufLen
 		driver->plot(D_HIT_SPECTRUM, id);
 		driver->plot(D_SCALAR + id, runTimeSecs);
 	}
