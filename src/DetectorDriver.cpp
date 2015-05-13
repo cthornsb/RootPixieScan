@@ -72,13 +72,8 @@ using namespace std;
 
 #ifdef USE_HHIRF
 
-#ifdef LINK_GFORTRAN
 #define GETARG__GETARGS _gfortran_getarg_i4
 #define IARGC__GETARGS _gfortran_iargc
-#else
-#define GETARG__GETARGS getarg_
-#define IARGC__GETARGS iargc_
-#endif
 
 extern "C" char* GETARG__GETARGS(const int &, char *, int);
 extern "C" int IARGC__GETARGS(void);
@@ -148,9 +143,9 @@ DetectorDriver* DetectorDriver::get() {
 }
 
 #ifdef USE_HHIRF
-DetectorDriver::DetectorDriver() : histo(OFFSET, RANGE) 
+DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/) : histo(OFFSET, RANGE) 
 #else
-DetectorDriver::DetectorDriver()
+DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/)
 #endif
 {
 	time(&start_time); // Start the master timer
@@ -159,20 +154,10 @@ DetectorDriver::DetectorDriver()
 	num_files = 0;
 	
 	// Load the configuration file
-/*	if(GetNumberArguments() > 1){
-		std::string fname = GetArgument(2);
-
-		if(!LoadConfigFile(fname.c_str())){
-			std::cout << "DetectorDriver: Fatal error! Failed to load config file '" << fname << "'!\n";
-			exit(EXIT_FAILURE);
-		}
+	if(!LoadConfigFile()){
+		std::cout << "DetectorDriver: Fatal error! Failed to load default config file 'setup/default.config'!\n";
+		exit(EXIT_FAILURE);
 	}
-	else{ */
-		if(!LoadConfigFile()){
-			std::cout << "DetectorDriver: Fatal error! Failed to load default config file 'setup/default.config'!\n";
-			exit(EXIT_FAILURE);
-		}
-//	}
 	
 	bool use_pfit = false;
 	bool use_dcfd = false;
@@ -220,7 +205,11 @@ DetectorDriver::DetectorDriver()
 	// ROOT output is ON by default!
 	if(config_args.HasName("ROOT", arg_value) && arg_value == "1"){ 
 		use_root = true; 
-		root_fname = "output"; //GetArgument(1);
+#ifdef USE_HHIRF
+		root_fname = GetArgument(1);
+#else
+		root_fname = output_filename;
+#endif
 		std::cout << "DetectorDriver: Using ROOT output\n";
 		OpenNewFile();
 	}
@@ -241,6 +230,8 @@ DetectorDriver::DetectorDriver()
 
 	num_events = 0;
 	num_fills = 0;
+	
+	instance = this;
 }
 
 /*!

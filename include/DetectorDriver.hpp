@@ -80,9 +80,6 @@ struct ConfigArgs{
 */
 class DetectorDriver {    
  private: 
-    DetectorDriver();
-    DetectorDriver (const DetectorDriver&);
-    DetectorDriver& operator= (DetectorDriver const&);
     static DetectorDriver* instance;
     
     // Variables related to the root output
@@ -111,7 +108,11 @@ class DetectorDriver {
     }
 #endif
 
- public:    
+ public: 
+    DetectorDriver(std::string output_filename_="output");
+    DetectorDriver (const DetectorDriver&);
+    DetectorDriver& operator= (DetectorDriver const&);
+  
     static DetectorDriver* get();
     vector<Calibration> cal; /**<the calibration vector*/ 
 

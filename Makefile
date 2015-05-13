@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthornsb/PixieSuite
+PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuite
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -35,10 +35,8 @@ LINKER =
 
 ifeq ($(NEW_READOUT), 1)
 	ifeq ($(USE_HHIRF), 1)
-		# New scan code w/ damm
 		LINKER = $(FC)
 	else
-		# New scan code w/o damm
 		LINKER = $(CC)
 	endif
 else
@@ -51,11 +49,13 @@ LDLIBS = -lm -lstdc++ -lgsl -lgslcblas `root-config --libs`
 LDFLAGS = `root-config --glibs`
 ROOT_INC = `root-config --incdir`
 
-ifeq ($(NEW_READOUT), 0)
-	CFLAGS += -DLINK_GFORTRAN
-	LDLIBS += -lgfortran
-else
+ifeq ($(NEW_READOUT), 1)
+	ifeq ($(USE_HHIRF), 1)
+		LDLIBS += -lgfortran
+	endif
 	LDLIBS += -lncurses
+else
+	LDLIBS += -lgfortran
 endif
 
 ifeq ($(USE_HHIRF), 1)
@@ -104,7 +104,7 @@ ifeq ($(NEW_READOUT), 1)
 else
 	FORTRAN += messlog.f mildatim.f scanor.f
 	SOURCES += PixieStd.cpp Initialize.cpp TracePlotter.cpp TraceFilterer.cpp
-	EXECUTABLE = DammPixieLDF	
+	EXECUTABLE = OldPixieLDF	
 endif
 
 ifeq ($(USE_HHIRF), 1)
@@ -170,7 +170,7 @@ TO_BUILD = $(OBJECTS)
 ifeq ($(NEW_READOUT), 1)
 	ifeq ($(USE_HHIRF), 1)
 		# New scan code w/ damm
-		TO_BUILD += $(FORTOBJ) $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(LIBS)
+		TO_BUILD += $(FORTOBJ) $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ) $(LIBS)
 	else
 		# New scan code w/o damm
 		TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ)

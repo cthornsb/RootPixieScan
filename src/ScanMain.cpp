@@ -5,11 +5,25 @@
 
 #include "MapFile.hpp"
 #include "NewPixieStd.hpp"
+#include "DetectorDriver.hpp"
+
 #include "hribf_buffers.h"
 #include "poll2_socket.h"
 #include "CTerminal.h"
 
-#define SCAN_VERSION "1.1.01"
+#define SCAN_VERSION "1.1.02"
+
+/*#ifdef USE_HHIRF
+
+// DAMM initialization call
+extern "C" void drrmake_();
+// DAMM declaration wrap-up call
+extern "C" void endrr_();
+
+extern "C" char* _gfortran_getarg_i4(const int &, char *, int);
+extern "C" int _gfortran_iargc(void);
+
+#endif*/
 
 std::string prefix, extension;
 
@@ -31,32 +45,13 @@ EOF_buffer eofbuff;
 
 std::string sys_message_head = "PixieLDF: ";
 
-/* Print help dialogue for command line options. */
-void help(){
-	std::cout << "\n SYNTAX: ./poll2 [options]\n";
-	std::cout << "  -a, --alarm=[e-mail] Call the alarm script with a given e-mail (or no argument)\n"; 
-	std::cout << "  -f, --fast           Fast boot (false by default)\n";
-	std::cout << "  -h, --hist <num>     Dump histogram data every num seconds\n";
-	std::cout << "  -q, --quiet          Run quietly (false by default)\n";
-	std::cout << "  -n, --no-wall-clock  Do not insert the wall clock in the data stream\n";
-	std::cout << "  -r, --rates          Display module rates in quiet mode (false by defualt)\n";
-	std::cout << "  -s, --stats <num>    Output statistics data every num seconds\n";
-	std::cout << "  -t, --thresh <num>   Sets FIFO read threshold to num% full (50% by default)\n";
-	std::cout << "  -z, --zero           Zero clocks on each START_ACQ (false by default)\n";
-	std::cout << "  -d, --debug          Set debug mode to true (false by default)\n";
-	std::cout << "  -m, --memory-share   Do not write data to shared memory (SHM) (true by default)\n\n";
-}	
-	
-void start_run_control(){
+void start_run_control(DetectorDriver *driver_){
 	if(debug_mode){
 		dirbuff.SetDebugMode();
 		headbuff.SetDebugMode();
 		databuff.SetDebugMode();
 		eofbuff.SetDebugMode();
 	}
-
-	// Load the map file
-	MapFile theMapFile;
 
 	// Now we're ready to read the first data buffer
 	char data[1000000];
@@ -190,87 +185,149 @@ std::string GetExtension(const char *filename_, std::string &prefix){
 	return output;
 }
 
+/*#ifdef USE_HHIRF
+extern "C" int MAIN__(int argc_, char **argv_){
+	// Get the arguments from the fortran command line
+	// We need to do this so that the functions from scanorlib.a can see the arguments
+	int argc = _gfortran_iargc() + 1;
+	char argv[argc][128];
+	char temp_arg[128];
+	for(int i = 0; i < argc; i++){
+		_gfortran_getarg_i4(i, temp_arg, 128);
+		for(int j = 0; j < 128; j++){
+			if(temp_arg[j] == ' ' || temp_arg[j] == '\0'){ 
+				argv[i][j] = '\0';
+				break; 
+			}
+			argv[i][j] = temp_arg[j];
+		}
+	}
+#else
 int main(int argc, char *argv[]){
-	if(argc < 2 || (argc >= 2 && strcmp(argv[1], "help") == 0)){
-		if(argc < 2){ std::cout << " Invalid number of arguments to " << argv[0] << std::endl; }
-		std::cout << "  SYNTAX: " << argv[0] << " <filename> <options>\n\n";
+#endif*/
+int main(int argc, char *argv[]){
+	if(argc < 2 || argv[1][0] == '-' || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0){
+		std::cout << "  SYNTAX: " << argv[0] << " [output] <options> <input>\n\n";
 		std::cout << "  Available options:\n";
-		std::cout << "   --debug      - Enable readout debug mode\n";
-		std::cout << "   --shm        - Enable shared memory readout\n";
-		std::cout << "   --force-ldf  - Force use of ldf readout\n";
-		std::cout << "   --force-pld  - Force use of pld readout\n";
-		std::cout << "   --force-root - Force use of root readout\n\n";
+		std::cout << "   --debug - Enable readout debug mode\n";
+		std::cout << "   --shm   - Enable shared memory readout\n";
+		std::cout << "   --ldf   - Force use of ldf readout\n";
+		std::cout << "   --pld   - Force use of pld readout\n";
+		std::cout << "   --root  - Force use of root readout\n\n";
+		
 		return 1;
 	}
 
-	Terminal terminal;
-
-	int arg_index = 1;
-	
 	debug_mode = false;
 	shm_mode = false;
-	
+
+	std::stringstream output_filename_prefix;
+	output_filename_prefix << argv[1];
+
+	int arg_index = 2;
 	int file_format = -1;
 	while(arg_index < argc){
 		if(argv[arg_index][0] != '\0' && argv[arg_index][0] != '-'){ // This must be a filename
 			extension = GetExtension(argv[arg_index], prefix);
 		}
-	
-		if(strcmp(argv[arg_index], "--debug") == 0){ 
-			std::cout << " NOTE: Using DEBUG mode\n";
+		else if(strcmp(argv[arg_index], "--debug") == 0){ 
 			debug_mode = true;
 		}
 		else if(strcmp(argv[arg_index], "--shm") == 0){ 
-			std::cout << " NOTE: Using SHM mode\n";
+			file_format = 0;
 			shm_mode = true;
 		}
-		else if(strcmp(argv[arg_index], "--force-ldf") == 0){ 
-			std::cout << " NOTE: Forcing ldf file readout.\n";
+		else if(strcmp(argv[arg_index], "--ldf") == 0){ 
 			file_format = 0;
 		}
-		else if(strcmp(argv[arg_index], "--force-pld") == 0){ 
-			std::cout << " NOTE: Forcing pld file readout.\n";
+		else if(strcmp(argv[arg_index], "--pld") == 0){ 
 			file_format = 1;
 		}
-		else if(strcmp(argv[arg_index], "--force-root") == 0){ 
-			std::cout << " NOTE: Forcing root file readout.\n";
+		else if(strcmp(argv[arg_index], "--root") == 0){ 
 			file_format = 2;
 		}
-		else{ std::cout << " WARNING: Unrecognized option '" << argv[arg_index] << "'\n"; }
+		else{ 
+			std::cout << " ERROR: Unrecognized option '" << argv[arg_index] << "'\n"; 
+			return 1;
+		}
 		arg_index++;
 	}
 
-	if(!shm_mode && file_format == -1){
-		if(extension == "ldf"){ // List data format file
-			std::cout << " NOTE: Using readout for ldf (list data format) file.\n";
-			file_format = 0;	Server poll_server;
+	if(!shm_mode){
+		if(file_format == -1){
+			if(extension == "ldf"){ // List data format file
+				file_format = 0;
+			}
+			else if(extension == "pld"){ // Pixie list data file format
+				file_format = 1;
+			}
+			else if(extension == "root"){ // Pixie list data file format
+				file_format = 2;
+			}
+			else{
+				std::cout << " ERROR: Invalid file format '" << extension << "'\n";
+				std::cout << "  The current valid data formats are:\n";
+				std::cout << "   ldf - list data format (HRIBF)\n";
+				std::cout << "   pld - pixie list data format\n";
+				std::cout << "   root - root file containing raw pixie data\n";
+				return 1;
+			}
 		}
-		else if(extension == "pld"){ // Pixie list data file format
-			std::cout << " NOTE: Using readout for pld (pixie list data) file.\n";
-			file_format = 1;
-		}
-		else if(extension == "root"){ // Pixie list data file format
-			std::cout << " NOTE: Using readout for root file format.\n";
-			file_format = 2;
-		}
-		else{
-			std::cout << " ERROR: Invalid file format '" << extension << "'\n";
-			std::cout << "  The current valid data formats are:\n";
-			std::cout << "   ldf - list data format (HRIBF)\n";
-			std::cout << "   pld - pixie list data format\n";
-			std::cout << "   root - root file containing raw pixie data\n";
+		else if(prefix == ""){
+			std::cout << " ERROR: Input filename was not specified!\n";
 			return 1;
 		}
 	}
-	
+
+	// Initialize the command terminal
+	Terminal terminal;
+
 	if(!shm_mode){
-		input_file.open(argv[1], std::ios::binary);
+		input_file.open((prefix+"."+extension).c_str(), std::ios::binary);
 		if(!input_file.is_open() || !input_file.good()){
-			std::cout << " ERROR: Failed to open input file '" << argv[1] << "'! Check that the path is correct.\n";
+			std::cout << " ERROR: Failed to open input file '" << prefix+"."+extension << "'! Check that the path is correct.\n";
 			input_file.close();
+			return 1;
+		}	
+	}
+	else{
+		if(!poll_server.Init(5555, 1)){
+			std::cout << " ERROR: Failed to open shm socket 5555!\n";
 			return 1;
 		}
 		
+		// Only initialize the terminal if this is shared-memory mode
+		terminal.Initialize(".pixieldf.cmd");
+		terminal.SetPrompt("PIXIELDF $ ");
+		terminal.AddStatusWindow();	
+
+		std::cout << "\n PIXIELDF v" << SCAN_VERSION << "\n"; 
+		std::cout << " ==  ==  ==  ==  == \n\n"; 
+	}
+
+	// Load the map file
+	MapFile theMapFile;
+
+	// Initialize detector driver with the output filename
+	DetectorDriver *driver = new DetectorDriver(output_filename_prefix.str());
+
+/*#ifdef USE_HHIRF
+	drrmake_();
+    driver->DeclarePlots(theMapFile);
+    endrr_(); 
+#endif*/
+
+	std::cout << sys_message_head << "Using output filename prefix '" << output_filename_prefix.str() << "'.\n";
+	if(debug_mode){ std::cout << sys_message_head << "Using debug mode.\n"; }
+	if(shm_mode){ 
+		std::cout << sys_message_head << "Using shared-memory mode.\n"; 
+		std::cout << sys_message_head << "Listening on poll2 SHM port 5555\n";
+	}
+	if(file_format == 0 && !shm_mode){ std::cout << sys_message_head << "Forcing ldf file readout.\n"; }
+	else if(file_format == 1){ std::cout << sys_message_head << "Forcing pld file readout.\n"; }
+	else if(file_format == 2){ std::cout << sys_message_head << "Forcing root file readout.\n"; }
+
+	if(!shm_mode){
 		// Start reading the file
 		// Every poll2 ldf file starts with a DIR buffer followed by a HEAD buffer
 		int num_buffers;
@@ -290,45 +347,34 @@ int main(int argc, char *argv[]){
 		std::cout << "  Title: " << headbuff.GetRunTitle() << std::endl;
 		std::cout << "  Run number: " << headbuff.GetRunNumber() << std::endl << std::endl;
 	}
-	else{
-		if(!poll_server.Init(5555, 1)){
-			std::cout << " ERROR: Failed to open shm socket 5555!\n";
-			return 1;
-		}
-		else{ std::cout << " NOTE: Listening on poll2 SHM port 5555\n"; }
+	
+	if(shm_mode){ // Close the socket and restore the terminal
+		// Start the run control thread
+		std::cout << "\nStarting data control thread\n";
+		std::thread runctrl(start_run_control, driver);
+	
+		// Start the command control thread. This needs to be the last thing we do to
+		// initialize, so the user cannot enter commands before setup is complete
+		std::cout << "Starting command thread\n\n";
+		std::thread comctrl(start_cmd_control, &terminal);
+
+		// Synchronize the threads and wait for completion
+		comctrl.join();
+		runctrl.join();
+	
+		terminal.Close();
+		poll_server.Close();
 	}
-
-	terminal.Initialize(".pixieldf.cmd");
-	terminal.SetPrompt("PIXIELDF $ ");
-	terminal.AddStatusWindow();
-
-	std::cout << "\n PIXIELDF v" << SCAN_VERSION << "\n"; 
-	std::cout << " ==  ==  ==  ==  == \n\n"; 
-
-	// Start the run control thread
-	std::cout << "Starting data control thread\n";
-	std::thread runctrl(start_run_control);
-	
-	// Start the command control thread. This needs to be the last thing we do to
-	// initialize, so the user cannot enter commands before setup is complete
-	std::cout << "Starting command thread\n";
-	std::thread comctrl(start_cmd_control, &terminal);
-
-	// Synchronize the threads and wait for completion
-	comctrl.join();
-	runctrl.join();
-	
-	terminal.Close();
+	else{ start_run_control(driver); }
 	
 	//Reprint the leader as the carriage was returned
 	cout << "Running PixieLDF v" << SCAN_VERSION << "\n";
 
 	input_file.close();	
 
-	cleanup(); // Clean up detector driver
+	// Clean up detector driver
+	std::cout << "\nCleaning up..\n";
+	driver->Delete();
 	
-	// Close the shm socket if it's open
-	poll_server.Close();
-
 	return 0;
 }
