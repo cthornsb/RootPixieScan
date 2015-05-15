@@ -45,6 +45,8 @@ EOF_buffer eofbuff;
 
 std::string sys_message_head = "PixieLDF: ";
 
+Terminal *terminal_;
+
 void start_run_control(DetectorDriver *driver_){
 	if(debug_mode){
 		dirbuff.SetDebugMode();
@@ -94,17 +96,26 @@ void start_run_control(DetectorDriver *driver_){
 					return;
 				}
 
-				std::cout << "[IDLE] Waiting for a spill...\n";// << std::flush;
-				if(!poll_server.Select(dummy)){ continue; }
-			
+				std::stringstream status;
+				if(!poll_server.Select(dummy)){
+					status << "\e[0;33m" << "[IDLE]" << "\e[0m" << " Waiting for a spill...";
+					terminal_->SetStatus(status.str());
+					continue; 
+				}
+
 				nBytes = poll_server.RecvMessage(shm_data, 40008); // Read from the socket
 				if(strcmp(shm_data, "$CLOSE_FILE") == 0 || strcmp(shm_data, "$OPEN_FILE") == 0 || strcmp(shm_data, "$KILL_SOCKET") == 0){ continue; } // Poll2 network flags
-				else if(nBytes < 8){ continue; } // Did not read enough bytes
+				// Did not read enough bytes
+				else if(nBytes < 8){
+					continue;
+				}
+				status << "\e[0;32m" << "[RECV] " << "\e[0m" << nBytes;
+				terminal_->SetStatus(status.str());
 
 				if(debug_mode){ std::cout << "debug: Received " << nBytes << " bytes from the network\n"; }
 				memcpy((char *)&current_chunk, &shm_data[0], 4);
 				memcpy((char *)&total_chunks, &shm_data[4], 4);
-			
+
 				if(previous_chunk == -1 && current_chunk != 1){ // Started reading in the middle of a spill, ignore the rest of it
 					if(debug_mode){ std::cout << "debug: Skipping chunk " << current_chunk << " of " << total_chunks << std::endl; }
 					continue;
@@ -281,6 +292,7 @@ int main(int argc, char *argv[]){
 
 	// Initialize the command terminal
 	Terminal terminal;
+	terminal_ = &terminal;
 
 	if(!shm_mode){
 		input_file.open((prefix+"."+extension).c_str(), std::ios::binary);
