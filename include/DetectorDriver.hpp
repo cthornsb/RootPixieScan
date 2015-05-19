@@ -83,8 +83,8 @@ class DetectorDriver {
     static DetectorDriver* instance;
     
     // Variables related to the root output
-    unsigned int num_events;
-    unsigned int num_fills;
+    unsigned long long num_events;
+    unsigned long long num_fills;
     unsigned int num_files;
     bool use_root, use_damm;
     ConfigArgs config_args;

@@ -70,6 +70,9 @@ using namespace dammIds::raw;
 
 using namespace std;
 
+#define MAX_FILE_SIZE 4294967296ll // 4 GB. Maximum allowable .root file size in bytes
+#define EVENTS_FILL_WAIT 10000 // Number of events to wait between tree fills
+
 #ifdef USE_HHIRF
 
 #define GETARG__GETARGS _gfortran_getarg_i4
@@ -510,10 +513,16 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 	// Fill all processor branches for each event (even if they are invalid)
 	if(use_root && has_event){ 
 		masterTree->Fill(); 
+		if(num_events % EVENTS_FILL_WAIT == 0){
+			masterFile->Write(0,TObject::kWriteDelete);
+			masterFile->Flush();
+		}
 		num_fills++; // Count the number of tree fills
-		
-		// Limit root file size to roughly 2 GB
-		if(masterFile->GetSize() >= 2147483648u){ OpenNewFile(); }
+
+		// Limit root file size to roughly 4 GB
+		if(masterFile->GetSize() >= MAX_FILE_SIZE){ 
+			OpenNewFile(); 
+		}
 	} 
 
 	return 0;   
