@@ -11,7 +11,7 @@
 #include "poll2_socket.h"
 #include "CTerminal.h"
 
-#define SCAN_VERSION "1.1.02"
+#define SCAN_VERSION "1.1.03"
 
 /*#ifdef USE_HHIRF
 

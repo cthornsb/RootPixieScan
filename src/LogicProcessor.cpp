@@ -112,7 +112,7 @@ bool LogicProcessor::BasicProcessing(RawEvent &event) {
 
 		if(subtype == "start") {
 #ifdef USE_HHIRF
-			if (!isnan(lastStartTime.at(loc)) && use_damm) {
+			if (!std::isnan(lastStartTime.at(loc)) && use_damm) {
 			    timediff = time - lastStartTime.at(loc);
 				plot(D_TDIFF_STARTX + loc, timediff / logicPlotResolution);
 				plot(D_TDIFF_SUMX + loc,   timediff / logicPlotResolution);
@@ -129,11 +129,11 @@ bool LogicProcessor::BasicProcessing(RawEvent &event) {
 #endif
 		} else if (subtype == "stop") {
 #ifdef USE_HHIRF
-	  	    if (!isnan(lastStopTime.at(loc)) && use_damm) {
+	  	    if (!std::isnan(lastStopTime.at(loc)) && use_damm) {
 			timediff = time - lastStopTime.at(loc);
 			plot(D_TDIFF_STOPX + loc, timediff / logicPlotResolution);
 			plot(D_TDIFF_SUMX + loc,  timediff / logicPlotResolution);
-				if (!isnan(lastStartTime.at(loc))) {
+				if (!std::isnan(lastStartTime.at(loc))) {
 		  		    double moveTime = time - lastStartTime.at(loc);    
 					plot(D_TDIFF_LENGTHX + loc, moveTime / logicPlotResolution);
 				}
@@ -176,7 +176,7 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
 		int timeBin = int(chan->GetTime() / logicPlotResolution);
 		int startTimeBin = 0;
 		    
-		if (!isnan(lastStartTime.at(loc))) {
+		if (!std::isnan(lastStartTime.at(loc))) {
 			startTimeBin = int(lastStartTime.at(loc) / logicPlotResolution);
 			if (firstTimeBin == -1) {
 				firstTimeBin = startTimeBin;

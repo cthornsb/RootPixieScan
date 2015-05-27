@@ -30,10 +30,14 @@ class TriggerStructure : public TObject {
     unsigned int trigger_mult; /**< Multiplicity of the trigger detector */
 
     TriggerStructure();
+
+	TriggerStructure(const TriggerStructure &other);
     
     void Append(const double &time_, const double &energy_); /**< Fill the root variables with processed data */
     
     void Zero(); /**< Zero the data structure */
+    
+    void Set(TriggerStructure *other);
     
     ClassDefNV(TriggerStructure, 1); // Trigger
 };
@@ -47,9 +51,15 @@ class TriggerWaveform : public TObject {
   public:
 	std::vector<int> trigger_wave; /**< Integer vector for trigger pulses */
 	
+	TriggerWaveform(){}
+	
+	TriggerWaveform(const TriggerWaveform &other){ trigger_wave = other.trigger_wave; }
+	
 	void Append(const std::vector<int> &pulse); /**< Fill the root variable with raw waveform data */
 	
 	void Zero(); /**< Zero the waveform */
+	
+	void Set(TriggerWaveform *other){ trigger_wave = other->trigger_wave; }
 	
 	ClassDefNV(TriggerWaveform, 1); // TriggerWaveform
 };
@@ -67,22 +77,32 @@ class LiquidStructure : public TObject {
 
     LiquidStructure();
 
+	LiquidStructure(const LiquidStructure &other);
+
     void Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_); /**< Fill the root variables with processed data */
        
     void Zero(); /**< Zero the data structure */ 
-        
+       
+    void Set(LiquidStructure *other);
+       
     ClassDefNV(LiquidStructure, 1); // Liquid
 };
 
 class LiquidWaveform : public TObject {
   public:
 	std::vector<int> liquid_wave; // Integer vector for liquid pulses
+
+	LiquidWaveform(){}
+
+	LiquidWaveform(const LiquidWaveform &other){ liquid_wave = other.liquid_wave; }
 	
 	// Fill the root variable with raw waveform data
 	void Append(const std::vector<int> &pulse);
 	
 	// Zero the waveform
 	void Zero();
+	
+	void Set(LiquidWaveform *other){ liquid_wave = other->liquid_wave; }
 	
 	ClassDefNV(LiquidWaveform, 1); // LiquidWaveform
 };
@@ -105,6 +125,8 @@ class VandleStructure : public TObject {
     unsigned int vandle_mult; 
 
     VandleStructure();
+
+	VandleStructure(const VandleStructure &other);
     
     // Add an entry to the data vector
     // Calling this method will mark the event as valid
@@ -115,6 +137,8 @@ class VandleStructure : public TObject {
     // Zero the data structure
     void Zero();
     
+    void Set(VandleStructure *other);
+    
     ClassDefNV(VandleStructure, 1); // Vandle
 };
 
@@ -122,11 +146,17 @@ class VandleWaveform : public TObject {
   public:
 	std::vector<int> left_wave, right_wave; // Integer vectors for left and right vandle pulses
 	
+	VandleWaveform(){}
+	
+	VandleWaveform(const VandleWaveform &other);
+	
 	// Fill the root variable with raw waveform data
 	void Append(const std::vector<int> &l_pulse, const std::vector<int> &r_pulse);
 	
 	// Zero the waveform
 	void Zero();
+	
+	void Set(VandleWaveform *other);
 	
 	ClassDefNV(VandleWaveform, 1); // VandleWaveform
 };
@@ -140,6 +170,8 @@ class IonChamberStructure : public TObject {
     unsigned int ion_mult; 
 
     IonChamberStructure();
+
+	IonChamberStructure(const IonChamberStructure &other);
     
     // Add an entry to the data vector
     // Calling this method will mark the event as valid
@@ -147,6 +179,8 @@ class IonChamberStructure : public TObject {
     
     // Zero the data structure
     void Zero();
+    
+    void Set(IonChamberStructure *other);
     
     ClassDefNV(IonChamberStructure, 1); // Vandle
 };

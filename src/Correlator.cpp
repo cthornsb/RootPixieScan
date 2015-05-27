@@ -160,13 +160,13 @@ void CorrelationList::PrintDecayList() const
 	if ( (*it).type != EventInfo::GAMMA_EVENT) {
 	    str << ", OT (" << (*it).logicBits << ")= " << setw(10) << offt << " [ms]" 
 		<< " M" << (*it).mcpMult << "I" << (*it).impMult << "B" << (*it).boxMult;
-	    if ( !isnan((*it).position) ) {
+	    if ( !std::isnan((*it).position) ) {
 		str << " POS = " << (*it).position;
 	    }
 	}
 	str << endl;	
 	/*
-	if ((*it).mcpMult > 0 && !isnan((*it).foilTime) )
+	if ((*it).mcpMult > 0 && !std::isnan((*it).foilTime) )
 	    str << "      Foil time: " << (*it).foilTime << endl;
 	*/
 	if ((*it).boxMult > 0)
@@ -248,7 +248,7 @@ void Correlator::Correlate(EventInfo &event, unsigned int fch, unsigned int bch)
 		plot(D_TIME_BW_ALL_IMPLANTS, dt * pixie::clockInSeconds / 1e-6);
 #endif
 	    } 
-	    if ( !isnan(lastTime) ) {
+	    if ( !std::isnan(lastTime) ) {
 		condition = BACK_TO_BACK_IMPLANT;
 		event.dtime = event.time - lastTime;
 #ifdef USE_HHIRF
@@ -266,7 +266,7 @@ void Correlator::Correlate(EventInfo &event, unsigned int fch, unsigned int bch)
  	    if ( theList.empty() ) {
 		break;
 	    }
-	    if ( isnan(theList.GetImplantTime()) ) {
+	    if ( std::isnan(theList.GetImplantTime()) ) {
 		cout << "No implant time for decay list" << endl;
 		break;
 	    }
@@ -324,7 +324,7 @@ void Correlator::Correlate(EventInfo &event, unsigned int fch, unsigned int bch)
 		event.generation = theList.back().generation + 1;
 	    }
 	    theList.push_back(event);
-	    if (event.energy == 0 && isnan(event.time))
+	    if (event.energy == 0 && std::isnan(event.time))
 		cout << " Adding zero decay event " << endl;
 
 	    if (event.flagged)

@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuite
+PIXIE_SUITE_DIR = /home/ND01/PixieSuite
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -44,7 +44,7 @@ else
 endif
 
 FFLAGS = -g -fsecond-underscore
-CFLAGS = -g -fPIC -Wall -O3 `root-config --cflags` -Iinclude -DREVF
+CFLAGS = -g -fPIC -Wall -O3 -std=c++0x `root-config --cflags` -Iinclude -DREVF
 LDLIBS = -lm -lstdc++ -lgsl -lgslcblas `root-config --libs`
 LDFLAGS = `root-config --glibs`
 ROOT_INC = `root-config --incdir`
@@ -261,11 +261,11 @@ $(SOCKET_SOURCE_OBJ): $(SOCKET_SOURCE)
 
 $(CTERMINAL_SOURCE_OBJ): $(CTERMINAL_SOURCE)
 #	Compile poll2_socket from PixieSuite
-	$(CC) -c $(CFLAGS) -DUSE_NCURSES -std=c++0x -I$(POLL_INC_DIR) -I$(INTERFACE_INC_DIR) $< -o $@
+	$(CC) -c $(CFLAGS) -DUSE_NCURSES -I$(POLL_INC_DIR) -I$(INTERFACE_INC_DIR) $< -o $@
 
 $(SCAN_MAIN_OBJ): $(SCAN_MAIN)
 #	Main scan function
-	$(CC) -c $(CFLAGS) -DUSE_NCURSES -std=c++0x -I$(POLL_INC_DIR) $< -o $@
+	$(CC) -c $(CFLAGS) -DUSE_NCURSES -I$(POLL_INC_DIR) $< -o $@
 
 #####################################################################
 
