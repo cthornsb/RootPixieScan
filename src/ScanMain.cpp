@@ -11,23 +11,14 @@
 #include "poll2_socket.h"
 #include "CTerminal.h"
 
-#define SCAN_VERSION "1.1.03"
-
-/*#ifdef USE_HHIRF
-
-// DAMM initialization call
-extern "C" void drrmake_();
-// DAMM declaration wrap-up call
-extern "C" void endrr_();
-
-extern "C" char* _gfortran_getarg_i4(const int &, char *, int);
-extern "C" int _gfortran_iargc(void);
-
-#endif*/
+#define SCAN_VERSION "1.1.04"
 
 std::string prefix, extension;
 
+unsigned long num_spills_recvd;
+
 bool debug_mode;
+bool dry_run_mode;
 bool shm_mode;
 
 bool kill_all = false;
@@ -62,17 +53,18 @@ void start_run_control(DetectorDriver *driver_){
 	if(!shm_mode){
 		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill)){ 
 			if(full_spill){ 
-				if(debug_mode){ std::cout << " Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
-				ReadSpill(data, nBytes/4);
+				if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+				if(!dry_run_mode){ ReadSpill(data, nBytes/4); }
 			}
-			else if(debug_mode){ std::cout << " Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			else if(debug_mode){ std::cout << "debug: Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			num_spills_recvd++;
 		}
 	
 		if(eofbuff.Read(&input_file) && eofbuff.Read(&input_file)){
-			std::cout << " Encountered double EOF buffer.\n";
+			std::cout << sys_message_head << "Encountered double EOF buffer.\n";
 		}
 		else{
-			std::cout << " Failed to reach end of file!\n";
+			std::cout << sys_message_head << "Failed to reach end of file!\n";
 		}
 	}
 	else{
@@ -143,7 +135,8 @@ void start_run_control(DetectorDriver *driver_){
 			memcpy(&data[nTotalBytes+4], (char *)&word2, 4);
 		
 			if(debug_mode){ std::cout << "debug: Retrieved spill of " << nTotalBytes << " bytes (" << nTotalBytes/4 << " words)\n"; }
-			ReadSpill(data, nTotalBytes/4 + 2);
+			if(!dry_run_mode){ ReadSpill(data, nTotalBytes/4 + 2); }
+			num_spills_recvd++;
 		}
 	}
 	
@@ -196,41 +189,24 @@ std::string GetExtension(const char *filename_, std::string &prefix){
 	return output;
 }
 
-/*#ifdef USE_HHIRF
-extern "C" int MAIN__(int argc_, char **argv_){
-	// Get the arguments from the fortran command line
-	// We need to do this so that the functions from scanorlib.a can see the arguments
-	int argc = _gfortran_iargc() + 1;
-	char argv[argc][128];
-	char temp_arg[128];
-	for(int i = 0; i < argc; i++){
-		_gfortran_getarg_i4(i, temp_arg, 128);
-		for(int j = 0; j < 128; j++){
-			if(temp_arg[j] == ' ' || temp_arg[j] == '\0'){ 
-				argv[i][j] = '\0';
-				break; 
-			}
-			argv[i][j] = temp_arg[j];
-		}
-	}
-#else
-int main(int argc, char *argv[]){
-#endif*/
 int main(int argc, char *argv[]){
 	if(argc < 2 || argv[1][0] == '-' || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0){
 		std::cout << "  SYNTAX: " << argv[0] << " [output] <options> <input>\n\n";
 		std::cout << "  Available options:\n";
-		std::cout << "   --debug - Enable readout debug mode\n";
-		std::cout << "   --shm   - Enable shared memory readout\n";
-		std::cout << "   --ldf   - Force use of ldf readout\n";
-		std::cout << "   --pld   - Force use of pld readout\n";
-		std::cout << "   --root  - Force use of root readout\n\n";
-		
+		std::cout << "   --debug   - Enable readout debug mode\n";
+		std::cout << "   --dry-run - Extract spills from file, but do no processing\n";
+		std::cout << "   --shm     - Enable shared memory readout\n";
+		std::cout << "   --ldf     - Force use of ldf readout\n";
+		std::cout << "   --pld     - Force use of pld readout\n";
+		std::cout << "   --root    - Force use of root readout\n\n";
 		return 1;
 	}
 
 	debug_mode = false;
+	dry_run_mode = false;
 	shm_mode = false;
+
+	num_spills_recvd = 0;
 
 	std::stringstream output_filename_prefix;
 	output_filename_prefix << argv[1];
@@ -243,6 +219,9 @@ int main(int argc, char *argv[]){
 		}
 		else if(strcmp(argv[arg_index], "--debug") == 0){ 
 			debug_mode = true;
+		}
+		else if(strcmp(argv[arg_index], "--dry-run") == 0){
+			dry_run_mode = true;
 		}
 		else if(strcmp(argv[arg_index], "--shm") == 0){ 
 			file_format = 0;
@@ -265,7 +244,17 @@ int main(int argc, char *argv[]){
 	}
 
 	if(!shm_mode){
-		if(file_format == -1){
+		if(file_format != -1){
+			if(file_format == 0){ std::cout << sys_message_head << "Forcing ldf file readout.\n"; }
+			else if(file_format == 1){ std::cout << sys_message_head << "Forcing pld file readout.\n"; }
+			else if(file_format == 2){ std::cout << sys_message_head << "Forcing root file readout.\n"; }
+		}
+		else{
+			if(prefix == ""){
+				std::cout << " ERROR: Input filename was not specified!\n";
+				return 1;
+			}
+		
 			if(extension == "ldf"){ // List data format file
 				file_format = 0;
 			}
@@ -283,10 +272,6 @@ int main(int argc, char *argv[]){
 				std::cout << "   root - root file containing raw pixie data\n";
 				return 1;
 			}
-		}
-		else if(prefix == ""){
-			std::cout << " ERROR: Input filename was not specified!\n";
-			return 1;
 		}
 	}
 
@@ -323,21 +308,13 @@ int main(int argc, char *argv[]){
 	// Initialize detector driver with the output filename
 	DetectorDriver *driver = new DetectorDriver(output_filename_prefix.str());
 
-/*#ifdef USE_HHIRF
-	drrmake_();
-    driver->DeclarePlots(theMapFile);
-    endrr_(); 
-#endif*/
-
 	std::cout << sys_message_head << "Using output filename prefix '" << output_filename_prefix.str() << "'.\n";
 	if(debug_mode){ std::cout << sys_message_head << "Using debug mode.\n"; }
+	if(dry_run_mode){ std::cout << sys_message_head << "Doing a dry run.\n"; }
 	if(shm_mode){ 
 		std::cout << sys_message_head << "Using shared-memory mode.\n"; 
 		std::cout << sys_message_head << "Listening on poll2 SHM port 5555\n";
 	}
-	if(file_format == 0 && !shm_mode){ std::cout << sys_message_head << "Forcing ldf file readout.\n"; }
-	else if(file_format == 1){ std::cout << sys_message_head << "Forcing pld file readout.\n"; }
-	else if(file_format == 2){ std::cout << sys_message_head << "Forcing root file readout.\n"; }
 
 	if(!shm_mode){
 		// Start reading the file
@@ -376,11 +353,13 @@ int main(int argc, char *argv[]){
 	
 		terminal.Close();
 		poll_server.Close();
+		
+		//Reprint the leader as the carriage was returned
+		std::cout << "Running PixieLDF v" << SCAN_VERSION << "\n";
 	}
 	else{ start_run_control(driver); }
 	
-	//Reprint the leader as the carriage was returned
-	cout << "Running PixieLDF v" << SCAN_VERSION << "\n";
+	std::cout << "\nRetrieved " << num_spills_recvd << " spills!\n";
 
 	input_file.close();	
 
