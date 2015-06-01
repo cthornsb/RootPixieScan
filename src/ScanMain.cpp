@@ -12,6 +12,7 @@
 #include "CTerminal.h"
 
 #define SCAN_VERSION "1.1.04"
+#define SCAN_DATE "June 1st, 2015"
 
 std::string prefix, extension;
 
@@ -190,15 +191,24 @@ std::string GetExtension(const char *filename_, std::string &prefix){
 }
 
 int main(int argc, char *argv[]){
-	if(argc < 2 || argv[1][0] == '-' || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0){
-		std::cout << "  SYNTAX: " << argv[0] << " [output] <options> <input>\n\n";
-		std::cout << "  Available options:\n";
-		std::cout << "   --debug   - Enable readout debug mode\n";
-		std::cout << "   --dry-run - Extract spills from file, but do no processing\n";
-		std::cout << "   --shm     - Enable shared memory readout\n";
-		std::cout << "   --ldf     - Force use of ldf readout\n";
-		std::cout << "   --pld     - Force use of pld readout\n";
-		std::cout << "   --root    - Force use of root readout\n\n";
+	if(argc < 2 || argv[1][0] == '-'){
+		if(argc >= 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)){ // Display version information
+			std::cout << " PixieLDF-------v" << SCAN_VERSION << " (" << SCAN_DATE << ")\n";
+			std::cout << " |hribf_buffers-v" << HRIBF_BUFFERS_VERSION << " (" << HRIBF_BUFFERS_DATE << ")\n";
+			std::cout << " |CTerminal-----v" << CTERMINAL_VERSION << " (" << CTERMINAL_DATE << ")\n";
+			std::cout << " |poll2_socket--v" << POLL2_SOCKET_VERSION << " (" << POLL2_SOCKET_DATE << ")\n";
+		}
+		else{
+			std::cout << " SYNTAX: " << argv[0] << " [output] <options> <input>\n\n";
+			std::cout << " Available options:\n";
+			std::cout << "  --version - Display version information\n";
+			std::cout << "  --debug   - Enable readout debug mode\n";
+			std::cout << "  --dry-run - Extract spills from file, but do no processing\n";
+			std::cout << "  --shm     - Enable shared memory readout\n";
+			std::cout << "  --ldf     - Force use of ldf readout\n";
+			std::cout << "  --pld     - Force use of pld readout\n";
+			std::cout << "  --root    - Force use of root readout\n\n";
+		}
 		return 1;
 	}
 
@@ -355,7 +365,7 @@ int main(int argc, char *argv[]){
 		poll_server.Close();
 		
 		//Reprint the leader as the carriage was returned
-		std::cout << "Running PixieLDF v" << SCAN_VERSION << "\n";
+		std::cout << "Running PixieLDF v" << SCAN_VERSION << " (" << SCAN_DATE << ")\n";
 	}
 	else{ start_run_control(driver); }
 	
