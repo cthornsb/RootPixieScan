@@ -18,6 +18,36 @@
 
 #include <vector>
 
+#define NUM_PIXIE_MOD 12
+#define NUM_CHAN_PER_MOD 16
+
+/** RawEventStructure
+ * \brief Raw pixie16 channel data
+ * 
+ * Structure for raw pixie channels
+ */
+class RawEventStructure : public TObject {
+  public:
+  	std::vector<double> raw_energy[NUM_PIXIE_MOD][NUM_CHAN_PER_MOD]; /**< Raw pixie energy */
+  	std::vector<double> raw_time[NUM_PIXIE_MOD][NUM_CHAN_PER_MOD]; /**< Raw pixie (low-res) time */
+    unsigned int raw_mult; /**< Multiplicity of the event */
+    unsigned int num_mod; //! Number of pixie modules
+
+    RawEventStructure(unsigned int num_modules_=NUM_PIXIE_MOD);
+
+	RawEventStructure(const RawEventStructure &other);
+
+	~RawEventStructure();
+    
+    void Append(const int &scan_id_, const double &time_, const double &energy_); /**< Fill the root variables with processed data */
+    
+    void Zero(); /**< Zero the data structure */
+    
+    void Set(RawEventStructure *other);
+    
+    ClassDefNV(RawEventStructure, 1); // RawEvent
+};
+
 /** TriggerStructure
  * \brief Trigger detector data structure
  * 

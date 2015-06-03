@@ -183,6 +183,39 @@ DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/)
 		}
 	}
 
+	// ROOT output is ON by default!
+	write_raw = false;
+	if(config_args.HasName("ROOT", arg_value) && arg_value == "1"){ 
+		use_root = true; 
+#ifdef USE_HHIRF
+		root_fname = GetArgument(1);
+#else
+		root_fname = output_filename;
+#endif
+		std::cout << "DetectorDriver: Using ROOT output\n";
+		
+		if(config_args.HasName("RAWEVENT", arg_value) && arg_value == "1"){ // RawEvent
+			std::cout << "DetectorDriver: Writing raw module data to output root file\n";
+			write_raw = true; // Write raw module data to the root file
+		}
+		
+		OpenNewFile();
+	}
+	else{ use_root = false; }
+	
+#ifdef USE_HHIRF
+	// DAMM output is OFF by default!
+	if(config_args.HasName("DAMM", arg_value) && arg_value == "1"){ 
+		use_damm = true; 
+		std::cout << "DetectorDriver: Using DAMM output\n";
+	}
+	else{ use_damm = false; }
+#else
+	use_damm = false;
+#endif
+
+	if(!use_root && !use_damm){ std::cout << "DetectorDriver: Warning! Neither output method is turned on\n"; }
+
 	cout << "DetectorDriver: Loading Processors\n";
 	if(config_args.HasName("TRIGGER", arg_value) && arg_value == "1"){ // TriggerProcessor
 		if(config_args.HasName("TRIGGER_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new TriggerProcessor(true)); }
@@ -204,32 +237,6 @@ DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/)
 		if(config_args.HasName("IONCHAMBER_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new IonChamberProcessor(true)); }
 		else{ vecProcess.push_back(new IonChamberProcessor(false)); }
 	}
-
-	// ROOT output is ON by default!
-	if(config_args.HasName("ROOT", arg_value) && arg_value == "1"){ 
-		use_root = true; 
-#ifdef USE_HHIRF
-		root_fname = GetArgument(1);
-#else
-		root_fname = output_filename;
-#endif
-		std::cout << "DetectorDriver: Using ROOT output\n";
-		OpenNewFile();
-	}
-	else{ use_root = false; }
-	
-#ifdef USE_HHIRF
-	// DAMM output is OFF by default!
-	if(config_args.HasName("DAMM", arg_value) && arg_value == "1"){ 
-		use_damm = true; 
-		std::cout << "DetectorDriver: Using DAMM output\n";
-	}
-	else{ use_damm = false; }
-#else
-	use_damm = false;
-#endif
-
-	if(!use_root && !use_damm){ std::cout << "DetectorDriver: Warning! Neither output method is turned on\n"; }
 
 	num_events = 0;
 	num_fills = 0;
@@ -417,6 +424,13 @@ bool DetectorDriver::OpenNewFile(){
 	std::cout << "DetectorDriver: Opening file '" << current_fname << "'\n";
 	masterFile = new TFile(current_fname.c_str(), "RECREATE"); // Will overwrite the file!
 	masterTree = new TTree("Pixie16","Pixie analysis tree");
+	
+	if(write_raw){
+		/*unsigned int num_modules = DetectorLibrary::get()->GetPhysicalModules();
+		std::cout << "DetectorDriver: Setting up raw event data structure with " << num_modules << " modules\n";
+		if(!structure){ structure = new RawEventStructure(num_modules); }*/
+		masterTree->Branch("RawEvent", &structure);
+	}
 
 	if(num_files == 0){
 		// Add analyzer branches to root tree
@@ -471,6 +485,10 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 #endif
 	num_events++; // Count the number of raw events
 	
+	// Zero the raw event structure before beginning
+	if(write_raw){ structure.Zero(); }
+	
+	bool has_event = false;
 	for (vector<ChanEvent*>::const_iterator it = rawev.GetEventList().begin(); it != rawev.GetEventList().end(); ++it) {
 		string place = (*it)->GetChanID().GetPlaceName();
 		if (place == "__-1") // empty channel
@@ -486,6 +504,13 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 
 		double time = (*it)->GetTime();
 		double energy = (*it)->GetCalEnergy();
+		
+		if(write_raw){
+			int id = (*it)->GetID();
+			structure.Append(id, time, energy);
+			has_event = true;
+		}
+		
 		CorrEventData data(time, energy);
 		TreeCorrelator::get()->place(place)->activate(data);
 	} 
@@ -495,7 +520,6 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 	 * to not to be dependent on results of other Processors. */
 	// Zero the branch first and mark it as invalid. Processors with valid data should fill
 	// their own branches by calling their PackRoot() routine internally.
-	bool has_event = false;
 	for (vector<EventProcessor*>::iterator iProc = vecProcess.begin(); iProc != vecProcess.end(); iProc++) {
 		if(use_root){ (*iProc)->Zero(); } // Zero the structure in preparation for processing, mark entry as invalid (valid=false)
 		if ( (*iProc)->HasEvent() ) { 

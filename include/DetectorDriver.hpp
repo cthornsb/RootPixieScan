@@ -92,6 +92,7 @@ class DetectorDriver {
     TFile *masterFile;
     TTree *masterTree;
     bool is_init;
+    bool write_raw;
     time_t start_time;
 
     vector<EventProcessor *> vecProcess; /**< vector of processors to handle each event */
@@ -109,6 +110,8 @@ class DetectorDriver {
 #endif
 
  public: 
+	RawEventStructure structure;
+ 
     DetectorDriver(std::string output_filename_="output");
     DetectorDriver (const DetectorDriver&);
     DetectorDriver& operator= (DetectorDriver const&);

@@ -6,6 +6,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class RawEventStructure+;
+
 #pragma link C++ class TriggerStructure+;
 #pragma link C++ class TriggerWaveform+;
 
