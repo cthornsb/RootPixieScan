@@ -4,16 +4,8 @@
 // RawEventStructure
 ///////////////////////////////////////////////////////////
 RawEventStructure::RawEventStructure(unsigned int num_modules_/*=NUM_PIXIE_MOD*/){
-	raw_mult = 0;
-	
 	num_mod = num_modules_;
-	/*raw_energy = new std::vector<double>*[num_mod];
-	raw_time = new std::vector<double>*[num_mod];
-	
-	for(unsigned int i = 0; i < num_mod; i++){
-		raw_energy[i] = new std::vector<double>[NUM_CHAN_PER_MOD];
-		raw_time[i] = new std::vector<double>[NUM_CHAN_PER_MOD];
-	}*/
+	raw_mult = 0;
 }
 
 RawEventStructure::RawEventStructure(const RawEventStructure &other){
@@ -26,27 +18,23 @@ RawEventStructure::RawEventStructure(const RawEventStructure &other){
 			raw_time[i][j] = other.raw_time[i][j];
 		}
 	}
-		
-	//raw_energy = other.raw_energy;
-	//raw_time = other.raw_time;
 }
 
 RawEventStructure::~RawEventStructure(){
-	//delete[] raw_energy;
-	//delete[] raw_time;
 }
 
-void RawEventStructure::Append(const int &scan_id_, const double &time_, const double &energy_){
+void RawEventStructure::Append(const int &mod_, const int &chan_, const double &time_, const double &energy_){
 	// PixieScan ID defined as pixie module # * 16 + channel number
-	unsigned int module = scan_id_ / NUM_CHAN_PER_MOD;
-	unsigned int channel = scan_id_ % NUM_CHAN_PER_MOD;
-	raw_energy[module][channel].push_back(energy_);
-	raw_time[module][channel].push_back(time_);
+	//unsigned int module = scan_id_ / NUM_CHAN_PER_MOD;
+	//unsigned int channel = scan_id_ % NUM_CHAN_PER_MOD;
+	if(!(mod_ >= 0 && mod_ < NUM_PIXIE_MOD) || !(chan_ >= 0 && chan_ < NUM_CHAN_PER_MOD)){ return; }
+	raw_energy[mod_][chan_].push_back(energy_);
+	raw_time[mod_][chan_].push_back(time_);
 	raw_mult++;
 }
 
 void RawEventStructure::Zero(){
-	if(raw_mult == 0){ return ; } // Structure is already empty
+	if(raw_mult == 0){ return; } // Structure is already empty
 	for(unsigned int i = 0; i < num_mod; i++){
 		for(unsigned int j = 0; j < NUM_CHAN_PER_MOD; j++){
 			raw_energy[i][j].clear();
@@ -57,6 +45,15 @@ void RawEventStructure::Zero(){
 }
 
 void RawEventStructure::Set(RawEventStructure *other){
+	raw_mult = other->raw_mult;
+	num_mod = other->num_mod;
+
+	for(unsigned int i = 0; i < num_mod; i++){
+		for(unsigned int j = 0; j < NUM_CHAN_PER_MOD; j++){
+			raw_energy[i][j] = other->raw_energy[i][j];
+			raw_time[i][j] = other->raw_time[i][j];
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////

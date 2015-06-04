@@ -30,7 +30,7 @@ class RawEventStructure : public TObject {
   public:
   	std::vector<double> raw_energy[NUM_PIXIE_MOD][NUM_CHAN_PER_MOD]; /**< Raw pixie energy */
   	std::vector<double> raw_time[NUM_PIXIE_MOD][NUM_CHAN_PER_MOD]; /**< Raw pixie (low-res) time */
-    unsigned int raw_mult; /**< Multiplicity of the event */
+    unsigned int raw_mult; //! Multiplicity of the raw events
     unsigned int num_mod; //! Number of pixie modules
 
     RawEventStructure(unsigned int num_modules_=NUM_PIXIE_MOD);
@@ -39,7 +39,7 @@ class RawEventStructure : public TObject {
 
 	~RawEventStructure();
     
-    void Append(const int &scan_id_, const double &time_, const double &energy_); /**< Fill the root variables with processed data */
+    void Append(const int &mod_, const int &chan_, const double &time_, const double &energy_); /**< Fill the root variables with processed data */
     
     void Zero(); /**< Zero the data structure */
     

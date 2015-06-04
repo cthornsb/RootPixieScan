@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuite
+PIXIE_SUITE_DIR = /home/cory/Research/PixieSuite
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -83,6 +83,16 @@ POLL_SRC_DIR = $(PIXIE_SUITE_DIR)/Poll/source
 
 INTERFACE_INC_DIR = $(PIXIE_SUITE_DIR)/Interface/include
 INTERFACE_SRC_DIR = $(PIXIE_SUITE_DIR)/Interface/source
+
+TOOL_DIR = $(TOP_LEVEL)/tools
+TOOL_SRC_DIR = $(TOOL_DIR)/src
+
+READER = $(TOOL_DIR)/ldfReader
+READER_SRC = $(TOOL_SRC_DIR)/ldfReader.cpp
+RAW_VIEWER = $(TOOL_DIR)/rawViewer
+RAW_VIEWER_SRC = $(TOOL_SRC_DIR)/rawViewer.cpp
+PULSE_VIEWER = $(TOOL_DIR)/pulseViewer
+PULSE_VIEWER_SRC = $(TOOL_SRC_DIR)/pulseViewer.cpp
 
 EXECUTABLE = PixieLDF
 
@@ -193,6 +203,8 @@ all: directory $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
 dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
 #	Create root dictionary objects
 
+tools: $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+
 .PHONY: clean tidy directory
 
 .SECONDARY: $(DICT_DIR)/$(DICT_SOURCE).cpp $(ROOTOBJ)
@@ -289,15 +301,28 @@ $(EXECUTABLE): $(TO_BUILD) $(ROOTOBJ)
 
 #####################################################################
 
+$(READER): $(READER_SRC) $(HRIBF_SOURCE_OBJ)
+#	Make the ldfReader tool
+	$(CC) -O3 $(READER_SRC) -I$(POLL_INC_DIR) $(HRIBF_SOURCE_OBJ) -o $(READER)
+
+$(RAW_VIEWER): $(RAW_VIEWER_SRC)
+#	Make the rawViewer tool
+	$(CC) -O3 $(RAW_VIEWER_SRC) `root-config --cflags --glibs` -o $(RAW_VIEWER)
+
+$(PULSE_VIEWER): $(PULSE_VIEWER_SRC)
+#	Make the rawViewer tool
+	$(CC) -O3 $(PULSE_VIEWER_SRC) `root-config --cflags --glibs` -o $(PULSE_VIEWER)
+
+#####################################################################
+
 tidy: clean_obj
 
-clean: clean_obj clean_dict
-
+clean: clean_obj clean_dict clean_tools
 
 clean_obj:
 	@echo "Cleaning up..."
 ifeq ($(NEW_READOUT), 1)
-	@rm -f $(FORT_OBJ_DIR)/*.o $(C_OBJ_DIR)/*.o ./$(EXECUTABLE)
+	@rm -f $(FORT_OBJ_DIR)/*.o $(C_OBJ_DIR)/*.o $(EXECUTABLE)
 else
 	@rm -f $(C_OBJ_DIR)/*.o ./$(EXECUTABLE)
 endif
@@ -305,3 +330,7 @@ endif
 clean_dict:
 	@echo "Removing ROOT dictionaries..."
 	@rm -f $(DICT_DIR)/$(DICT_SOURCE).cpp $(DICT_DIR)/$(DICT_SOURCE).h $(DICT_OBJ_DIR)/*.o  $(DICT_OBJ_DIR)/*.so
+	
+clean_tools:
+	@echo "Removing tools..."
+	@rm -f $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
