@@ -183,6 +183,28 @@ DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/)
 		}
 	}
 
+	cout << "DetectorDriver: Loading Processors\n";
+	if(config_args.HasName("TRIGGER", arg_value) && arg_value == "1"){ // TriggerProcessor
+		if(config_args.HasName("TRIGGER_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new TriggerProcessor(true)); }
+		else{ vecProcess.push_back(new TriggerProcessor(false)); }
+	}
+	if(config_args.HasName("LIQUID", arg_value) && arg_value == "1"){ // LiquidProcessor
+		if(config_args.HasName("LIQUID_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new LiquidProcessor(true)); }
+		else{ vecProcess.push_back(new LiquidProcessor(false)); }
+	}
+	if(config_args.HasName("LOGIC", arg_value) && arg_value == "1"){ // LogicProcessor
+		if(config_args.HasName("LOGIC_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new LogicProcessor(true)); }
+		else{ vecProcess.push_back(new LogicProcessor(false)); }
+	}
+	if(config_args.HasName("VANDLE", arg_value) && arg_value == "1"){ // VandleProcessor
+		if(config_args.HasName("VANDLE_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new VandleProcessor(true)); }
+		else{ vecProcess.push_back(new VandleProcessor(false)); }
+	}
+	if(config_args.HasName("IONCHAMBER", arg_value) && arg_value == "1"){ // VandleProcessor
+		if(config_args.HasName("IONCHAMBER_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new IonChamberProcessor(true)); }
+		else{ vecProcess.push_back(new IonChamberProcessor(false)); }
+	}
+
 	// ROOT output is ON by default!
 	write_raw = false;
 	if(config_args.HasName("ROOT", arg_value) && arg_value == "1"){ 
@@ -215,28 +237,6 @@ DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/)
 #endif
 
 	if(!use_root && !use_damm){ std::cout << "DetectorDriver: Warning! Neither output method is turned on\n"; }
-
-	cout << "DetectorDriver: Loading Processors\n";
-	if(config_args.HasName("TRIGGER", arg_value) && arg_value == "1"){ // TriggerProcessor
-		if(config_args.HasName("TRIGGER_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new TriggerProcessor(true)); }
-		else{ vecProcess.push_back(new TriggerProcessor(false)); }
-	}
-	if(config_args.HasName("LIQUID", arg_value) && arg_value == "1"){ // LiquidProcessor
-		if(config_args.HasName("LIQUID_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new LiquidProcessor(true)); }
-		else{ vecProcess.push_back(new LiquidProcessor(false)); }
-	}
-	if(config_args.HasName("LOGIC", arg_value) && arg_value == "1"){ // LogicProcessor
-		if(config_args.HasName("LOGIC_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new LogicProcessor(true)); }
-		else{ vecProcess.push_back(new LogicProcessor(false)); }
-	}
-	if(config_args.HasName("VANDLE", arg_value) && arg_value == "1"){ // VandleProcessor
-		if(config_args.HasName("VANDLE_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new VandleProcessor(true)); }
-		else{ vecProcess.push_back(new VandleProcessor(false)); }
-	}
-	if(config_args.HasName("IONCHAMBER", arg_value) && arg_value == "1"){ // VandleProcessor
-		if(config_args.HasName("IONCHAMBER_WAVE", arg_value) && arg_value == "1"){ vecProcess.push_back(new IonChamberProcessor(true)); }
-		else{ vecProcess.push_back(new IonChamberProcessor(false)); }
-	}
 
 	num_events = 0;
 	num_fills = 0;
