@@ -506,8 +506,7 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 		double energy = (*it)->GetCalEnergy();
 		
 		if(write_raw){
-			int id = (*it)->GetID();
-			structure.Append(id, time, energy);
+			structure.Append((*it)->GetMod(), (*it)->GetChan(), time, energy);
 			has_event = true;
 		}
 		

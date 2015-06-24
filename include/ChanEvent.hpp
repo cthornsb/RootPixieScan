@@ -81,6 +81,8 @@ public:
     bool IsSaturated() const { return saturatedBit; } /**< Return whether the trace is saturated */
     const Identifier& GetChanID() const; /**< Get the channel identifier */
     int GetID() const; /**< Get the channel id defined as pixie module # * 16 + channel number */
+    int GetMod(){ return modNum; }
+    int GetChan(){ return chanNum; }
     unsigned long GetQdcValue(int i) const; /**< Get an onboard QDC value */
 
     ChanEvent();
