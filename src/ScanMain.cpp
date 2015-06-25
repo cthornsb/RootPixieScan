@@ -11,11 +11,13 @@
 #include "poll2_socket.h"
 #include "CTerminal.h"
 
-#define SCAN_VERSION "1.1.04"
-#define SCAN_DATE "June 1st, 2015"
+#define SCAN_VERSION "1.1.05"
+#define SCAN_DATE "June 25th, 2015"
 
 std::string prefix, extension;
 
+int max_spill_size = 0;
+int file_format = -1;
 unsigned long num_spills_recvd;
 
 bool debug_mode;
@@ -30,6 +32,8 @@ Server poll_server;
 
 std::ifstream input_file;
 
+PLD_header pldHead;
+PLD_data pldData;
 DIR_buffer dirbuff;
 HEAD_buffer headbuff;
 DATA_buffer databuff;
@@ -41,6 +45,8 @@ Terminal *terminal_;
 
 void start_run_control(DetectorDriver *driver_){
 	if(debug_mode){
+		pldHead.SetDebugMode();
+		pldData.SetDebugMode();
 		dirbuff.SetDebugMode();
 		headbuff.SetDebugMode();
 		databuff.SetDebugMode();
@@ -48,41 +54,23 @@ void start_run_control(DetectorDriver *driver_){
 	}
 
 	// Now we're ready to read the first data buffer
-	char data[1000000];
-	bool full_spill;
-	unsigned int nBytes;
-	if(!shm_mode){
-		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill)){ 
-			if(full_spill){ 
-				if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
-				if(!dry_run_mode){ ReadSpill(data, nBytes/4); }
-			}
-			else if(debug_mode){ std::cout << "debug: Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
-			num_spills_recvd++;
-		}
-	
-		if(eofbuff.Read(&input_file) && eofbuff.Read(&input_file)){
-			std::cout << sys_message_head << "Encountered double EOF buffer.\n";
-		}
-		else{
-			std::cout << sys_message_head << "Failed to reach end of file!\n";
-		}
-	}
-	else{
+	if(shm_mode){
 		std::cout << std::endl;
+		char data[1000000];
 		char shm_data[40008]; // Array to store the temporary shm data (~40 kB)
 		int dummy;
 		int previous_chunk;
 		int current_chunk;
 		int total_chunks;
+		int nBytes;
 		unsigned int nTotalBytes;
-		
+	
 		while(true){
 			previous_chunk = 0;
 			current_chunk = 0;
 			total_chunks = -1;
 			nTotalBytes = 0;
-			
+		
 			while(current_chunk != total_chunks){
 				if(kill_all == true){ 
 					run_ctrl_exit = true;
@@ -119,7 +107,7 @@ void start_run_control(DetectorDriver *driver_){
 				}
 
 				previous_chunk = current_chunk;
-			
+		
 				// Copy the shm spill chunk into the data array
 				if(nTotalBytes + 2 + nBytes <= 1000000){ // This spill chunk will fit into the data buffer
 					memcpy(&data[nTotalBytes], &shm_data[8], nBytes - 8);
@@ -130,15 +118,66 @@ void start_run_control(DetectorDriver *driver_){
 					break; 
 				}
 			}
-			
-			int word1 = 2, word2 = 9999;
-			memcpy(&data[nTotalBytes], (char *)&word1, 4);
-			memcpy(&data[nTotalBytes+4], (char *)&word2, 4);
 		
 			if(debug_mode){ std::cout << "debug: Retrieved spill of " << nTotalBytes << " bytes (" << nTotalBytes/4 << " words)\n"; }
-			if(!dry_run_mode){ ReadSpill(data, nTotalBytes/4 + 2); }
+			if(!dry_run_mode){ 
+				int word1 = 2, word2 = 9999;
+				memcpy(&data[nTotalBytes], (char *)&word1, 4);
+				memcpy(&data[nTotalBytes+4], (char *)&word2, 4);
+				ReadSpill(data, nTotalBytes/4 + 2); 
+			}
 			num_spills_recvd++;
 		}
+	}
+	else if(file_format == 0){
+		char data[1000000];
+		bool full_spill;
+		int nBytes;
+		
+		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill)){ 
+			if(full_spill){ 
+				if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+				if(!dry_run_mode){ ReadSpill(data, nBytes/4); }
+			}
+			else if(debug_mode){ std::cout << "debug: Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			num_spills_recvd++;
+		}
+
+		if(eofbuff.Read(&input_file) && eofbuff.Read(&input_file)){
+			std::cout << sys_message_head << "Encountered double EOF buffer.\n";
+		}
+		else{
+			std::cout << sys_message_head << "Failed to find end of file buffer!\n";
+		}
+	}
+	else if(file_format == 1){
+		char *data = NULL;
+		int nBytes;
+		
+		if(!dry_run_mode){ data = new char[4*(max_spill_size+2)]; }
+		
+		while(pldData.Read(&input_file, data, nBytes, 4*max_spill_size)){ 
+			if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			
+			if(!dry_run_mode){ 
+				int word1 = 2, word2 = 9999;
+				memcpy(&data[nBytes], (char *)&word1, 4);
+				memcpy(&data[nBytes+4], (char *)&word2, 4);			
+				ReadSpill(data, nBytes/4 + 2); 
+			}
+			num_spills_recvd++;
+		}
+
+		if(eofbuff.ReadHeader(&input_file)){
+			std::cout << sys_message_head << "Encountered EOF buffer.\n";
+		}
+		else{
+			std::cout << sys_message_head << "Failed to find end of file buffer!\n";
+		}
+		
+		if(!dry_run_mode){ delete[] data; }
+	}
+	else if(file_format == 2){
 	}
 	
 	run_ctrl_exit = true;
@@ -222,7 +261,6 @@ int main(int argc, char *argv[]){
 	output_filename_prefix << argv[1];
 
 	int arg_index = 2;
-	int file_format = -1;
 	while(arg_index < argc){
 		if(argv[arg_index][0] != '\0' && argv[arg_index][0] != '-'){ // This must be a filename
 			extension = GetExtension(argv[arg_index], prefix);
@@ -330,24 +368,43 @@ int main(int argc, char *argv[]){
 		// Start reading the file
 		// Every poll2 ldf file starts with a DIR buffer followed by a HEAD buffer
 		int num_buffers;
-		dirbuff.Read(&input_file, num_buffers);
-		headbuff.Read(&input_file);
+		if(file_format == 0){
+			dirbuff.Read(&input_file, num_buffers);
+			headbuff.Read(&input_file);
+			
+			// Let's read out the file information from these buffers
+			std::cout << "\n 'DIR ' buffer-\n";
+			std::cout << "  Run number: " << dirbuff.GetRunNumber() << std::endl;
+			std::cout << "  Number buffers: " << num_buffers << std::endl << std::endl;
 	
-		// Let's read out the file information from these buffers
-		std::cout << "\n 'DIR ' buffer-\n";
-		std::cout << "  Run number: " << dirbuff.GetRunNumber() << std::endl;
-		std::cout << "  Number buffers: " << num_buffers << std::endl << std::endl;
-	
-		std::cout << " 'HEAD' buffer-\n";
-		std::cout << "  Facility: " << headbuff.GetFacility() << std::endl;
-		std::cout << "  Format: " << headbuff.GetFormat() << std::endl;
-		std::cout << "  Type: " << headbuff.GetType() << std::endl;
-		std::cout << "  Date: " << headbuff.GetDate() << std::endl;
-		std::cout << "  Title: " << headbuff.GetRunTitle() << std::endl;
-		std::cout << "  Run number: " << headbuff.GetRunNumber() << std::endl << std::endl;
+			std::cout << " 'HEAD' buffer-\n";
+			std::cout << "  Facility: " << headbuff.GetFacility() << std::endl;
+			std::cout << "  Format: " << headbuff.GetFormat() << std::endl;
+			std::cout << "  Type: " << headbuff.GetType() << std::endl;
+			std::cout << "  Date: " << headbuff.GetDate() << std::endl;
+			std::cout << "  Title: " << headbuff.GetRunTitle() << std::endl;
+			std::cout << "  Run number: " << headbuff.GetRunNumber() << std::endl << std::endl;
+		}
+		else if(file_format == 1){
+			pldHead.Read(&input_file);
+			
+			max_spill_size = pldHead.GetMaxSpillSize();
+			
+			// Let's read out the file information from these buffers
+			std::cout << " 'HEAD' buffer-\n";
+			std::cout << "  Facility: " << pldHead.GetFacility() << std::endl;
+			std::cout << "  Format: " << pldHead.GetFormat() << std::endl;
+			std::cout << "  Date: " << pldHead.GetDate() << std::endl;
+			std::cout << "  Title: " << pldHead.GetRunTitle() << std::endl;
+			std::cout << "  Run number: " << pldHead.GetRunNumber() << std::endl;
+			std::cout << "  Max spill: " << pldHead.GetMaxSpillSize() << " words\n\n";
+		}
+		else if(file_format == 2){
+		}
+		
+		start_run_control(driver);
 	}
-	
-	if(shm_mode){ // Close the socket and restore the terminal
+	else{ 
 		// Start the run control thread
 		std::cout << "\nStarting data control thread\n";
 		std::thread runctrl(start_run_control, driver);
@@ -361,13 +418,13 @@ int main(int argc, char *argv[]){
 		comctrl.join();
 		runctrl.join();
 	
+		// Close the socket and restore the terminal
 		terminal.Close();
 		poll_server.Close();
 		
 		//Reprint the leader as the carriage was returned
 		std::cout << "Running PixieLDF v" << SCAN_VERSION << " (" << SCAN_DATE << ")\n";
 	}
-	else{ start_run_control(driver); }
 	
 	std::cout << "\nRetrieved " << num_spills_recvd << " spills!\n";
 
