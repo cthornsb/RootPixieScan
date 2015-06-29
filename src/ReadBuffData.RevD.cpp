@@ -217,6 +217,7 @@ int ReadBuffData(word_t *buf, unsigned long *bufLen,
       eventList.push_back(currentEvt);
 
       numEvents++;
+      delete currentEvt;
     } while ( buf < bufStart + *bufLen );
   } else {// if buffer has data
     cout << "ERROR BufNData " << *bufLen << endl;

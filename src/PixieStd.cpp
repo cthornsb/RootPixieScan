@@ -475,7 +475,7 @@ void hissub_sec(word_t *ibuf[],unsigned int *nhw)
 			     << ", length = " << lenRec << endl;
 #endif
                         RemoveList(eventList);
-                        fullSpill=true;
+                        fullSpill=false; // WHY WAS THIS TRUE!?!? CRT June 2015
                     }
                 }
                 /* Read the buffer.  After read, the vector eventList will 

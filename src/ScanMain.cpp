@@ -20,6 +20,7 @@ int max_spill_size = 0;
 int file_format = -1;
 unsigned long num_spills_recvd;
 
+bool is_verbose;
 bool debug_mode;
 bool dry_run_mode;
 bool shm_mode;
@@ -124,7 +125,7 @@ void start_run_control(DetectorDriver *driver_){
 				int word1 = 2, word2 = 9999;
 				memcpy(&data[nTotalBytes], (char *)&word1, 4);
 				memcpy(&data[nTotalBytes+4], (char *)&word2, 4);
-				ReadSpill(data, nTotalBytes/4 + 2); 
+				ReadSpill(data, nTotalBytes/4 + 2, is_verbose); 
 			}
 			num_spills_recvd++;
 		}
@@ -138,10 +139,16 @@ void start_run_control(DetectorDriver *driver_){
 		
 		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, dry_run_mode)){ 
 			if(full_spill){ 
-				if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
-				if(!dry_run_mode){ ReadSpill(data, nBytes/4); }
+				if(debug_mode){ 
+					std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
+					std::cout << "debug: Read up to word number " << input_file.tellg()/4 << " in input file\n";
+				}
+				if(!dry_run_mode){ ReadSpill(data, nBytes/4, is_verbose); }
 			}
-			else if(debug_mode){ std::cout << "debug: Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			else if(debug_mode){ 
+				std::cout << "debug: Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
+				std::cout << "debug: Read up to word number " << input_file.tellg()/4 << " in input file\n";
+			}
 			num_spills_recvd++;
 		}
 
@@ -161,13 +168,16 @@ void start_run_control(DetectorDriver *driver_){
 		if(!dry_run_mode){ data = new char[4*(max_spill_size+2)]; }
 		
 		while(pldData.Read(&input_file, data, nBytes, 4*max_spill_size, dry_run_mode)){ 
-			if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
+			if(debug_mode){ 
+				std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
+				std::cout << "debug: Read up to word number " << input_file.tellg()/4 << " in input file\n";
+			}
 			
 			if(!dry_run_mode){ 
 				int word1 = 2, word2 = 9999;
 				memcpy(&data[nBytes], (char *)&word1, 4);
 				memcpy(&data[nBytes+4], (char *)&word2, 4);			
-				ReadSpill(data, nBytes/4 + 2); 
+				ReadSpill(data, nBytes/4 + 2, is_verbose); 
 			}
 			num_spills_recvd++;
 		}
@@ -233,6 +243,20 @@ std::string GetExtension(const char *filename_, std::string &prefix){
 	return output;
 }
 
+void help(char *name_){
+	std::cout << " SYNTAX: " << name_ << " [output] <options> <input>\n\n";
+	std::cout << " Available options:\n";
+	std::cout << "  --version  - Display version information\n";
+	std::cout << "  --debug    - Enable readout debug mode\n";
+	std::cout << "  --shm      - Enable shared memory readout\n";
+	std::cout << "  --ldf      - Force use of ldf readout\n";
+	std::cout << "  --pld      - Force use of pld readout\n";
+	std::cout << "  --root     - Force use of root readout\n";
+	std::cout << "  --quiet    - Toggle off verbosity flag\n";
+	std::cout << "  --dry-run  - Extract spills from file, but do no processing\n";
+	std::cout << "  --fast-fwd [word] - Skip ahead to a specified word in the file (start of file at zero)\n";
+}
+
 int main(int argc, char *argv[]){
 	if(argc < 2 || argv[1][0] == '-'){
 		if(argc >= 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)){ // Display version information
@@ -241,17 +265,7 @@ int main(int argc, char *argv[]){
 			std::cout << " |CTerminal-----v" << CTERMINAL_VERSION << " (" << CTERMINAL_DATE << ")\n";
 			std::cout << " |poll2_socket--v" << POLL2_SOCKET_VERSION << " (" << POLL2_SOCKET_DATE << ")\n";
 		}
-		else{
-			std::cout << " SYNTAX: " << argv[0] << " [output] <options> <input>\n\n";
-			std::cout << " Available options:\n";
-			std::cout << "  --version - Display version information\n";
-			std::cout << "  --debug   - Enable readout debug mode\n";
-			std::cout << "  --dry-run - Extract spills from file, but do no processing\n";
-			std::cout << "  --shm     - Enable shared memory readout\n";
-			std::cout << "  --ldf     - Force use of ldf readout\n";
-			std::cout << "  --pld     - Force use of pld readout\n";
-			std::cout << "  --root    - Force use of root readout\n\n";
-		}
+		else{ help(argv[0]); }
 		return 1;
 	}
 
@@ -263,6 +277,8 @@ int main(int argc, char *argv[]){
 
 	std::stringstream output_filename_prefix;
 	output_filename_prefix << argv[1];
+	
+	long file_start_offset = 0;
 
 	int arg_index = 2;
 	while(arg_index < argc){
@@ -274,6 +290,17 @@ int main(int argc, char *argv[]){
 		}
 		else if(strcmp(argv[arg_index], "--dry-run") == 0){
 			dry_run_mode = true;
+		}
+		else if(strcmp(argv[arg_index], "--fast-fwd") == 0){
+			if(arg_index + 1 >= argc){
+				std::cout << " Error: Missing required argument to option '--fast-fwd'!\n";
+				help(argv[0]);
+				return 1;
+			}
+			file_start_offset = atoll(argv[++arg_index]);
+		}
+		else if(strcmp(argv[arg_index], "--quiet") == 0){
+			is_verbose = false;
 		}
 		else if(strcmp(argv[arg_index], "--shm") == 0){ 
 			file_format = 0;
@@ -337,7 +364,7 @@ int main(int argc, char *argv[]){
 			std::cout << " ERROR: Failed to open input file '" << prefix+"."+extension << "'! Check that the path is correct.\n";
 			input_file.close();
 			return 1;
-		}	
+		}
 	}
 	else{
 		if(!poll_server.Init(5555, 1)){
@@ -406,6 +433,13 @@ int main(int argc, char *argv[]){
 			std::cout << "  ACQ Time: " << pldHead.GetRunTime() << " seconds\n\n";
 		}
 		else if(file_format == 2){
+		}
+		
+		// Fast forward in the file
+		if(file_start_offset != 0){
+			std::cout << " Skipping ahead to word no. " << file_start_offset << " in file\n";
+			input_file.seekg(file_start_offset*4);
+			std::cout << " Input file is now at " << input_file.tellg() << " bytes\n";
 		}
 		
 		start_run_control(driver);

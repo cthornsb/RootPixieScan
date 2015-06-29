@@ -64,8 +64,6 @@
 using namespace dammIds::raw;
 using pixie::word_t;
 
-#define VERBOSE
-
 /**
  * Contains event information, the information is filled in ScanList() and is 
  * referenced in DetectorDriver.cpp, particularly in ProcessEvent()
@@ -114,7 +112,7 @@ void cleanup(){
  * If the old pixie readout is used then this function is
  * redefined as hissub_.
  */
-bool ReadSpill(char *ibuf, unsigned int nWords){
+bool ReadSpill(char *ibuf, unsigned int nWords, bool is_verbose/*=true*/){
 	const unsigned int maxVsn = 14; // No more than 14 pixie modules per crate
 	unsigned int nWords_read = 0;
 	
@@ -184,9 +182,9 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 	
 		// Check sanity of record length and vsn
 		if(lenRec > maxWords || (vsn > maxVsn && vsn != 9999 && vsn != 1000)) { 
-#ifdef VERBOSE
-			std::cout << "SANITY CHECK FAILED: lenRec = " << lenRec << ", vsn = " << vsn << ", read " << nWords_read << " of " << nWords << "\n";
-#endif
+			if(is_verbose){
+				std::cout << "SANITY CHECK FAILED: lenRec = " << lenRec << ", vsn = " << vsn << ", read " << nWords_read << " of " << nWords << "\n";
+			}
 			return false;  
 		}
 
@@ -202,16 +200,13 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 		// If both the current vsn inspected is within an acceptable 
 		// range, begin reading the buffer.
 		if ( vsn < modChan->GetPhysicalModules() ) {
-			if ( lastVsn != U_DELIMITER ) {
-				// the modules should be read out cyclically
-				if ( ((lastVsn+1) % modChan->GetPhysicalModules()) != vsn ) {
-#ifdef VERBOSE
+			if ( lastVsn != U_DELIMITER && ((lastVsn+1) % modChan->GetPhysicalModules()) != vsn ) {
+				if(is_verbose){ 
 					std::cout << " MISSING BUFFER " << vsn << "/" << modChan->GetPhysicalModules();
 					std::cout << " -- lastVsn = " << lastVsn << "  " << ", length = " << lenRec << std::endl;
-#endif
-					RemoveList(eventList);
-					fullSpill=true;
 				}
+				RemoveList(eventList);
+				fullSpill=false; // WHY WAS THIS TRUE!?!? CRT
 			}
 			
 			// Read the buffer.  After read, the vector eventList will 
@@ -222,13 +217,9 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 			//reading the buffer failed for some reason.  
 			//Print error message and reset variables if necessary
 			if ( retval <= readbuff::ERROR ) {
-#ifdef VERBOSE
-				std::cout << " READOUT PROBLEM " << retval << " in event " << counter << std::endl;
-#endif
+				if(is_verbose){ std::cout << " READOUT PROBLEM " << retval << " in event " << counter << std::endl; }
 				if ( retval == readbuff::ERROR ) {
-#ifdef VERBOSE
-					std::cout << "  Remove list " << lastVsn << " " << vsn << std::endl;
-#endif
+					if(is_verbose){ std::cout << "  Remove list " << lastVsn << " " << vsn << std::endl; }
 					RemoveList(eventList); 							
 				}
 				return false;
@@ -244,11 +235,11 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 		} 
 		else if (vsn == clockVsn) { // Buffer with vsn 1000 was inserted with the time for superheavy exp't
 			memcpy(&theTime, &data[nWords_read+2], sizeof(time_t));
-#ifdef VERBOSE
-			struct tm * timeinfo;
-			timeinfo = localtime (&theTime);
-			std::cout << " Read wall clock time of " << asctime(timeinfo);
-#endif
+			if(is_verbose){
+				struct tm * timeinfo;
+				timeinfo = localtime (&theTime);
+				std::cout << " Read wall clock time of " << asctime(timeinfo);
+			}
 			nWords_read += lenRec;
 			continue;
 		}
@@ -257,11 +248,9 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 			break;
 		}
 		else{
-#ifdef VERBOSE
 			// Bail out if we have lost our place,		
 			// (bad vsn) and process events	 
 			std::cout << "UNEXPECTED VSN " << vsn << std::endl;
-#endif
 			break;
 		}
 	} // while still have words
@@ -281,12 +270,10 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 		lastVsn=U_DELIMITER;
 	}
 
-#ifdef VERBOSE
 	// Check the number of read words
-	if(nWords_read != nWords){
+	if(is_verbose && nWords_read != nWords){
 		std::cout << "Received spill of " << nWords << " words, but read " << nWords_read << " words\n";
 	}
-#endif
 
 	/* if there are events to process, continue */
 	if( numEvents>0 ) {
@@ -319,16 +306,12 @@ bool ReadSpill(char *ibuf, unsigned int nWords){
 			numEvents=0;
 		} // end fullSpill 
 		else {
-#ifdef VERBOSE
-			std::cout << "Spill split between buffers" << std::endl;
-#endif
+			if(is_verbose){ std::cout << "Spill split between buffers" << std::endl; }
 			return false; //! this tosses out all events read into the vector so far
 		}		
 	}  // end numEvents > 0
 	else if (retval != readbuff::STATS) {
-#ifdef VERBOSE
-		std::cout << "bad buffer, numEvents = " << numEvents << std::endl;
-#endif
+		if(is_verbose){ std::cout << "bad buffer, numEvents = " << numEvents << std::endl; }
 		return false;
 	}
 
@@ -393,6 +376,7 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 			std::cout << "pattern 0 ignore" << std::endl;
 			continue;
 		}
+		std::cout << modChan->size() << "\t" << id << std::endl;
 		if ((*modChan).at(id).GetType() == "ignore") {
 			continue;
 		}
