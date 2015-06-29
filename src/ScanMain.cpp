@@ -130,11 +130,13 @@ void start_run_control(DetectorDriver *driver_){
 		}
 	}
 	else if(file_format == 0){
-		char data[1000000];
+		char *data = NULL;
 		bool full_spill;
 		int nBytes;
 		
-		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill)){ 
+		if(!dry_run_mode){ data = new char[1000000]; }
+		
+		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, dry_run_mode)){ 
 			if(full_spill){ 
 				if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
 				if(!dry_run_mode){ ReadSpill(data, nBytes/4); }
@@ -149,6 +151,8 @@ void start_run_control(DetectorDriver *driver_){
 		else{
 			std::cout << sys_message_head << "Failed to find end of file buffer!\n";
 		}
+		
+		if(!dry_run_mode){ delete[] data; }
 	}
 	else if(file_format == 1){
 		char *data = NULL;
@@ -156,7 +160,7 @@ void start_run_control(DetectorDriver *driver_){
 		
 		if(!dry_run_mode){ data = new char[4*(max_spill_size+2)]; }
 		
-		while(pldData.Read(&input_file, data, nBytes, 4*max_spill_size)){ 
+		while(pldData.Read(&input_file, data, nBytes, 4*max_spill_size, dry_run_mode)){ 
 			if(debug_mode){ std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; }
 			
 			if(!dry_run_mode){ 
@@ -391,13 +395,15 @@ int main(int argc, char *argv[]){
 			max_spill_size = pldHead.GetMaxSpillSize();
 			
 			// Let's read out the file information from these buffers
-			std::cout << " 'HEAD' buffer-\n";
+			std::cout << "\n 'HEAD' buffer-\n";
 			std::cout << "  Facility: " << pldHead.GetFacility() << std::endl;
 			std::cout << "  Format: " << pldHead.GetFormat() << std::endl;
-			std::cout << "  Date: " << pldHead.GetDate() << std::endl;
+			std::cout << "  Start: " << pldHead.GetStartDate() << std::endl;
+			std::cout << "  Stop: " << pldHead.GetEndDate() << std::endl; 
 			std::cout << "  Title: " << pldHead.GetRunTitle() << std::endl;
 			std::cout << "  Run number: " << pldHead.GetRunNumber() << std::endl;
-			std::cout << "  Max spill: " << pldHead.GetMaxSpillSize() << " words\n\n";
+			std::cout << "  Max spill: " << pldHead.GetMaxSpillSize() << " words\n";
+			std::cout << "  ACQ Time: " << pldHead.GetRunTime() << " seconds\n\n";
 		}
 		else if(file_format == 2){
 		}
