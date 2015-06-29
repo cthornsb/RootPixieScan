@@ -287,7 +287,11 @@ bool ReadSpill(char *ibuf, unsigned int nWords, bool is_verbose/*=true*/){
 			/* once the vector of pointers eventlist is sorted based on time,
 			begin the event processing in ScanList()
 			*/
-			ScanList(eventList, rawev);
+			if(!ScanList(eventList, rawev)){ 
+				std::cout << "ScanList has returned false! This is not a good spill!\n";
+				RemoveList(eventList);
+				return false; 
+			}
 
 			/* once the eventlist has been scanned, remove it from memory
 			and reset the number of events to zero and update the event
@@ -307,14 +311,16 @@ bool ReadSpill(char *ibuf, unsigned int nWords, bool is_verbose/*=true*/){
 		} // end fullSpill 
 		else {
 			if(is_verbose){ std::cout << "Spill split between buffers" << std::endl; }
-			return false; //! this tosses out all events read into the vector so far
+			RemoveList(eventList);
+			return false; //! this tosses out all events read into the vector so far (doesn't this just throw out the pointers to the events? CRT)
 		}		
 	}  // end numEvents > 0
 	else if (retval != readbuff::STATS) {
 		if(is_verbose){ std::cout << "bad buffer, numEvents = " << numEvents << std::endl; }
+		RemoveList(eventList);
 		return false;
 	}
-
+	
 	return true;	  
 }
 
@@ -324,8 +330,8 @@ void RemoveList(vector<ChanEvent*> &eventList){
 	  using the iterator and starting from the beginning and going to 
 	  the end of eventlist, delete the actual objects
 	*/
-	for(vector<ChanEvent*>::iterator it = eventList.begin();
-	it != eventList.end(); it++) {
+	if(eventList.size()==0){ std::cout << " Zero size event list!\n"; }
+	for(vector<ChanEvent*>::iterator it = eventList.begin(); it != eventList.end(); it++) {
 		delete *it;
 	}
 	
@@ -347,11 +353,14 @@ void RemoveList(vector<ChanEvent*> &eventList){
  *   rawevent is zeroed and the current channel placed inside it.
  */
 
-void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
+bool ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 	unsigned long chanTime, eventTime;
 
 	DetectorLibrary* modChan = DetectorLibrary::get();
 	DetectorDriver* driver = DetectorDriver::get();
+	
+	// Maximum pixie16 ID number
+	const int max_pixie_id = modChan->GetPhysicalModules()*16;
 
 	// local variable for the detectors used in a given event
 	set<string> usedDetectors;
@@ -365,18 +374,22 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 	//set last_t to the time of the first event
 	double lastTime = (*iEvent)->GetTime();
 	double currTime = lastTime;
-	unsigned int id = (*iEvent)->GetID();
+	int id = (*iEvent)->GetID();
 
-	HistoStats(id, diffTime, lastTime, BUFFER_START);
+	//HistoStats(id, diffTime, lastTime, BUFFER_START);
 
 	//loop over the list of channels that fired in this buffer
 	for(; iEvent != eventList.end(); iEvent++) { 
 		id = (*iEvent)->GetID();
-		if (id == U_DELIMITER) {
+		if(id < 0 || id > max_pixie_id){ // max module * 16 chan/module
+			std::cout << "Encountered non-physical Pixie ID number " << id << "!\n"; 
+			return false;
+		}
+		else if (id == (int)U_DELIMITER) {
 			std::cout << "pattern 0 ignore" << std::endl;
 			continue;
 		}
-		std::cout << modChan->size() << "\t" << id << std::endl;
+		
 		if ((*modChan).at(id).GetType() == "ignore") {
 			continue;
 		}
@@ -411,8 +424,8 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 				if ((*it).second->resetable())
 					(*it).second->reset();
 
-			HistoStats(id, diffTime, currTime, EVENT_START);
-		} else HistoStats(id, diffTime, currTime, EVENT_CONTINUE);
+			//HistoStats(id, diffTime, currTime, EVENT_START);
+		}// else HistoStats(id, diffTime, currTime, EVENT_CONTINUE);
 
 		unsigned long dtimebin = 2000 + eventTime - chanTime;
 		if (dtimebin < 0 || dtimebin > (unsigned)(SE)) {
@@ -431,11 +444,13 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) {
 	//process the last event in the buffer
 	if (rawev.Size() > 0) {
 		string mode;
-		HistoStats(id, diffTime, currTime, BUFFER_END);
+		//HistoStats(id, diffTime, currTime, BUFFER_END);
 
 		driver->ProcessEvent(scanMode, rawev);
 		rawev.Zero(usedDetectors);
 	}
+	
+	return true;
 }
 
 /**

@@ -69,14 +69,14 @@ RawEvent rawev;
 enum HistoPoints {BUFFER_START, BUFFER_END, EVENT_START = 10, EVENT_CONTINUE};
 
 // Function forward declarations
-void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev);
+bool ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev);
 void RemoveList(vector<ChanEvent*> &eventList);
 void HistoStats(unsigned int, double, double, HistoPoints);
 
 /**
  * \brief Extract channel information from the raw parameter array ibuf
  */
-void hissub_sec(unsigned int *ibuf[],unsigned int *nhw);
+bool hissub_sec(unsigned int *ibuf[],unsigned int *nhw);
 bool MakeModuleData(const word_t *data, unsigned long nWords); 
 
 int ReadBuffData(word_t *lbuf, unsigned long *BufLen, vector<ChanEvent *> &eventList);
@@ -324,7 +324,9 @@ bool MakeModuleData(const word_t *data, unsigned long nWords)
 	// Shouldn't this be 2 * outWords??? :-P
     unsigned int nhw = 8 * outWords; // calculate the number of half short ints
 
-    hissub_sec(&dataPtr, &nhw);
+    if(!hissub_sec(&dataPtr, &nhw)){
+    	return false;
+    }
 
     return true;
 }
@@ -340,7 +342,7 @@ bool MakeModuleData(const word_t *data, unsigned long nWords)
  * If the old pixie readout is used then this function is
  * redefined as hissub_.
  */
-void hissub_sec(word_t *ibuf[],unsigned int *nhw)
+bool hissub_sec(word_t *ibuf[],unsigned int *nhw)
 {
     static float hz = sysconf(_SC_CLK_TCK); // get the number of clock ticks per second
     static clock_t clockBegin; // initialization time
@@ -553,7 +555,11 @@ void hissub_sec(word_t *ibuf[],unsigned int *nhw)
 		/* once the vector of pointers eventlist is sorted based on time,
 		   begin the event processing in ScanList()
 		*/
-		ScanList(eventList, rawev);
+		if(!ScanList(eventList, rawev)){ 
+			std::cout << "ScanList has returned false! This is not a good spill!\n";
+			RemoveList(eventList);
+			return false; 
+		}
 
 		/* once the eventlist has been scanned, remove it from memory
 		   and reset the number of events to zero and update the event
@@ -594,7 +600,7 @@ void hissub_sec(word_t *ibuf[],unsigned int *nhw)
         }
         
     } while (multSpill); // end while loop over multiple spills
-    return;      
+    return true;      
 }
 
 
@@ -628,7 +634,7 @@ void RemoveList(vector<ChanEvent*> &eventList)
  *   rawevent is zeroed and the current channel placed inside it.
  */
 
-void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) 
+bool ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev) 
 {
     unsigned long chanTime, eventTime;
 
@@ -654,7 +660,11 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev)
     //loop over the list of channels that fired in this buffer
     for(; iEvent != eventList.end(); iEvent++) { 
         id = (*iEvent)->GetID();
-        if (id == U_DELIMITER) {
+		if(id < 0 || id > max_pixie_id){ // max module * 16 chan/module
+			std::cout << "Encountered non-physical Pixie ID number " << id << "!\n"; 
+			return false;
+		}
+        else if (id == U_DELIMITER) {
             cout << "pattern 0 ignore" << endl;
             continue;
         }
@@ -720,6 +730,8 @@ void ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev)
         driver->ProcessEvent(scanMode, rawev);
         rawev.Zero(usedDetectors);
     }
+    
+    return true;
 }
 
 /**

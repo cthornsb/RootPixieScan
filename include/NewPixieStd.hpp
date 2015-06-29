@@ -9,7 +9,7 @@ class ChanEvent;
 class RawEvent;
 
 // Function forward declarations
-void ScanList(std::vector<ChanEvent*> &eventList, RawEvent& rawev);
+bool ScanList(std::vector<ChanEvent*> &eventList, RawEvent& rawev);
 
 void RemoveList(std::vector<ChanEvent*> &eventList);
 

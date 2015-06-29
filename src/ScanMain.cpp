@@ -133,17 +133,21 @@ void start_run_control(DetectorDriver *driver_){
 	else if(file_format == 0){
 		char *data = NULL;
 		bool full_spill;
+		bool bad_spill;
 		int nBytes;
 		
 		if(!dry_run_mode){ data = new char[1000000]; }
 		
-		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, dry_run_mode)){ 
+		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, bad_spill, dry_run_mode)){ 
 			if(full_spill){ 
 				if(debug_mode){ 
 					std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
 					std::cout << "debug: Read up to word number " << input_file.tellg()/4 << " in input file\n";
 				}
-				if(!dry_run_mode){ ReadSpill(data, nBytes/4, is_verbose); }
+				if(!dry_run_mode){ 
+					if(!bad_spill){ ReadSpill(data, nBytes/4, is_verbose); }
+					else{ std::cout << " WARNING: Spill has been flagged as corrupt, skipping (at word " << input_file.tellg()/4 << " in file)!\n"; }
+				}
 			}
 			else if(debug_mode){ 
 				std::cout << "debug: Retrieved spill fragment of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
