@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/cory/Research/PixieSuite
+PIXIE_SUITE_DIR = /home/ND01/PixieSuite
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -66,6 +66,7 @@ ifeq ($(VERBOSE), 1)
 	CFLAGS += -DVERBOSE
 endif
 
+# Directories
 TOP_LEVEL = $(shell pwd)
 DICT_DIR = $(TOP_LEVEL)/dict
 INCLUDE_DIR = $(TOP_LEVEL)/include
@@ -87,6 +88,13 @@ INTERFACE_SRC_DIR = $(PIXIE_SUITE_DIR)/Interface/source
 TOOL_DIR = $(TOP_LEVEL)/tools
 TOOL_SRC_DIR = $(TOOL_DIR)/src
 
+# Tools
+HEX_READ = $(TOOL_DIR)/hexRead
+HEX_READ_SRC = $(TOOL_SRC_DIR)/HexRead.cpp
+HIS_2_ROOT = $(TOOL_DIR)/his2root
+HIS_2_ROOT_SRC = $(TOOL_SRC_DIR)/his2root.cpp
+RAW_2_ROOT = $(TOOL_DIR)/raw2root
+RAW_2_ROOT_SRC = $(TOOL_SRC_DIR)/raw2root.cpp
 READER = $(TOOL_DIR)/ldfReader
 READER_SRC = $(TOOL_SRC_DIR)/ldfReader.cpp
 RAW_VIEWER = $(TOOL_DIR)/rawViewer
@@ -94,6 +102,7 @@ RAW_VIEWER_SRC = $(TOOL_SRC_DIR)/rawViewer.cpp
 PULSE_VIEWER = $(TOOL_DIR)/pulseViewer
 PULSE_VIEWER_SRC = $(TOOL_SRC_DIR)/pulseViewer.cpp
 
+# Main executable
 EXECUTABLE = PixieLDF
 
 # Scan libraries
@@ -107,7 +116,7 @@ FORTRAN =
 SOURCES = Places.cpp ReadBuffData.RevD.cpp Trace.cpp EventProcessor.cpp MapFile.cpp TraceExtractor.cpp ChanEvent.cpp \
 		  ChanIdentifier.cpp Correlator.cpp pugixml.cpp StatsData.cpp SsdProcessor.cpp \
 		  TreeCorrelator.cpp DetectorDriver.cpp ParseXml.cpp DetectorLibrary.cpp RandomPool.cpp \
-		  DetectorSummary.cpp RawEvent.cpp TimingInformation.cpp PlaceBuilder.cpp 
+		  DetectorSummary.cpp RawEvent.cpp TimingInformation.cpp PlaceBuilder.cpp
 
 ifeq ($(NEW_READOUT), 1)
 	SOURCES += NewPixieStd.cpp
@@ -163,6 +172,10 @@ SOCKET_SOURCE_OBJ = $(C_OBJ_DIR)/poll2_socket.o
 CTERMINAL_SOURCE = $(POLL_SRC_DIR)/CTerminal.cpp
 CTERMINAL_SOURCE_OBJ = $(C_OBJ_DIR)/CTerminal.o
 
+# This file is used to handle packing/unpacking of .his files
+HIS_FILE_SRC = $(SOURCE_DIR)/HisFile.cpp
+HIS_FILE_OBJ = $(C_OBJ_DIR)/HisFile.o
+
 # If UPAK is not used, we need a new main file
 SCAN_MAIN = $(SOURCE_DIR)/ScanMain.cpp
 SCAN_MAIN_OBJ = $(C_OBJ_DIR)/ScanMain.o
@@ -203,7 +216,7 @@ all: directory $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
 dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
 #	Create root dictionary objects
 
-tools: $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+tools: $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
 
 .PHONY: clean tidy directory
 
@@ -301,17 +314,29 @@ $(EXECUTABLE): $(TO_BUILD) $(ROOTOBJ)
 
 #####################################################################
 
+$(HEX_READ): $(HEX_READ_SRC)
+#	Make the hexReader tool
+	$(CC) -O3 -Wall $(HEX_READ_SRC) -o $(HEX_READ)
+
+$(HIS_2_ROOT): $(HIS_2_ROOT_SRC) $(HIS_FILE_OBJ)
+#	Make the his2root tool
+	$(CC) -O3 -Wall $(HIS_2_ROOT_SRC) $(HIS_FILE_OBJ) -I$(INCLUDE_DIR) `root-config --cflags --glibs` -o $(HIS_2_ROOT)
+
+$(RAW_2_ROOT): $(RAW_2_ROOT_SRC)
+#	Make the raw2root tool
+	$(CC) -O3 -Wall $(RAW_2_ROOT_SRC) `root-config --cflags --glibs` -o $(RAW_2_ROOT)
+
 $(READER): $(READER_SRC) $(HRIBF_SOURCE_OBJ)
 #	Make the ldfReader tool
-	$(CC) -O3 $(READER_SRC) -I$(POLL_INC_DIR) $(HRIBF_SOURCE_OBJ) -o $(READER)
+	$(CC) -O3 -Wall $(READER_SRC) -I$(POLL_INC_DIR) $(HRIBF_SOURCE_OBJ) -o $(READER)
 
 $(RAW_VIEWER): $(RAW_VIEWER_SRC)
 #	Make the rawViewer tool
-	$(CC) -O3 $(RAW_VIEWER_SRC) `root-config --cflags --glibs` -o $(RAW_VIEWER)
+	$(CC) -O3 -Wall $(RAW_VIEWER_SRC) `root-config --cflags --glibs` -o $(RAW_VIEWER)
 
 $(PULSE_VIEWER): $(PULSE_VIEWER_SRC)
 #	Make the rawViewer tool
-	$(CC) -O3 $(PULSE_VIEWER_SRC) `root-config --cflags --glibs` -o $(PULSE_VIEWER)
+	$(CC) -O3 -Wall $(PULSE_VIEWER_SRC) `root-config --cflags --glibs` -o $(PULSE_VIEWER)
 
 #####################################################################
 
