@@ -1,3 +1,9 @@
+// his2root.cpp
+// C. Thornsberry
+// Jul. 2nd, 2015
+// Convert histograms in a damm .his file to .root TH1s and TH2s
+// SYNTAX: ./his2root [filename] [prefix] <options>
+
 #include <iostream>
 
 #include "TNamed.h"
@@ -7,10 +13,16 @@
 
 #include "HisFile.h"
 
+void help(char * prog_name_){
+	std::cout << "  SYNTAX: " << prog_name_ << " [prefix] <options>\n";
+	std::cout << "   Available options:\n";
+	std::cout << "    --quiet | Do not print .drr histogram information.\n";
+}
+
 int main(int argc, char *argv[]){
 	if(argc < 2){
-		std::cout << " Error! Invalid number of arguments. Expected 1, received " << argc-1 << "\n";
-		std::cout << "  SYNTAX: " << argv[0] << " [prefix] <options>\n";
+		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
+		help(argv[0]);
 		return 1;
 	}
 

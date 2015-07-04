@@ -1,3 +1,8 @@
+// HexRead.cpp
+// C. Thornsberry
+// Jul. 2nd, 2015
+// Display raw hex numbers from a binary data file
+// SYNTAX: ./HexRead [filename] <options>
 
 #include <string>
 #include <iostream>
@@ -43,20 +48,20 @@ struct CLoption{
 
 /* Print help dialogue for command line options. */
 void help(){
-	std::cout << "\n SYNTAX: ./HexRead [filename] [options]\n";
-	std::cout << "  -t, --type <int>   Only display buffers of a certain type\n"; 
-	std::cout << "  -r, --raw          Display raw buffer words (hidden by default)\n";
-	std::cout << "  -c, --convert      Attempt to convert words to Ascii characters\n";
-	std::cout << "  -s, --search <int> Search for an integer in the stream\n";
-	std::cout << "  -z, --zero         Suppress zero output\n\n";
-	std::cout << " Available Buffer Types:\n";
-	std::cout << "  \"HEAD\" 1145128264\n";
-	std::cout << "  \"DATA\" 1096040772\n"; // Physics data buffer
-	std::cout << "  \"SCAL\" 1279345491\n"; // Scaler type buffer
-	std::cout << "  \"DEAD\" 1145128260\n"; // Deadtime buffer
-	std::cout << "  \"DIR \" 542263620\n";  // "DIR "
-	std::cout << "  \"PAC \" 541278544\n";  // "PAC "
-	std::cout << "  \"EOF \" 541478725\n\n";       // End of buffer marker
+	std::cout << "  SYNTAX: ./HexRead [filename] <options>\n";
+	std::cout << "   -t, --type <int>   Only display buffers of a certain type\n"; 
+	std::cout << "   -r, --raw          Display raw buffer words (hidden by default)\n";
+	std::cout << "   -c, --convert      Attempt to convert words to Ascii characters\n";
+	std::cout << "   -s, --search <int> Search for an integer in the stream\n";
+	std::cout << "   -z, --zero         Suppress zero output\n\n";
+	std::cout << "  Available Buffer Types:\n";
+	std::cout << "   \"HEAD\" 1145128264\n";
+	std::cout << "   \"DATA\" 1096040772\n"; // Physics data buffer
+	std::cout << "   \"SCAL\" 1279345491\n"; // Scaler type buffer
+	std::cout << "   \"DEAD\" 1145128260\n"; // Deadtime buffer
+	std::cout << "   \"DIR \" 542263620\n";  // "DIR "
+	std::cout << "   \"PAC \" 541278544\n";  // "PAC "
+	std::cout << "   \"EOF \" 541478725\n\n";       // End of buffer marker
 }
 
 /* Extract a string from a character array. */
@@ -71,9 +76,9 @@ std::string csubstr(char *str_, unsigned int start_index_=0){
 }
 
 /* Parse all command line entries and find valid options. */
-bool get_opt(int argc_, char **argv_, CLoption *options, unsigned int num_valid_opt_, unsigned int start_index_=1){
-	unsigned int index = start_index_;
-	unsigned int previous_opt;
+bool get_opt(int argc_, char **argv_, CLoption *options, int num_valid_opt_, int start_index_=1){
+	int index = start_index_;
+	int previous_opt = 0;
 	bool need_an_argument = false;
 	bool may_have_argument = false;
 	bool is_valid_argument = false;
@@ -88,7 +93,7 @@ bool get_opt(int argc_, char **argv_, CLoption *options, unsigned int num_valid_
 			is_valid_argument = false;
 			if(argv_[index][1] == '-'){ // Word options
 				std::string word_arg = csubstr(argv_[index], 2);
-				for(unsigned int i = 0; i < num_valid_opt_; i++){
+				for(int i = 0; i < num_valid_opt_; i++){
 					if(word_arg == options[i].alias && word_arg != "NULL"){
 						options[i].is_active = true; 
 						previous_opt = i;
@@ -106,9 +111,9 @@ bool get_opt(int argc_, char **argv_, CLoption *options, unsigned int num_valid_
 				}
 			}
 			else{ // Character options
-				unsigned int index2 = 1;
+				int index2 = 1;
 				while(argv_[index][index2] != '\0'){
-					for(unsigned int i = 0; i < num_valid_opt_; i++){
+					for(int i = 0; i < num_valid_opt_; i++){
 						if(argv_[index][index2] == options[i].opt && argv_[index][index2] != 0x0){ 
 							options[i].is_active = true; 
 							previous_opt = i;
@@ -180,6 +185,7 @@ std::string convert_to_hex(int input_, bool to_text_=false){
 
 int main(int argc, char *argv[]){
 	if(argc < 2){
+		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
 		help();
 		return 1;
 	}

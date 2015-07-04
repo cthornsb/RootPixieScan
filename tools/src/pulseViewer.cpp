@@ -23,7 +23,7 @@ double PIXIE_TIME_RES = 4.0; // In ns
 // For compilation
 int main(int argc, char* argv[]){
 	if(argc < 3){
-		std::cout << " Error! Invalid number of arguments. Expected 3, received " << argc-1 << "\n";
+		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 2, received " << argc-1 << ".\n";
 		std::cout << "  SYNTAX: " << argv[0] << " [filename] [branchname] <skip>\n";
 		return 1;
 	}

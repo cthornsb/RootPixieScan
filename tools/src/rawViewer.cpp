@@ -2,7 +2,7 @@
 // C. Thornsberry
 // June 4th, 2015
 // Load raw pixie data branches and view their contents
-// SYNTAX: ./rawViewer {root_filename} {root_treename} {root_branchname} {skip#}
+// SYNTAX: ./rawViewer [filename] [mod] [chan]
 
 #include "TH1D.h"
 #include "TFile.h"
@@ -24,7 +24,7 @@
 // For compilation
 int main(int argc, char* argv[]){
 	if(argc < 4){
-		std::cout << " Error: Invalid number of arguments. Expected 3, received " << argc-1 << "\n";
+		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 3, received " << argc-1 << ".\n";
 		std::cout << "  SYNTAX: " << argv[0] << " [filename] [mod] [chan]\n";
 		return 1;
 	}

@@ -38,7 +38,7 @@ std::string GetExtension(const char *filename_, std::string &prefix){
 
 int main(int argc, char *argv[]){
 	if(argc < 2){
-		std::cout << " Invalid number of arguments to " << argv[0] << std::endl;
+		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
 		std::cout << "  SYNTAX: " << argv[0] << " [filename]\n";
 		return 1;
 	}
@@ -115,10 +115,12 @@ int main(int argc, char *argv[]){
 		std::cout << " 'HEAD' buffer-\n";
 		std::cout << "  Facility: " << pldHead.GetFacility() << std::endl;
 		std::cout << "  Format: " << pldHead.GetFormat() << std::endl;
-		std::cout << "  Date: " << pldHead.GetDate() << std::endl;
+		std::cout << "  Start: " << pldHead.GetStartDate() << std::endl;
+		std::cout << "  Stop: " << pldHead.GetEndDate() << std::endl; 
 		std::cout << "  Title: " << pldHead.GetRunTitle() << std::endl;
 		std::cout << "  Run number: " << pldHead.GetRunNumber() << std::endl;
-		std::cout << "  Max spill: " << pldHead.GetMaxSpillSize() << " words\n\n";
+		std::cout << "  Max spill: " << pldHead.GetMaxSpillSize() << " words\n";
+		std::cout << "  ACQ Time: " << pldHead.GetRunTime() << " seconds\n\n";
 	}
 	else if(file_format == 2){
 	}

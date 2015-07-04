@@ -26,6 +26,12 @@ RootDict.h
 PixieLDF
 OldPixieLDF
 DammPixieLDF
+
+# Tools #
+#########
+hexRead
+his2root
+raw2root
 ldfReader
 rawViewer
 pulseViewer

@@ -88,6 +88,8 @@ INTERFACE_SRC_DIR = $(PIXIE_SUITE_DIR)/Interface/source
 TOOL_DIR = $(TOP_LEVEL)/tools
 TOOL_SRC_DIR = $(TOOL_DIR)/src
 
+INSTALL_DIR = ~/bin
+
 # Tools
 HEX_READ = $(TOOL_DIR)/hexRead
 HEX_READ_SRC = $(TOOL_SRC_DIR)/HexRead.cpp
@@ -228,40 +230,40 @@ tools: $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(READER) $(RAW_VIEWER) $(PULSE_V
 
 directory: $(OBJ_DIR) $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
 # Setup the configuration directory
-	@if [ ! -d "$(TOP_LEVEL)/config/default" ]; then \
+	@if [ ! -d $(TOP_LEVEL)/config/default ]; then \
 		tar -xf $(TOP_LEVEL)/config.tar; \
 		echo "Building configuration directory"; \
 	fi
 # Create a symbolic link to the default config directory
-	@if [ ! -e "$(TOP_LEVEL)/setup" ]; then \
+	@if [ ! -e $(TOP_LEVEL)/setup ]; then \
 		ln -s $(TOP_LEVEL)/config/default $(TOP_LEVEL)/setup; \
 		echo "Creating symbolic link to default configuration directory"; \
 	fi
 
 $(OBJ_DIR):
 #	Make the object file directory
-	@if [ ! -d "$@" ]; then \
+	@if [ ! -d $@ ]; then \
 		echo "Making directory: "$@; \
 		mkdir $@; \
 	fi
 
 $(FORT_OBJ_DIR):
 #	Make fortran object file directory
-	@if [ ! -d "$@" ]; then \
+	@if [ ! -d $@ ]; then \
 		echo "Making directory: "$@; \
 		mkdir $@; \
 	fi
 
 $(C_OBJ_DIR):
 #	Make c++ object file directory
-	@if [ ! -d "$@" ]; then \
+	@if [ ! -d $@ ]; then \
 		echo "Making directory: "$@; \
 		mkdir $@; \
 	fi
 
 $(DICT_OBJ_DIR):
 #	Make root dictionary object file directory
-	@if [ ! -d "$@" ]; then \
+	@if [ ! -d $@ ]; then \
 		echo "Making directory: "$@; \
 		mkdir $@; \
 	fi
@@ -340,6 +342,18 @@ $(PULSE_VIEWER): $(PULSE_VIEWER_SRC)
 
 #####################################################################
 
+install: tools
+#	Install tools into the install directory
+	@echo "Installing tools to "$(INSTALL_DIR)
+	@if [ ! -e $(INSTALL_DIR)/hexRead ]; then ln -s $(HEX_READ) $(INSTALL_DIR)/hexRead; fi
+	@if [ ! -e $(INSTALL_DIR)/his2root ]; then ln -s $(HIS_2_ROOT) $(INSTALL_DIR)/his2root; fi
+	@if [ ! -e $(INSTALL_DIR)/raw2root ]; then ln -s $(RAW_2_ROOT) $(INSTALL_DIR)/raw2root; fi
+	@if [ ! -e $(INSTALL_DIR)/ldfReader ]; then ln -s $(READER) $(INSTALL_DIR)/ldfReader; fi
+#	@if [ ! -e $(INSTALL_DIR)/rawViewer ]; then ln -s $(RAW_VIEWER) $(INSTALL_DIR)/rawViewer; fi
+	@if [ ! -e $(INSTALL_DIR)/pulseViewer ]; then ln -s $(PULSE_VIEWER) $(INSTALL_DIR)/pulseViewer; fi
+
+#####################################################################
+
 tidy: clean_obj
 
 clean: clean_obj clean_dict clean_tools
@@ -358,4 +372,4 @@ clean_dict:
 	
 clean_tools:
 	@echo "Removing tools..."
-	@rm -f $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+	@rm -f $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
