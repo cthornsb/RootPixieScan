@@ -2,14 +2,62 @@
 #define HISFILE_H
 
 #include <fstream>
+#include <vector>
 
 class TH1I;
 class TH2I;
 
+//#ifdef USE_DAMM_OUTPUT
+
+/// Create a DAMM 1D histogram
+void hd1d_(int dammId, int nHalfWords, int rawlen, int histlen, int min, int max, const char *title, unsigned int length);
+
+/// Create a DAMM 2D histogram
+void hd2d_(int dammId, int nHalfWords, int rawXlen, int histXlen, int xMin, int xMax, int rawYlen, int histYlen, int yMin, int yMax, const char *title, unsigned int length);
+
+/// Do banana gating using ban files
+bool bantesti_(const int &id, const double &x, const double &y);
+
+/// Increment histogram dammID at x and y
+void count1cc_(const int &dammID, const int &x, const int &y);
+
+/// Unknown
+void set2cc_(const int &dammID, const int &x, const int &y, const int &z);
+
+//#endif
+
+// drr entry information
+struct drr_entry{
+	int hisID; /// ID of the histogram
+	short hisDim; /// Number of dimensions
+	short halfWords; /// Number of half-words (2 bytes) per channel
+	short params[4]; /// Parameter id numbers, for each dimension (up to 4)
+	short raw[4]; /// Raw length
+	short scaled[4]; /// Scaled length
+	short minc[4]; /// Min channel number
+	short maxc[4]; /// Max channel number
+	int offset; /// Location in his file (in 2-bytes units)
+	char xlabel[13]; /// X axis label
+	char ylabel[13]; /// Y axis label
+	float calcon[4]; /// Calibration for X axis
+	char title[41]; /// Title
+
+	/// Default constructor
+	drr_entry(){}
+	
+	/// Constructor for 1d histogram
+	drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, short min_, short max_, const char * title_);
+	
+	/// Constructor for 2d histogram
+	drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
+			  short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_);
+};
+
 class HisFile{
-  private:
+  protected:
 	bool is_good; /// True if a valid drr file is open
 	bool is_open; /// True if both the drr and his files are open (also requires is_good == true)
+	bool debug_mode; /// True if debug mode is set
 	std::ifstream drr; /// The input .drr file
 	std::ifstream his; /// The input .his file
 	
@@ -27,23 +75,6 @@ class HisFile{
 	int date[6]; /// Date 0 YY MM DD HR MN
 	char description[41]; /// Field for text description 
 
-	// drr entry information
-	struct drr_entry{
-		int hisID; /// ID of the histogram
-		short hisDim; /// Number of dimensions
-		short halfWords; /// Number of half-words (2 bytes) per channel
-		short params[4]; /// Parameter id numbers, for each dimension (up to 4)
-		short raw[4]; /// Raw length
-		short scaled[4]; /// Scaled length
-		short minc[4]; /// Min channel number
-		short maxc[4]; /// Max channel number
-		int offset; /// Location in his file (in 2-bytes units)
-		char xlabel[13]; /// X axis label
-		char ylabel[13]; /// Y axis label
-		float calcon[4]; /// Calibration for X axis
-		char title[41]; /// Title
-	};
-	
 	drr_entry *current_entry; /// Pointer to the current working drr entry
 	std::vector<drr_entry *> drr_entries; /// Vector of pointers to all drr_entries in drr file
 
@@ -65,6 +96,9 @@ class HisFile{
 	HisFile(const char *prefix_);
 	
 	~HisFile();
+
+	/// Toggle debug mode on or off
+	void SetDebugMode(bool input_=true){ debug_mode = input_; }
 
 	/// Get the error code for a member function call
 	int GetError(bool verbose_=true);
@@ -141,24 +175,50 @@ class HisFile{
 	void PrintEntry();
 };
 
-/*class OutputHisFile : public HisFile{
+class OutputHisFile : public HisFile{
   private:
-	std::ofstream ofile;
-	
-	bool can_write;
-	
-	unsigned int flush_wait;
-	
+	std::ofstream ofile; /// The output .his file
+	std::string fname; /// The output filename prefix
+	bool writable; /// True if the output .his file is open and writable
+	unsigned int flush_wait; /// Number of fills to wait between flushes
+	unsigned int flush_count; /// Number of fills since last flush
+	std::vector<drr_entry*> entries; /// Vector of all declared histograms
+
+	/// Flush histogram fills to file
 	void flush();
 	
   public:
-	OutputHisFile
+	OutputHisFile();
+  
+	OutputHisFile(std::string fname_prefix);
+
+	~OutputHisFile();
+
+	/// Return true if the output .his file is open and writable and false otherwise
+	bool IsWritable(){ return writable; }
 	
-	bool CanWrite(){ return can_write; }
+	/// Set the number of fills to wait between file flushes
+	void SetFlushWait(unsigned int wait_){ flush_wait = wait_; }
 	
-	void DeclareHistogram2D
+	/* Push back with another histogram entry. This command will also
+	 * extend the length of the .his file (if possible). DO NOT delete
+	 * the passed drr_entry after calling. OutputHisFile will handle cleanup.
+	 * On success, returns the number of bytes the file was extended by and zero
+	 * upon failure.
+	 */
+	size_t push_back(drr_entry *entry_);
 	
-	void Plot(const int &id_, const double &val_);
-};*/
+	/// Open a new .his file
+	bool Open(std::string fname_prefix);
+	
+	/// Close the histogram file and write the drr file
+	bool Close(bool make_list_file_=false, const std::string &descrip_="RootPixieScan .drr file");
+};
+
+//#ifdef USE_DAMM_OUTPUT
+
+extern OutputHisFile output_his; /// The global .his file handler
+
+//#endif
 
 #endif

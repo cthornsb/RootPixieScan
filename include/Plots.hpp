@@ -14,11 +14,6 @@
 
 #include "Globals.hpp"
 
-/* Fortran subroutines for plotting histograms */
-extern "C" bool bantesti_(const int &, const int &, const int &);
-extern "C" void count1cc_(const int &, const int &, const int &);
-extern "C" void set2cc_(const int &, const int &, const int &, const int &);
-
 /** Holds pointers to all Histograms.*/
 class Plots {
 public:

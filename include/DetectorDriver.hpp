@@ -22,10 +22,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#ifdef USE_HHIRF
 #include "Plots.hpp"
-#endif
-
 #include "Globals.hpp"
 #include "MapFile.hpp"
 #include "ChanEvent.hpp"
@@ -36,6 +33,7 @@ class Calibration;
 class RawEvent;
 class EventProcessor;
 class TraceAnalyzer;
+class OutputHisFile;
 
 using std::pair;
 using std::set;
@@ -88,7 +86,8 @@ class DetectorDriver {
     unsigned int num_files;
     bool use_root, use_damm;
     ConfigArgs config_args;
-    std::string root_fname;   
+    std::string root_fname; 
+	OutputHisFile *his_file;
     TFile *masterFile;
     TTree *masterTree;
     bool is_init;

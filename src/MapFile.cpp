@@ -132,7 +132,7 @@ void MapFile::TokenizeString(const string &in, vector<string> &out) const
 /**
  * Process a tokenized line of the mapfile and fill the global identifier array
  */
-void MapFile::ProcessTokenList(const vector<string> &tokenList) const
+bool MapFile::ProcessTokenList(const vector<string> &tokenList) const
 {
 	DetectorLibrary* modChan = DetectorLibrary::get();
 	vector<int> moduleList;
@@ -199,7 +199,7 @@ void MapFile::ProcessTokenList(const vector<string> &tokenList) const
 				cerr << " : channel " << *chanIt << " is initialized more than once in the map file";
 				cerr << endl;
 
-				exit(EXIT_FAILURE);
+				//return false;
 			}
 
 			id.SetLocation(startingLocation);
@@ -224,6 +224,8 @@ void MapFile::ProcessTokenList(const vector<string> &tokenList) const
 			startingLocation++;
 		}
 	}
+	
+	return true;
 }
 
 /**

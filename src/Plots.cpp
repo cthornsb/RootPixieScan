@@ -7,29 +7,11 @@
 #include <cmath>
 #include <cstring>
 
+#include "HisFile.h"
 #include "Plots.hpp"
 #include "PlotsRegister.hpp"
 
 using namespace std;
-
-/* Do banana gating using ban files */
-extern "C" bool bantesti_(const int &, const int &, const int &);
-
-/* create a DAMM 1D histogram
- * args are damm id, half-words per channel, param length, hist length,
- * low x-range, high x-range, and title
- */
-extern "C" void hd1d_(const int &, const int &, const int &, const int &,
-		      const int &, const int &, const char *, int);
-
-/* create a DAMM 2D histogram
- * args are damm id, half-words per channel, x-param length, x-hist length
- * low x-range, high x-range, y-param length, y-hist length, low y-range
- * high y-range, and title
- */
-extern "C" void hd2d_(const int &, const int &, const int &, const int &,
-		      const int &, const int &, const int &, const int &,
-		      const int &, const int &, const char *, int);
 
 Plots::Plots(int offset, int range)
 {  

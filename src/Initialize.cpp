@@ -17,8 +17,6 @@ extern "C" void endrr_();
 /*! This function defines the histograms to be used in the analysis */
 extern "C" void drrsub_(unsigned int& iexist)
 {
-    MapFile theMapFile = MapFile();
     drrmake_();
-    DetectorDriver::get()->DeclarePlots(theMapFile);
     endrr_(); 
 }

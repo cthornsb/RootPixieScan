@@ -3,11 +3,50 @@
 #include <sstream>
 #include <vector>
 #include <string.h>
+#include <time.h>
 
 #include "TH1I.h"
 #include "TH2I.h"
 
 #include "HisFile.h"
+#include "PlotsRegister.hpp"
+
+///////////////////////////////////////////////////////////////////////////////
+// Support Functions
+///////////////////////////////////////////////////////////////////////////////
+
+//#ifdef USE_DAMM_OUTPUT
+
+OutputHisFile output_his;
+
+/// Create a DAMM 1D histogram (implemented for backwards compatibility)
+void hd1d_(int dammId, int nHalfWords, int rawlen, int histlen, int min, int max, const char *title, unsigned int length){
+	drr_entry *entry = new drr_entry(dammId, (short)nHalfWords, (short)rawlen, (short)histlen, (short)min, (short)max, title);
+	output_his.push_back(entry);
+}
+
+/// Create a DAMM 2D histogram (implemented for backwards compatibility)
+void hd2d_(int dammId, int nHalfWords, int rawXlen, int histXlen, int xMin, int xMax, int rawYlen, int histYlen, int yMin, int yMax, const char *title, unsigned int length){
+	drr_entry *entry = new drr_entry(dammId, (short)nHalfWords, (short)rawXlen, (short)histXlen, (short)xMin, (short)xMax,
+									 (short)rawYlen, (short)histYlen, (short)yMin, (short)yMax, title);
+	output_his.push_back(entry);
+}
+
+/// Do banana gating using ban files (implemented for backwards compatibility)
+bool bantesti_(const int &id, const double &x, const double &y){
+	return false;
+}
+
+/// Increment histogram dammID at x and y (implemented for backwards compatibility)
+void count1cc_(const int &dammID, const int &x, const int &y){
+}
+
+/// Unknown (implemented for backwards compatibility)
+void set2cc_(const int &dammID, const int &x, const int &y, const int &z){
+	count1cc_(dammID, x, y);
+}
+
+//#endif
 
 /// Strip trailing whitespace from a c-string
 std::string rstrip(char *input_){
@@ -27,8 +66,66 @@ std::string rstrip(char *input_){
 	return output;
 }
 
+/// Copy a string into a character array
+void set_char_array(char *output, const std::string &input_, size_t arr_size_){
+	for(size_t index = 0; index < arr_size_; index++){
+		if(index < input_.size()){ output[index] = input_[index]; }
+		else{ output[index] = ' '; }
+	}
+	output[arr_size_] = '\0';
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct drr_entry
+///////////////////////////////////////////////////////////////////////////////
+
+/// Constructor for 1d histogram
+drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, short min_, short max_, const char * title_){
+	hisID = hisID_; hisDim = 1; halfWords = halfWords_;
+
+	// Set range and scaling variables
+	params[0] = 0; params[1] = 0; params[2] = 0; params[3] = 0; 
+	raw[0] = raw_; raw[1] = 0; raw[2] = 0; raw[3] = 0; 
+	scaled[0] = scaled_; scaled[1] = 0; scaled[2] = 0; scaled[3] = 0;
+	minc[0] = min_; minc[1] = 0; minc[2] = 0; minc[3] = 0;
+	maxc[0] = max_; maxc[1] = 0; maxc[2] = 0; maxc[3] = 0;
+	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
+	
+	// Set label and titles
+	set_char_array(xlabel, "            ", 13);
+	set_char_array(ylabel, "            ", 13);
+	set_char_array(title, std::string(title_), 41);
+
+	offset = 0; // The file offset will be set later
+}
+
+/// Constructor for 2d histogram
+drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
+					 short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_){
+	hisID = hisID_; hisDim = 2; halfWords = halfWords_;
+
+	// Set range and scaling variables
+	params[0] = 0; params[1] = 0; params[2] = 0; params[3] = 0; 
+	raw[0] = Xraw_; raw[1] = Yraw_; raw[2] = 0; raw[3] = 0; 
+	scaled[0] = Xscaled_; scaled[1] = Yscaled_; scaled[2] = 0; scaled[3] = 0;
+	minc[0] = Xmin_; minc[1] = Ymin_; minc[2] = 0; minc[3] = 0;
+	maxc[0] = Xmax_; maxc[1] = Xmax_; maxc[2] = 0; maxc[3] = 0;
+	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
+	
+	// Set label and titles
+	set_char_array(xlabel, "            ", 13);
+	set_char_array(ylabel, "            ", 13);
+	set_char_array(title, std::string(title_), 41);
+
+	offset = 0; // The file offset will be set later
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class HisFile
+///////////////////////////////////////////////////////////////////////////////
+
 /// Read an entry from the drr file
-HisFile::drr_entry* HisFile::read_entry(){
+drr_entry* HisFile::read_entry(){
 	drr_entry *output = new drr_entry();
 
 	// Read 128 bytes from the drr file
@@ -113,7 +210,7 @@ int HisFile::GetError(bool verbose_/*=true*/){
 		else if(err_flag == 5){ std::cout << "  5: Cannot call GetNextHistogram because the last entry in the .drr file is already loaded.\n"; }
 		else if(err_flag == -1){ std::cout << "  -1: current_entry is uninitialized. Use GetHistogram, GetNextHistogram, or GetHistogramByID.\n"; }
 		else if(err_flag == -2){ std::cout << "  -2: Specified .his cell size is larger than that of an integer (4 bytes).\n"; }
-		else if(err_flag == -3){ std::cout << "  -3: GetHistogram returned 0. e.g. the specified histogram does not exist.\n"; }
+		else if(err_flag == -3){ std::cout << "  -3: GetHistogram returned 0. i.e. the specified histogram does not exist.\n"; }
 		else if(err_flag == -4){ std::cout << "  -4: The current histogram has the incorrect dimension for the called function.\n"; }
 		else if(err_flag == -5){ std::cout << "  -5: .his cell size is 2 bytes but size of histogram data array is not evenly divisible by 2.\n"; }
 		else if(err_flag == -6){ std::cout << "  -6: .his cell size is 4 bytes but size of histogram data array is not evenly divisible by 4.\n"; }
@@ -561,4 +658,134 @@ void HisFile::PrintEntry(){
 	std::cout << "minc: " << current_entry->minc[0] << ", " << current_entry->minc[1] << ", " << current_entry->minc[2] << ", " << current_entry->minc[3] << std::endl;
 	std::cout << "maxc: " << current_entry->maxc[0] << ", " << current_entry->maxc[1] << ", " << current_entry->maxc[2] << ", " << current_entry->maxc[3] << std::endl;
 	std::cout << "cal: " << current_entry->calcon[0] << ", " << current_entry->calcon[1] << ", " << current_entry->calcon[2] << ", " << current_entry->calcon[3] << std::endl;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class OutputHisFile
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputHisFile::flush(){
+	if(!writable){ return; }
+}
+
+OutputHisFile::OutputHisFile(){
+	writable = false;
+	debug_mode = false;
+}
+
+OutputHisFile::OutputHisFile(std::string fname_prefix){
+	debug_mode = false;
+	Open(fname_prefix);
+}
+
+OutputHisFile::~OutputHisFile(){
+	Close();
+}
+
+size_t OutputHisFile::push_back(drr_entry *entry_){
+	if(!entry_ || !writable){ return 0; }
+	
+	// Seek to the end of this histogram file
+	ofile.seekp(0, std::ios::end);
+	entry_->offset = (size_t)ofile.tellp();
+	entries.push_back(entry_);
+
+	// Extend the size of the histogram file
+	size_t size = 1;
+	for(size_t i = 0; i < (size_t)entry_->hisDim; ++i){
+		size *= (size_t)(entry_->scaled[i]-1);
+	}
+	size *= (size_t)(entry_->halfWords * 2);
+	
+	char *dummy = new char[size];
+	
+	for(size_t i = 0; i < size; i++){ dummy[i] = 0x0; }
+	
+	if(debug_mode){	std::cout << " Extending .his file by " << size << " bytes for his ID = " << entry_->hisID << std::endl; }
+	
+	ofile.write(dummy, size);
+	
+	delete[] dummy;
+	
+	return size;
+}
+
+bool OutputHisFile::Open(std::string fname_prefix){
+	if(writable){ return false; }
+	fname = fname_prefix;
+	ofile.open((fname+".his").c_str(), std::ios::binary);
+	flush_wait = 10000;
+	return (writable = ofile.good());
+}
+
+bool OutputHisFile::Close(bool make_list_file_/*=false*/, const std::string &descrip_/*="RootPixieScan .drr file"*/){
+	bool retval = true;
+
+	flush();
+
+	set_char_array(initial, "HHIRFDIR0001", 13);
+	set_char_array(description, descrip_, 41);
+	
+	nHis = entries.size(); 
+	nHWords = (128 * (1 + entries.size()) + entries.size() * 4)/2;
+	
+	time_t rawtime;
+	struct tm * timeinfo;
+	
+	time(&rawtime);
+	timeinfo = localtime (&rawtime);
+
+	date[0] = 0;
+	date[1] = timeinfo->tm_year + 1900; // tm_year measures the year from 1900
+	date[2] = timeinfo->tm_mon; // tm_mon ranges from 0 to 11
+	date[3] = timeinfo->tm_mday;
+	date[4] = timeinfo->tm_hour;
+	date[5] = timeinfo->tm_min;
+
+	// Write the .drr file
+	std::ofstream drr_file((fname+".drr").c_str(), std::ios::binary);
+	if(drr_file.good()){
+		char dummy = 0x0;
+		int his_id;
+	
+		// Write the 128 byte drr header
+		drr_file.write(initial, 12);
+		drr_file.write((char*)&nHis, 4);
+		drr_file.write((char*)&nHWords, 4);
+		for(int i = 0; i < 6; i++){ drr_file.write((char*)&date[i], 4); }
+		for(int i = 0; i < 44; i++){ drr_file.write(&dummy, 1); } // add the trailing garbage
+		drr_file.write(description, 40);
+
+		// Write the drr entries
+		for(std::vector<drr_entry*>::iterator iter = entries.begin(); iter != entries.end(); iter++){
+			drr_file.write((char*)&(*iter)->hisDim, 2);
+			drr_file.write((char*)&(*iter)->halfWords, 2);
+			drr_file.write((char*)&(*iter)->params, 8);
+			drr_file.write((char*)&(*iter)->raw, 8);
+			drr_file.write((char*)&(*iter)->scaled, 8);
+			drr_file.write((char*)&(*iter)->minc, 8);
+			drr_file.write((char*)&(*iter)->maxc, 8);
+			drr_file.write((char*)&(*iter)->offset, 4);
+			drr_file.write((*iter)->xlabel, 12); (*iter)->xlabel[12] = '\0';
+			drr_file.write((*iter)->ylabel, 12); (*iter)->ylabel[12] = '\0';
+			drr_file.write((char*)&(*iter)->calcon, 16);
+			drr_file.write((*iter)->title, 40); (*iter)->title[40] = '\0';
+		}
+		
+		// Write the histogram IDs
+		for(std::vector<drr_entry*>::iterator iter = entries.begin(); iter != entries.end(); iter++){
+			his_id = (*iter)->hisID;
+			drr_file.write((char*)&his_id, 4);
+			delete (*iter);
+		}
+		
+		entries.clear();
+	}
+	else{ retval = false; }
+	
+	writable = false;
+	drr_file.close();
+	ofile.close();
+	
+	return retval;
 }

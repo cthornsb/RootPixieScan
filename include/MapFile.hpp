@@ -20,7 +20,7 @@ class MapFile
 {
 private:
     void TokenizeString(const std::string &in, std::vector<std::string> &out) const;
-    void ProcessTokenList(const std::vector<std::string> &list) const;
+    bool ProcessTokenList(const std::vector<std::string> &list) const;
     bool HasWildcard(const std::string &str) const;
     void TokenToVector(std::string token, std::vector<int> &list, int number) const;
 		      
