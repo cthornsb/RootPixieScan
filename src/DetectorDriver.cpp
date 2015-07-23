@@ -91,6 +91,9 @@ std::string ConvTime(int myTime){
 	return output.str();
 }
 
+// The global .his file handler
+OutputHisFile *output_his;
+
 /*!
   detector driver constructor
 
@@ -180,7 +183,8 @@ DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/) : histo
 	// DAMM output is OFF by default!
 	if(config_args.HasName("DAMM", arg_value) && arg_value == "1"){ 
 		use_damm = true; 
-		if(output_his.Open(root_fname)){ 
+		output_his = new OutputHisFile(root_fname);
+		if(output_his->IsWritable()){ 
 			std::cout << "DetectorDriver: Using DAMM output\n"; 
 			MapFile theMapFile = MapFile();
 		    this->DeclarePlots(theMapFile);
@@ -214,7 +218,7 @@ bool DetectorDriver::Delete()
 {
 	// Finalize the .his and .drr files
 	if(use_damm){
-		output_his.Close();
+		output_his->Close();
 	}
 
 	if(!is_init){
@@ -454,7 +458,7 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 			continue;
 		
 		ThreshAndCal((*it), rawev); // check threshold and calibrate
-		if(use_damm){ 
+		if(use_damm && write_raw){ 
 			PlotRaw((*it));
 			PlotCal((*it));
 		}
@@ -528,8 +532,8 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile){
 		DeclareHistogram2D(DD_BUFFER_START_TIME, SE, S6, "dead time - 0.1%");
 		DeclareHistogram2D(DD_RUNTIME_MSEC, SE, S7, "run time - ms");
 		DeclareHistogram1D(D_NUMBER_OF_EVENTS, S4, "event counter");
+		DeclareHistogram1D(D_HAS_TRACE, S7, "channels with traces");
 	}
-	DeclareHistogram1D(D_HAS_TRACE, S7, "channels with traces");
 
 	for (DetectorLibrary::size_type i = 0; i < maxChan; i++) {	 
 		if (theMapFile && !modChan->HasValue(i)) { continue; }
@@ -543,7 +547,8 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile){
 		} 
 		else { idstr << "id " << i; }
 
-		if(use_damm){
+		std::string arg_value;
+		if(use_damm && (config_args.HasName("RAWEVENT", arg_value) && arg_value == "1")){ // RawEvent
 			DeclareHistogram1D(D_RAW_ENERGY + i, SE, ("RawE " + idstr.str()).c_str() );
 			DeclareHistogram1D(D_FILTER_ENERGY + i, SE, ("FilterE " + idstr.str()).c_str() );
 			DeclareHistogram1D(D_SCALAR + i, SE, ("Scalar " + idstr.str()).c_str() );
@@ -554,6 +559,9 @@ void DetectorDriver::DeclarePlots(MapFile& theMapFile){
 			DeclareHistogram1D(D_CAL_ENERGY_REJECT + i, SE, ("CalE NoSat " + idstr.str()).c_str() );
 		}
 	}
+	
+	// Lock the .drr list
+	output_his->Finalize();
 }
 
 // sanity check for all our expectations
@@ -597,7 +605,7 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 			if (trace.GetValue("filterEnergy") > 0) {
 				energy = trace.GetValue("filterEnergy");
 #ifdef USE_HHIRF
-				if(use_damm){ plot(D_FILTER_ENERGY + id, energy); }
+				if(use_damm && write_raw){ plot(D_FILTER_ENERGY + id, energy); }
 #endif
 			} 
 			else { energy = 2; }

@@ -13,10 +13,12 @@
 
 #include "HisFile.h"
 
+OutputHisFile *output_his;
+
 void help(char * prog_name_){
 	std::cout << "  SYNTAX: " << prog_name_ << " [prefix] <options>\n";
 	std::cout << "   Available options:\n";
-	std::cout << "    --quiet | Do not print .drr histogram information.\n";
+	std::cout << "    --verbose | Print .drr histogram information.\n";
 }
 
 int main(int argc, char *argv[]){
@@ -26,10 +28,10 @@ int main(int argc, char *argv[]){
 		return 1;
 	}
 
-	bool verbose = true;
+	bool verbose = false;
 	int arg_index = 2;
 	while(arg_index < argc){
-		if(strcmp(argv[arg_index], "--quiet") == 0){ verbose = false; }
+		if(strcmp(argv[arg_index], "--verbose") == 0){ verbose = true; }
 		else{ 
 			std::cout << " Error: Encountered unrecognized option '" << argv[arg_index] << "'\n";
 			return 1;
@@ -40,7 +42,7 @@ int main(int argc, char *argv[]){
 	std::string output_fname(argv[1]);
 	output_fname += ".root";
 	
-	TFile *file = new TFile(output_fname.c_str(), "CREATE");
+	TFile *file = new TFile(output_fname.c_str(), "RECREATE");
 	if(!file->IsOpen()){
 		std::cout << " Error: Failed to open output file '" << output_fname << "'\n";
 		return 1;

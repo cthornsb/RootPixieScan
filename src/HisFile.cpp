@@ -15,21 +15,17 @@
 // Support Functions
 ///////////////////////////////////////////////////////////////////////////////
 
-//#ifdef USE_DAMM_OUTPUT
-
-OutputHisFile output_his;
-
 /// Create a DAMM 1D histogram (implemented for backwards compatibility)
 void hd1d_(int dammId, int nHalfWords, int rawlen, int histlen, int min, int max, const char *title, unsigned int length){
 	drr_entry *entry = new drr_entry(dammId, (short)nHalfWords, (short)rawlen, (short)histlen, (short)min, (short)max, title);
-	output_his.push_back(entry);
+	output_his->push_back(entry);
 }
 
 /// Create a DAMM 2D histogram (implemented for backwards compatibility)
 void hd2d_(int dammId, int nHalfWords, int rawXlen, int histXlen, int xMin, int xMax, int rawYlen, int histYlen, int yMin, int yMax, const char *title, unsigned int length){
 	drr_entry *entry = new drr_entry(dammId, (short)nHalfWords, (short)rawXlen, (short)histXlen, (short)xMin, (short)xMax,
 									 (short)rawYlen, (short)histYlen, (short)yMin, (short)yMax, title);
-	output_his.push_back(entry);
+	output_his->push_back(entry);
 }
 
 /// Do banana gating using ban files (implemented for backwards compatibility)
@@ -39,14 +35,13 @@ bool bantesti_(const int &id, const double &x, const double &y){
 
 /// Increment histogram dammID at x and y (implemented for backwards compatibility)
 void count1cc_(const int &dammID, const int &x, const int &y){
+	output_his->Fill(dammID, x, y);
 }
 
 /// Unknown (implemented for backwards compatibility)
 void set2cc_(const int &dammID, const int &x, const int &y, const int &z){
-	count1cc_(dammID, x, y);
+	output_his->Fill(dammID, x, y, z);
 }
-
-//#endif
 
 /// Strip trailing whitespace from a c-string
 std::string rstrip(char *input_){
@@ -87,6 +82,7 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, sh
 	params[0] = 0; params[1] = 0; params[2] = 0; params[3] = 0; 
 	raw[0] = raw_; raw[1] = 0; raw[2] = 0; raw[3] = 0; 
 	scaled[0] = scaled_; scaled[1] = 0; scaled[2] = 0; scaled[3] = 0;
+	comp[0] = raw_/scaled_; comp[1] = 0;  comp[2] = 0; comp[3] = 0;
 	minc[0] = min_; minc[1] = 0; minc[2] = 0; minc[3] = 0;
 	maxc[0] = max_; maxc[1] = 0; maxc[2] = 0; maxc[3] = 0;
 	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
@@ -97,6 +93,9 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, sh
 	set_char_array(title, std::string(title_), 41);
 
 	offset = 0; // The file offset will be set later
+	if(2*halfWords_ == 4){ use_int = true; }
+	else if(2*halfWords == 2){ use_int = false; }
+	else{ std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; }
 }
 
 /// Constructor for 2d histogram
@@ -108,6 +107,7 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, 
 	params[0] = 0; params[1] = 0; params[2] = 0; params[3] = 0; 
 	raw[0] = Xraw_; raw[1] = Yraw_; raw[2] = 0; raw[3] = 0; 
 	scaled[0] = Xscaled_; scaled[1] = Yscaled_; scaled[2] = 0; scaled[3] = 0;
+	comp[0] = Xraw_/Xscaled_; comp[1] = Yraw_/Yscaled_;  comp[2] = 0; comp[3] = 0;
 	minc[0] = Xmin_; minc[1] = Ymin_; minc[2] = 0; minc[3] = 0;
 	maxc[0] = Xmax_; maxc[1] = Xmax_; maxc[2] = 0; maxc[3] = 0;
 	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
@@ -118,6 +118,9 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, 
 	set_char_array(title, std::string(title_), 41);
 
 	offset = 0; // The file offset will be set later
+	if(2*halfWords_ == 4){ use_int = true; }
+	else if(2*halfWords == 2){ use_int = false; }
+	else{ std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,12 +148,6 @@ drr_entry* HisFile::read_entry(){
 	return output;
 }
 
-/// Get a drr entry from the vector
-void HisFile::get_entry(size_t id_){
-	if(id_ < drr_entries.size()){ current_entry = drr_entries.at(id_); }
-	else{ current_entry = NULL; }
-}
-
 /// Set the size of the histogram and allocate memory for data storage
 void HisFile::set_hist_size(){
 	if(hdata){ delete[] hdata; }
@@ -164,7 +161,7 @@ void HisFile::set_hist_size(){
 	hdata = new char[hd_size];
 }
 
-/// Delete all drr entries and clear the entries vector
+/// Delete all drr drr_entries and clear the drr_entries vector
 void HisFile::clear_drr_entries(){
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		delete (*iter);
@@ -187,7 +184,7 @@ HisFile::HisFile(const char *prefix_){
 	hd_size = 0;
 	err_flag = 0;
 	hists_processed = 0;
-	Load(prefix_);
+	LoadDrr(prefix_);
 }
 
 HisFile::~HisFile(){
@@ -486,15 +483,23 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 						  current_entry->scaled[1]-1, (double)current_entry->minc[1], (double)current_entry->maxc[1]);
 
 	// Fill the histogram bins
+	unsigned int arr_index;
 	for(short x = 0; x < current_entry->scaled[0]-1; x++){
 		for(short y = 0; y < current_entry->scaled[1]-1; y++){
-			if(use_int){ hist->SetBinContent(hist->GetBin(y, x), idata[x * (current_entry->scaled[0]-1) + y]); }
-			else{ hist->SetBinContent(hist->GetBin(y, x), sdata[x * (current_entry->scaled[0]-1) + y]); }
+			arr_index = (unsigned int)y * (unsigned int)(current_entry->scaled[1]-1) + (unsigned int)x;
+			if(use_int){ hist->SetBinContent(hist->GetBin(x, y), idata[arr_index]); }
+			else{ hist->SetBinContent(hist->GetBin(x, y), sdata[arr_index]); }
 		}
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
 
 	return hist;
+}
+
+/// Get a drr entry from the vector
+void HisFile::GetEntry(size_t id_){
+	if(id_ < drr_entries.size()){ current_entry = drr_entries.at(id_); }
+	else{ current_entry = NULL; }
 }
 
 /// Load the specified histogram
@@ -506,7 +511,7 @@ size_t HisFile::GetHistogram(int hist_, bool no_copy_/*=false*/){
 	}
 	
 	// Get the requested drr entry
-	get_entry(hist_);
+	GetEntry(hist_);
 	if(!current_entry){ 
 		err_flag = -1;
 		return 0; 
@@ -557,11 +562,11 @@ size_t HisFile::GetNextHistogram(bool no_copy_/*=false*/){
 	return GetHistogram(hists_processed++, no_copy_);
 }
 
-bool HisFile::Load(const char* prefix_){
+bool HisFile::LoadDrr(const char* prefix_, bool open_his_/*=true*/){
 	err_flag = 0; // Reset the error flag
 	if(drr.is_open()){ drr.close(); }
 	
-	// Clear the old drr entries
+	// Clear the old drr drr_entries
 	clear_drr_entries();
 
 	hists_processed = 0;
@@ -589,14 +594,16 @@ bool HisFile::Load(const char* prefix_){
 	}
 	
 	// Open the his file
-	if(his.is_open()){ his.close(); }
-	
-	his.open((filename_prefix + ".his").c_str(), std::ios::binary);
-	
-	is_open = his.is_open() && his.good();
-	if(!is_open){ 
-		err_flag = 3;
-		return false; 
+	if(open_his_){
+		if(his.is_open()){ his.close(); }
+
+		his.open((filename_prefix + ".his").c_str(), std::ios::binary);
+
+		is_open = his.is_open() && his.good();
+		if(!is_open){ 
+			err_flag = 3;
+			return false; 
+		}
 	}
 
 	// Read in the drr header
@@ -605,12 +612,12 @@ bool HisFile::Load(const char* prefix_){
 	for(int i = 0; i < 6; i++){ drr.read((char*)&date[i], 4); }
 	drr.seekg(44, std::ios::cur); // skip the trailing garabage
 	drr.read(description, 40); description[40] = '\0';
-	
-	// Read in all drr entries
+
+	// Read in all drr drr_entries
 	for(int i = 0; i < nHis; i++){
 		drr_entries.push_back(read_entry());
 	}
-	
+
 	// Read in all his IDs
 	int his_id;
 	for(int i = 0; i < nHis; i++){
@@ -655,6 +662,7 @@ void HisFile::PrintEntry(){
 	std::cout << "params: " << current_entry->params[0] << ", " << current_entry->params[1] << ", " << current_entry->params[2] << ", " << current_entry->params[3] << std::endl;
 	std::cout << "raw: " << current_entry->raw[0] << ", " << current_entry->raw[1] << ", " << current_entry->raw[2] << ", " << current_entry->raw[3] << std::endl;
 	std::cout << "scaled: " << current_entry->scaled[0] << ", " << current_entry->scaled[1] << ", " << current_entry->scaled[2] << ", " << current_entry->scaled[3] << std::endl;
+	std::cout << "comp: " << current_entry->comp[0] << ", " << current_entry->comp[1] << ", " << current_entry->comp[2] << ", " << current_entry->comp[3] << std::endl;
 	std::cout << "minc: " << current_entry->minc[0] << ", " << current_entry->minc[1] << ", " << current_entry->minc[2] << ", " << current_entry->minc[3] << std::endl;
 	std::cout << "maxc: " << current_entry->maxc[0] << ", " << current_entry->maxc[1] << ", " << current_entry->maxc[2] << ", " << current_entry->maxc[3] << std::endl;
 	std::cout << "cal: " << current_entry->calcon[0] << ", " << current_entry->calcon[1] << ", " << current_entry->calcon[2] << ", " << current_entry->calcon[3] << std::endl;
@@ -665,16 +673,60 @@ void HisFile::PrintEntry(){
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputHisFile::flush(){
-	if(!writable){ return; }
+	if(debug_mode){ std::cout << "debug: Flushing histogram entries to file.\n"; }
+
+	if(writable){ // Do the filling
+		std::streampos location;
+		for(std::vector<fill_queue*>::iterator iter = fills_waiting.begin(); iter != fills_waiting.end(); iter++){
+			current_entry = (*iter)->entry;
+			
+			// Seek to the specified bin
+			ofile.seekp(current_entry->offset + (*iter)->byte, std::ios::beg); // output offset
+			ofile.seekg(current_entry->offset + (*iter)->byte, std::ios::beg); // input offset
+			
+			short sval;
+			int ival;
+			
+			// Overwrite the bin value
+			if(current_entry->use_int){
+				// Get the original value of the bin
+				ofile.read((char*)&ival, 4);
+				ival += (*iter)->weight;
+				
+				// Set the new value of the bin
+				ofile.write((char*)&ival, 4);
+			}
+			else{
+				// Get the original value of the bin
+				ofile.read((char*)&sval, 2);
+				sval += (*iter)->weight;
+				
+				// Set the new value of the bin
+				ofile.write((char*)&sval, 2);
+			}
+		}
+	}
+	
+	// Delete the drr_entries in the fill_queue vector
+	for(std::vector<fill_queue*>::iterator iter = fills_waiting.begin(); iter != fills_waiting.end(); iter++){
+		delete (*iter);
+	}
+	fills_waiting.clear();
+	
+	flush_count = 0;
 }
 
 OutputHisFile::OutputHisFile(){
 	writable = false;
-	debug_mode = false;
+	finalized = false;
+	existing_file = false;
+	debug_mode = true;
 }
 
 OutputHisFile::OutputHisFile(std::string fname_prefix){
-	debug_mode = false;
+	finalized = false;
+	existing_file = false;
+	debug_mode = true;
 	Open(fname_prefix);
 }
 
@@ -683,12 +735,39 @@ OutputHisFile::~OutputHisFile(){
 }
 
 size_t OutputHisFile::push_back(drr_entry *entry_){
-	if(!entry_ || !writable){ return 0; }
+	if(!entry_){ 
+		if(debug_mode){ std::cout << "debug: OutputHisFile::push_back was passed a NULL pointer!\n"; }
+		return 0; 
+	}
+	else if(!writable || finalized){ 
+		if(debug_mode){ std::cout << "debug: The .drr and .his files have already been finalized and are locked!\n"; }
+		return 0; 
+	}
+	
+	// Search for existing histogram with the same id
+	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+		if((*iter)->hisID == entry_->hisID){ // Found a match in the drr entry list
+			if(debug_mode){ std::cout << "debug: His id = " << entry_->hisID << " is already in the drr entry list!\n"; }
+			
+			/*if(existing_file && !(*iter)->Compare(entry_)){ // The his id is in the list, but the drr entries do not match
+				if(debug_mode){ std::cout << "debug: Input drr entry does not match existing drr entry!\n"; }
+			}*/
+			
+			return false;
+		}
+	}
+
+	hd_size = 1;
+	for(int i = 0; i < entry_->hisDim; ++i){
+		hd_size *= entry_->scaled[i]-1;
+	}
+	
+	hd_size *= entry_->halfWords * 2;
 	
 	// Seek to the end of this histogram file
 	ofile.seekp(0, std::ios::end);
 	entry_->offset = (size_t)ofile.tellp();
-	entries.push_back(entry_);
+	drr_entries.push_back(entry_);
 
 	// Extend the size of the histogram file
 	size_t size = 1;
@@ -697,37 +776,29 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	}
 	size *= (size_t)(entry_->halfWords * 2);
 	
-	char *dummy = new char[size];
+	char dummy = 0x0;
+
+	if(debug_mode){	std::cout << "debug: Extending .his file by " << size << " bytes for his ID = " << entry_->hisID << " i.e. '" << entry_->title << "'\n"; }
 	
-	for(size_t i = 0; i < size; i++){ dummy[i] = 0x0; }
-	
-	if(debug_mode){	std::cout << " Extending .his file by " << size << " bytes for his ID = " << entry_->hisID << std::endl; }
-	
-	ofile.write(dummy, size);
-	
-	delete[] dummy;
+	for(size_t i = 0; i < size; i++){ ofile.write(&dummy, 1); }
 	
 	return size;
 }
 
-bool OutputHisFile::Open(std::string fname_prefix){
-	if(writable){ return false; }
-	fname = fname_prefix;
-	ofile.open((fname+".his").c_str(), std::ios::binary);
-	flush_wait = 10000;
-	return (writable = ofile.good());
-}
+bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &descrip_/*="RootPixieScan .drr file"*/){
+	if(!writable || finalized){ 
+		if(debug_mode){ std::cout << "debug: The .drr and .his files have already been finalized and are locked!\n"; }
+		return false; 
+	}
 
-bool OutputHisFile::Close(bool make_list_file_/*=false*/, const std::string &descrip_/*="RootPixieScan .drr file"*/){
-	bool retval = true;
-
-	flush();
+	bool retval = false;
 
 	set_char_array(initial, "HHIRFDIR0001", 13);
 	set_char_array(description, descrip_, 41);
 	
-	nHis = entries.size(); 
-	nHWords = (128 * (1 + entries.size()) + entries.size() * 4)/2;
+	if(debug_mode){ std::cout << "debug: NHIS = " << drr_entries.size() << std::endl; }
+	nHis = drr_entries.size(); 
+	nHWords = (128 * (1 + drr_entries.size()) + drr_entries.size() * 4)/2;
 	
 	time_t rawtime;
 	struct tm * timeinfo;
@@ -757,7 +828,8 @@ bool OutputHisFile::Close(bool make_list_file_/*=false*/, const std::string &des
 		drr_file.write(description, 40);
 
 		// Write the drr entries
-		for(std::vector<drr_entry*>::iterator iter = entries.begin(); iter != entries.end(); iter++){
+		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+			if(debug_mode){ std::cout << "debug: Writing .drr entry for his id = " << (*iter)->hisID << std::endl; }
 			drr_file.write((char*)&(*iter)->hisDim, 2);
 			drr_file.write((char*)&(*iter)->halfWords, 2);
 			drr_file.write((char*)&(*iter)->params, 8);
@@ -773,19 +845,86 @@ bool OutputHisFile::Close(bool make_list_file_/*=false*/, const std::string &des
 		}
 		
 		// Write the histogram IDs
-		for(std::vector<drr_entry*>::iterator iter = entries.begin(); iter != entries.end(); iter++){
+		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 			his_id = (*iter)->hisID;
 			drr_file.write((char*)&his_id, 4);
-			delete (*iter);
 		}
 		
-		entries.clear();
+		finalized = true;
+		retval = true;
 	}
-	else{ retval = false; }
+	
+	drr_file.close();
+	
+	if(!retval){
+		if(debug_mode){ std::cout << "debug: Failed to open the .drr file for writing!\n"; }
+		return false;
+	}
+	return true;
+}
+
+bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
+	if(!writable){ return false; }
+
+	// Search for the specified histogram in the .drr entry list
+	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+		if((*iter)->hisID == hisID_){
+			double dx, dy;
+			int x_comp, y_comp;
+			int binx=0, biny=0;
+			x_comp = (short)(x_ / (*iter)->comp[0]);
+			
+			// Check that x_ and y_ are within their respective axes
+			if(x_comp < (int)(*iter)->minc[0] || x_comp > (int)(*iter)->maxc[0]){ continue; }
+			dx = ((*iter)->maxc[0] - (*iter)->minc[0])/((*iter)->scaled[0]-1);
+			
+			if((*iter)->hisDim > 1){
+				y_comp = (short)(y_ / (*iter)->comp[1]);
+				if(y_comp < (int)(*iter)->minc[1] || y_comp > (int)(*iter)->maxc[1]){ continue; }
+				else{
+					dy = ((*iter)->maxc[0] - (*iter)->minc[0])/((*iter)->scaled[0]-1); 
+					biny = (y_/dy);
+				}
+			}
+		
+			// Push this fill into the queue
+			fill_queue *fill = new fill_queue((*iter), binx * ((*iter)->scaled[0]-1) + biny, weight_);
+			fills_waiting.push_back(fill);
+	
+			if(++flush_count >= flush_wait){ flush(); }
+			return true;
+		}
+	}
+	
+	//if(debug_mode){ std::cout << "debug: Failed to find his id = " << hisID_ << " in the drr entry list!\n"; }
+	
+	return false;
+}
+
+bool OutputHisFile::Open(std::string fname_prefix){
+	if(writable){ 
+		if(debug_mode){ std::cout << "debug: The .his file is already open!\n"; }
+		return false; 
+	}
+	
+	fname = fname_prefix;
+	existing_file = false;
+	
+	//touch.close();
+	ofile.open((fname+".his").c_str(), std::ios::out | std::ios::in | std::ios::trunc | std::ios::binary);
+	flush_wait = 10000;
+	flush_count = 0;
+	return (writable = ofile.good());
+}
+
+void OutputHisFile::Close(){
+	flush();
+
+	if(!finalized){ Finalize(); }
+
+	// Clear the .drr entries in the entries vector
+	clear_drr_entries();
 	
 	writable = false;
-	drr_file.close();
 	ofile.close();
-	
-	return retval;
 }

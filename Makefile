@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/ND01/PixieSuite
+PIXIE_SUITE_DIR = /home/pixie16/cthorns//PixieSuitePLD
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -22,7 +22,7 @@ NEW_READOUT = 1
 
 # Flag for turning damm on or off (must be set for damm)
 # Switching this flag may require a full recompilation (make clean && make)
-USE_HHIRF = 0
+USE_HHIRF = 1
 
 # Flag for verbosity
 VERBOSE = 0
@@ -34,11 +34,7 @@ CC = g++
 LINKER =
 
 ifeq ($(NEW_READOUT), 1)
-	ifeq ($(USE_HHIRF), 1)
-		LINKER = $(FC)
-	else
-		LINKER = $(CC)
-	endif
+	LINKER = $(CC)
 else
 	LINKER = $(FC)
 endif
@@ -50,17 +46,13 @@ LDFLAGS = `root-config --glibs`
 ROOT_INC = `root-config --incdir`
 
 ifeq ($(NEW_READOUT), 1)
-	ifeq ($(USE_HHIRF), 1)
-		LDLIBS += -lgfortran
-	endif
 	LDLIBS += -lncurses
 else
 	LDLIBS += -lgfortran
 endif
 
-ifeq ($(USE_HHIRF), 1)
-	CFLAGS += -DUSE_HHIRF
-endif
+# NEED TO REMOVE!!!
+CFLAGS += -DUSE_HHIRF
 
 ifeq ($(VERBOSE), 1)
 	CFLAGS += -DVERBOSE
@@ -95,10 +87,12 @@ HEX_READ = $(TOOL_DIR)/hexRead
 HEX_READ_SRC = $(TOOL_SRC_DIR)/HexRead.cpp
 HIS_2_ROOT = $(TOOL_DIR)/his2root
 HIS_2_ROOT_SRC = $(TOOL_SRC_DIR)/his2root.cpp
+HIS_READER = $(TOOL_DIR)/hisReader
+HIS_READER_SRC = $(TOOL_SRC_DIR)/hisReader.cpp
 RAW_2_ROOT = $(TOOL_DIR)/raw2root
 RAW_2_ROOT_SRC = $(TOOL_SRC_DIR)/raw2root.cpp
-READER = $(TOOL_DIR)/ldfReader
-READER_SRC = $(TOOL_SRC_DIR)/ldfReader.cpp
+LDF_READER = $(TOOL_DIR)/ldfReader
+LDF_READER_SRC = $(TOOL_SRC_DIR)/ldfReader.cpp
 RAW_VIEWER = $(TOOL_DIR)/rawViewer
 RAW_VIEWER_SRC = $(TOOL_SRC_DIR)/rawViewer.cpp
 PULSE_VIEWER = $(TOOL_DIR)/pulseViewer
@@ -116,9 +110,9 @@ FORTRAN =
 
 # C++ CORE
 SOURCES = Places.cpp ReadBuffData.RevD.cpp Trace.cpp EventProcessor.cpp MapFile.cpp TraceExtractor.cpp ChanEvent.cpp \
-		  ChanIdentifier.cpp Correlator.cpp pugixml.cpp StatsData.cpp SsdProcessor.cpp \
-		  TreeCorrelator.cpp DetectorDriver.cpp ParseXml.cpp DetectorLibrary.cpp RandomPool.cpp \
-		  DetectorSummary.cpp RawEvent.cpp TimingInformation.cpp PlaceBuilder.cpp
+		  ChanIdentifier.cpp Correlator.cpp pugixml.cpp StatsData.cpp SsdProcessor.cpp TreeCorrelator.cpp \
+		  DetectorDriver.cpp ParseXml.cpp DetectorLibrary.cpp RandomPool.cpp DetectorSummary.cpp RawEvent.cpp \
+		   TimingInformation.cpp PlaceBuilder.cpp HisFile.cpp Plots.cpp PlotsRegister.cpp
 
 ifeq ($(NEW_READOUT), 1)
 	SOURCES += NewPixieStd.cpp
@@ -126,11 +120,6 @@ else
 	FORTRAN += messlog.f mildatim.f scanor.f
 	SOURCES += PixieStd.cpp Initialize.cpp TracePlotter.cpp TraceFilterer.cpp
 	EXECUTABLE = OldPixieLDF	
-endif
-
-ifeq ($(USE_HHIRF), 1)
-	FORTRAN += set2cc.f
-	SOURCES += Plots.cpp PlotsRegister.cpp
 endif
 
 # ANALYZERS
@@ -193,21 +182,11 @@ SFLAGS = $(addprefix -l,$(DICT_SOURCE))
 # Determine what to build
 TO_BUILD = $(OBJECTS)
 ifeq ($(NEW_READOUT), 1)
-	ifeq ($(USE_HHIRF), 1)
-		# New scan code w/ damm
-		TO_BUILD += $(FORTOBJ) $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ) $(LIBS)
-	else
-		# New scan code w/o damm
-		TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ)
-	endif
+	# New scan code
+	TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ)
 else
-	ifeq ($(USE_HHIRF), 1)
-		# Old scan code w/ damm
-		TO_BUILD += $(FORTOBJ) $(LIBS)
-	else
-		# Old scan code w/o damm
-		TO_BUILD += $(FORTOBJ) $(LIBS)
-	endif
+	# Old scan code
+	TO_BUILD += $(FORTOBJ) $(LIBS)
 endif
 
 #####################################################################
@@ -218,7 +197,7 @@ all: directory $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
 dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
 #	Create root dictionary objects
 
-tools: $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+tools: $(HEX_READ) $(HIS_2_ROOT) $(HIS_READER) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
 
 .PHONY: clean tidy directory
 
@@ -324,13 +303,17 @@ $(HIS_2_ROOT): $(HIS_2_ROOT_SRC) $(HIS_FILE_OBJ)
 #	Make the his2root tool
 	$(CC) -O3 -Wall $(HIS_2_ROOT_SRC) $(HIS_FILE_OBJ) -I$(INCLUDE_DIR) `root-config --cflags --glibs` -o $(HIS_2_ROOT)
 
+$(HIS_READER): $(HIS_READER_SRC) $(HIS_FILE_OBJ)
+#	Make the hisReader tool
+	$(CC) -O3 -Wall $(HIS_READER_SRC) $(HIS_FILE_OBJ) -I$(INCLUDE_DIR) `root-config --cflags --glibs` -o $(HIS_READER)
+
 $(RAW_2_ROOT): $(RAW_2_ROOT_SRC)
 #	Make the raw2root tool
 	$(CC) -O3 -Wall $(RAW_2_ROOT_SRC) `root-config --cflags --glibs` -o $(RAW_2_ROOT)
 
-$(READER): $(READER_SRC) $(HRIBF_SOURCE_OBJ)
+$(LDF_READER): $(LDF_READER_SRC) $(HRIBF_SOURCE_OBJ)
 #	Make the ldfReader tool
-	$(CC) -O3 -Wall $(READER_SRC) -I$(POLL_INC_DIR) $(HRIBF_SOURCE_OBJ) -o $(READER)
+	$(CC) -O3 -Wall $(LDF_READER_SRC) -I$(POLL_INC_DIR) $(HRIBF_SOURCE_OBJ) -o $(LDF_READER)
 
 $(RAW_VIEWER): $(RAW_VIEWER_SRC)
 #	Make the rawViewer tool
@@ -347,8 +330,9 @@ install: tools
 	@echo "Installing tools to "$(INSTALL_DIR)
 	@if [ ! -e $(INSTALL_DIR)/hexRead ]; then ln -s $(HEX_READ) $(INSTALL_DIR)/hexRead; fi
 	@if [ ! -e $(INSTALL_DIR)/his2root ]; then ln -s $(HIS_2_ROOT) $(INSTALL_DIR)/his2root; fi
+	@if [ ! -e $(INSTALL_DIR)/hisReader ]; then ln -s $(HIS_READER) $(INSTALL_DIR)/hisReader; fi
 	@if [ ! -e $(INSTALL_DIR)/raw2root ]; then ln -s $(RAW_2_ROOT) $(INSTALL_DIR)/raw2root; fi
-	@if [ ! -e $(INSTALL_DIR)/ldfReader ]; then ln -s $(READER) $(INSTALL_DIR)/ldfReader; fi
+	@if [ ! -e $(INSTALL_DIR)/ldfReader ]; then ln -s $(LDF_READER) $(INSTALL_DIR)/ldfReader; fi
 #	@if [ ! -e $(INSTALL_DIR)/rawViewer ]; then ln -s $(RAW_VIEWER) $(INSTALL_DIR)/rawViewer; fi
 	@if [ ! -e $(INSTALL_DIR)/pulseViewer ]; then ln -s $(PULSE_VIEWER) $(INSTALL_DIR)/pulseViewer; fi
 
@@ -372,4 +356,4 @@ clean_dict:
 	
 clean_tools:
 	@echo "Removing tools..."
-	@rm -f $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+	@rm -f $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)

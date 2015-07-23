@@ -7,8 +7,6 @@
 class TH1I;
 class TH2I;
 
-//#ifdef USE_DAMM_OUTPUT
-
 /// Create a DAMM 1D histogram
 void hd1d_(int dammId, int nHalfWords, int rawlen, int histlen, int min, int max, const char *title, unsigned int length);
 
@@ -24,9 +22,7 @@ void count1cc_(const int &dammID, const int &x, const int &y);
 /// Unknown
 void set2cc_(const int &dammID, const int &x, const int &y, const int &z);
 
-//#endif
-
-// drr entry information
+/// drr entry information
 struct drr_entry{
 	int hisID; /// ID of the histogram
 	short hisDim; /// Number of dimensions
@@ -34,6 +30,7 @@ struct drr_entry{
 	short params[4]; /// Parameter id numbers, for each dimension (up to 4)
 	short raw[4]; /// Raw length
 	short scaled[4]; /// Scaled length
+	short comp[4]; /// The compression level of the histogram
 	short minc[4]; /// Min channel number
 	short maxc[4]; /// Max channel number
 	int offset; /// Location in his file (in 2-bytes units)
@@ -41,6 +38,7 @@ struct drr_entry{
 	char ylabel[13]; /// Y axis label
 	float calcon[4]; /// Calibration for X axis
 	char title[41]; /// Title
+	bool use_int; /// True if the size of a cell is 4 bytes
 
 	/// Default constructor
 	drr_entry(){}
@@ -51,6 +49,16 @@ struct drr_entry{
 	/// Constructor for 2d histogram
 	drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
 			  short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_);
+};
+
+struct fill_queue{
+	drr_entry *entry; /// .drr entry of the histogram to be filled
+	int byte; /// Offset of bin (in bytes)
+	int weight; /// Weight of fill
+	
+	fill_queue(drr_entry *entry_, int bin_, int w_){
+		entry = entry_; byte = bin_ * entry->halfWords * 2; weight = w_;
+	}
 };
 
 class HisFile{
@@ -81,9 +89,6 @@ class HisFile{
 	/// Read an entry from the drr file
 	drr_entry *read_entry();
 	
-	/// Get a drr entry from the vector
-	void get_entry(size_t id_);
-	
 	/// Set the size of the histogram and allocate memory for data storage
 	void set_hist_size();
 	
@@ -108,6 +113,9 @@ class HisFile{
 	
 	/// Return true if both the drr and his files are open (also requires is_good == true)
 	bool IsOpen(){ return is_open; }
+
+	/// Return a pointer to the current .drr file entry
+	drr_entry *GetDrrEntry(){ return current_entry; }
 
 	/// Return the date formatted as mmm dd, yyyy HH:MM
 	std::string GetDate();
@@ -160,15 +168,20 @@ class HisFile{
 	/// Get a pointer to a root TH2I
 	TH2I *GetTH2(int hist_=-1);
 
+	/// Get a drr entry from the vector
+	void GetEntry(size_t id_);
+
 	/// Load the specified histogram
 	size_t GetHistogram(int hist_, bool no_copy_=false);
 	
 	/// Load a specified histogram by ID
 	size_t GetHistogramByID(int hist_id_, bool no_copy_=false);
 	
+	/// Load the next histogram specified in the .drr file
 	size_t GetNextHistogram(bool no_copy_=false);
 	
-	bool Load(const char* prefix_);
+	/// Load drr entries from the .drr file
+	bool LoadDrr(const char* prefix_, bool open_his_=true);
 
 	void PrintHeader();
 	
@@ -177,12 +190,14 @@ class HisFile{
 
 class OutputHisFile : public HisFile{
   private:
-	std::ofstream ofile; /// The output .his file
+	std::fstream ofile; /// The output .his file stream
 	std::string fname; /// The output filename prefix
 	bool writable; /// True if the output .his file is open and writable
+	bool finalized; /// True if the .his and .drr files are locked
+	bool existing_file; /// True if the .his file was a previously existing file
 	unsigned int flush_wait; /// Number of fills to wait between flushes
 	unsigned int flush_count; /// Number of fills since last flush
-	std::vector<drr_entry*> entries; /// Vector of all declared histograms
+	std::vector<fill_queue*> fills_waiting; /// Vector containing list of histograms to be filled
 
 	/// Flush histogram fills to file
 	void flush();
@@ -208,17 +223,21 @@ class OutputHisFile : public HisFile{
 	 */
 	size_t push_back(drr_entry *entry_);
 	
+	/* Lock the .his and .drr files from being modified. This prevents the user from
+	 * adding any more histograms to the .drr entry list.
+	 */
+	bool Finalize(bool make_list_file_=false, const std::string &descrip_="RootPixieScan .drr file");
+	
+	/// Increment a histogram at (x, y) by weight_
+	bool Fill(int hisID_, int x_, int y_, int weight_=1);
+	
 	/// Open a new .his file
 	bool Open(std::string fname_prefix);
 	
 	/// Close the histogram file and write the drr file
-	bool Close(bool make_list_file_=false, const std::string &descrip_="RootPixieScan .drr file");
+	void Close();
 };
 
-//#ifdef USE_DAMM_OUTPUT
-
-extern OutputHisFile output_his; /// The global .his file handler
-
-//#endif
+extern OutputHisFile *output_his; /// The global .his file handler
 
 #endif

@@ -62,7 +62,7 @@ bool FittingAnalyzer::InitDamm(){
 		return false;
 	}
 	
-	DeclareHistogram2D(DD_TRACES, SB, S7, "traces data");
+	/*DeclareHistogram2D(DD_TRACES, SB, S7, "traces data");
 	DeclareHistogram2D(DD_AMP, SE, SC, "Fit Amplitude");
 	DeclareHistogram1D(D_PHASE, SE, "Fit X0");
 	DeclareHistogram1D(D_CHISQPERDOF, SE, "Chi^2/dof");
@@ -71,7 +71,7 @@ bool FittingAnalyzer::InitDamm(){
 	DeclareHistogram2D(DD_MAXVALPOS, S5, SC, "Max Val vs Pos");
 	DeclareHistogram2D(DD_QDCMASK, SE, SC, "Max vs Reduced Chi^2");
 	DeclareHistogram2D(DD_MAXVSTHRESH, S7, SC, "Max vs Num Bins Tresh");
-	DeclareHistogram1D(D_SIGMA, SE, "Standard Dev Baseline");
+	DeclareHistogram1D(D_SIGMA, SE, "Standard Dev Baseline");*/
 	
 	use_damm = true;
 

@@ -65,8 +65,8 @@ MapFile::MapFile(const string &filename /*="map2.txt"*/)
 
 		TokenizeString(string(line), tokenList);
 		if (tokenList.size() < 3) {
-			cerr << "Too few tokens in map file line: " << endl;
-			cerr << line << endl;
+			cout << "Too few tokens in map file line: " << endl;
+			cout << line << endl;
 			continue;
 		}
 		// separate lines based on whether or not they contain wildcards
@@ -195,9 +195,9 @@ bool MapFile::ProcessTokenList(const vector<string> &tokenList) const
 			if ( modChan->HasValue(*modIt, *chanIt) ) {
 				// if this is a wildcard line, just continue
 				if (HasWildcard(tokenList.at(0)) || HasWildcard(tokenList.at(1))) { continue; }
-				cerr << "Identifier for " << type << " in module " << *modIt;
-				cerr << " : channel " << *chanIt << " is initialized more than once in the map file";
-				cerr << endl;
+				cout << "Identifier for " << type << " in module " << *modIt;
+				cout << " : channel " << *chanIt << " is initialized more than once in the map file";
+				cout << endl;
 
 				//return false;
 			}
