@@ -108,7 +108,7 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, 
 	scaled[0] = Xscaled_; scaled[1] = Yscaled_; scaled[2] = 0; scaled[3] = 0;
 	comp[0] = Xraw_/Xscaled_; comp[1] = Yraw_/Yscaled_;  comp[2] = 0; comp[3] = 0;
 	minc[0] = Xmin_; minc[1] = Ymin_; minc[2] = 0; minc[3] = 0;
-	maxc[0] = Xmax_; maxc[1] = Xmax_; maxc[2] = 0; maxc[3] = 0;
+	maxc[0] = Xmax_; maxc[1] = Ymax_; maxc[2] = 0; maxc[3] = 0;
 	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
 	
 	// Set label and titles
@@ -458,7 +458,9 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 	}
 	
 	bool use_int;
+	size_t num_bins = hd_size;
 	if(cell_size == 2){ // Cell size is a short int
+		num_bins = num_bins/2;
 		use_int = false;
 		if(hd_size % 2 != 0){ 
 			err_flag = -5; 
@@ -466,6 +468,7 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 		}
 	}
 	else if(cell_size == 4){ // Cell size is a standard int
+		num_bins = num_bins/4;
 		use_int = true;
 		if(hd_size % 4 != 0){ 
 			err_flag = -6; 
@@ -487,7 +490,7 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 	// Fill the histogram bins
 	unsigned short sval;
 	unsigned int ival;
-	for(short x = 0; x < current_entry->scaled[0]-1; x++){
+	/*for(size_t x = 0; x < current_entry->scaled[0]-1; x++){
 		for(short y = 0; y < current_entry->scaled[1]-1; y++){
 			if(use_int){ 
 				memcpy((char*)&ival, &hdata[y*current_entry->scaled[1]-1+x], 4);
@@ -496,6 +499,16 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 				memcpy((char*)&sval, &hdata[y*current_entry->scaled[1]-1+x], 2);
 				hist->SetBinContent(hist->GetBin(x, y), sval); 
 			}
+		}
+	}*/
+	for(size_t x = 0; x < num_bins; x++){
+		if(use_int){ 
+			memcpy((char*)&ival, &hdata[4*x], 4);
+			hist->SetBinContent(x+1, ival); 
+		}
+		else{ 
+			memcpy((char*)&sval, &hdata[2*x], 2);
+			hist->SetBinContent(x+1, sval); 
 		}
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
@@ -923,7 +936,7 @@ bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
 			// Push this fill into the queue
 			fill_queue *fill;
 			if((*iter)->hisDim == 1){ fill = new fill_queue((*iter), x_, weight_); }
-			else{ fill = new fill_queue((*iter), y_ * ((*iter)->scaled[1]-1) + x_, weight_); }
+			else{ fill = new fill_queue((*iter), x_ * ((*iter)->scaled[0]-1) + x_, weight_); }
 			fills_waiting.push_back(fill);
 	
 			if(++flush_count >= flush_wait){ flush(); }
