@@ -33,6 +33,7 @@ hexRead
 his2root
 raw2root
 ldfReader
+hisReader
 rawViewer
 pulseViewer
 

@@ -53,7 +53,8 @@ void help(){
 	std::cout << "   -r, --raw          Display raw buffer words (hidden by default)\n";
 	std::cout << "   -c, --convert      Attempt to convert words to Ascii characters\n";
 	std::cout << "   -s, --search <int> Search for an integer in the stream\n";
-	std::cout << "   -z, --zero         Suppress zero output\n\n";
+	std::cout << "   -z, --zero         Suppress zero output\n";
+	std::cout << "   -w, --word <int>   Specify the file word size\n\n";
 	std::cout << "  Available Buffer Types:\n";
 	std::cout << "   \"HEAD\" 1145128264\n";
 	std::cout << "   \"DATA\" 1096040772\n"; // Physics data buffer
@@ -158,22 +159,23 @@ bool get_opt(int argc_, char **argv_, CLoption *options, int num_valid_opt_, int
 	return true;
 }
 
-std::string convert_to_hex(int input_, bool to_text_=false){
-    std::bitset<32> set(input_);  
+template <typename T>
+std::string convert_to_hex(T input_, bool to_text_=false){
+    std::bitset<sizeof(T)*8> set(input_);  
     std::stringstream stream;
     if(!to_text_){ stream << std::hex << std::uppercase << set.to_ulong(); }
     else{ stream << std::uppercase << set.to_ulong(); }
     std::string output = stream.str();
-    if(!to_text_ && output.size() < 8){
+    if(!to_text_ && output.size() < sizeof(T)*2){
     	std::string temp = "0x";
-    	for(unsigned int i = output.size(); i < 8; i++){
+    	for(unsigned int i = output.size(); i < sizeof(T)*2; i++){
     		temp += '0';
     	}
     	return temp + output;
     }
-    else if(to_text_ && output.size() < 10){
+    else if(to_text_ && output.size() < (sizeof(T)+1)*2){
     	std::string temp = "";
-    	for(unsigned int i = output.size(); i < 10; i++){
+    	for(unsigned int i = output.size(); i < (sizeof(T)+1)*2; i++){
     		temp += ' ';
     	}
     	return temp + output;
@@ -183,66 +185,27 @@ std::string convert_to_hex(int input_, bool to_text_=false){
     return output;
 }
 
-int main(int argc, char *argv[]){
-	if(argc < 2){
-		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
-		help();
-		return 1;
-	}
-	
-	CLoption valid_opt[5];
-	valid_opt[0].Set("type", true, false);
-	valid_opt[1].Set("raw", false, false);
-	valid_opt[2].Set("convert", false, false);
-	valid_opt[3].Set("search", true, false);
-	valid_opt[4].Set("zero", false, false);
-	if(!get_opt(argc, argv, valid_opt, 5, 2)){ return 1; }
-	
-	std::ifstream input(argv[1], std::ios::binary);
-	if(!input.is_open()){
-		std::cout << " Error: failed to open input file\n";
-		return 1;
-	}
-
-	int buffer_select = 0;
-	int search_int = 0;
 	bool show_raw = false;
 	bool convert = false;
 	bool show_zero = true;
 	bool do_search = false;
-	if(valid_opt[0].is_active){
-		buffer_select = atoi(valid_opt[0].value.c_str());
-		if(!(buffer_select == HEAD || buffer_select == DATA || buffer_select == SCAL || buffer_select == DEAD || buffer_select == DIR || buffer_select == PAC || buffer_select == ENDFILE)){
-			std::cout << " Error: " << convert_to_hex(buffer_select) << " is not a valid buffer\n";
-			buffer_select = 0;
-		}
-		else{ std::cout << " Displaying only buffer type " << convert_to_hex(buffer_select) << "\n"; }
-	}
-	if(valid_opt[1].is_active){ show_raw = true; }
-	if(valid_opt[2].is_active){ convert = true; }
-	if(valid_opt[3].is_active){ 
-		do_search = true; 
-		search_int = atoi(valid_opt[3].value.c_str());
-		std::cout << " Searching for " << search_int << " (" << convert_to_hex(search_int) << ")\n";
-	}
-	if(valid_opt[4].is_active){ show_zero = false; }
-	show_zero = true;
 
-	int word;
+template <typename T>
+void go(std::ifstream *input_, unsigned int &buff_count, unsigned int &good_buff_count, unsigned int &total_count, 
+		bool show_raw, bool convert, bool show_zero, bool do_search, T search_int, T buffer_select){
 	bool good_buffer;
+	int show_next = 0;
 	unsigned int count = 0;
 	unsigned int word_count = 0;
-	unsigned int total_count = 0;
-	unsigned int buff_count = 0;
-	unsigned int good_buff_count = 0;
-	
+
+	T word;
+
 	if(buffer_select != 0){ good_buffer = false; }
 	else{ good_buffer = true; }
-	
-	int show_next = 0;
+
 	while(true){
-		input.read((char*)&word, 4);
-		if(input.eof()){ 
+		input_->read((char*)&word, sizeof(T));
+		if(input_->eof()){ 
 			if(buff_count > 1){
 				std::cout << " Buffer Size: " << word_count << " words\n";
 				std::cout << "============================================================================================================================\n";
@@ -334,10 +297,78 @@ int main(int argc, char *argv[]){
 			if(convert){ std::cout << convert_to_hex(word, true) << "  "; count++; }
 		}
 	}
+}
+
+int main(int argc, char *argv[]){
+	if(argc < 2){
+		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
+		help();
+		return 1;
+	}
+	
+	CLoption valid_opt[6];
+	valid_opt[0].Set("type", true, false);
+	valid_opt[1].Set("raw", false, false);
+	valid_opt[2].Set("convert", false, false);
+	valid_opt[3].Set("search", true, false);
+	valid_opt[4].Set("zero", false, false);
+	valid_opt[5].Set("word", true, false);
+	if(!get_opt(argc, argv, valid_opt, 6, 2)){ return 1; }
+	
+	std::ifstream input(argv[1], std::ios::binary);
+	if(!input.is_open()){
+		std::cout << " Error: failed to open input file\n";
+		return 1;
+	}
+
+	int buffer_select = 0;
+	int search_int = 0;
+	int word_size = 4;
+	bool show_raw = false;
+	bool convert = false;
+	bool show_zero = true;
+	bool do_search = false;
+	if(valid_opt[0].is_active){
+		buffer_select = atoi(valid_opt[0].value.c_str());
+		if(!(buffer_select == HEAD || buffer_select == DATA || buffer_select == SCAL || buffer_select == DEAD || buffer_select == DIR || buffer_select == PAC || buffer_select == ENDFILE)){
+			std::cout << " Error: " << convert_to_hex(buffer_select) << " is not a valid buffer\n";
+			buffer_select = 0;
+		}
+		else{ std::cout << " Displaying only buffer type " << convert_to_hex(buffer_select) << "\n"; }
+	}
+	if(valid_opt[1].is_active){ show_raw = true; }
+	if(valid_opt[2].is_active){ convert = true; }
+	if(valid_opt[3].is_active){ 
+		do_search = true; 
+		search_int = atoi(valid_opt[3].value.c_str());
+		std::cout << " Searching for " << search_int << " (" << convert_to_hex(search_int) << ")\n";
+	}
+	if(valid_opt[4].is_active){ show_zero = false; }
+	if(valid_opt[5].is_active){
+		word_size = atoi(valid_opt[5].value.c_str());
+		if(word_size != 1 && word_size != 2 && word_size != 4 && word_size != 8){
+			std::cout << " Error: Invalid word size (" << word_size << " bytes)!\n";
+			return 1;
+		}
+		std::cout << " Using word size of " << word_size << " bytes\n";
+	}
+	show_zero = true;
+
+	unsigned int good_buff_count;
+	unsigned int total_count;
+	unsigned int buff_count;
+
+	if(word_size == 1){ go<unsigned char>(&input, buff_count, good_buff_count, total_count, show_raw, convert, show_zero, do_search, search_int, buffer_select); }
+	else if(word_size == 2){ go<unsigned short>(&input, buff_count, good_buff_count, total_count, show_raw, convert, show_zero, do_search, search_int, buffer_select); }
+	else if(word_size == 4){ go<unsigned int>(&input, buff_count, good_buff_count, total_count, show_raw, convert, show_zero, do_search, search_int, buffer_select); }
+	else{ go<unsigned long long>(&input, buff_count, good_buff_count, total_count, show_raw, convert, show_zero, do_search, search_int, buffer_select); }
+
 	input.close();
 	
 	if(!do_search){
-		std::cout << "\n\n Read " << total_count << " 4 byte words (" << total_count*4 << " bytes)\n";
+		std::cout << "\n\n Read " << total_count << " " << word_size << " byte words (";
+		total_count *= word_size;
+		std::cout << total_count << " bytes)\n";
 		std::cout << "  Found " << buff_count << " total buffers\n";
 		if(buffer_select != 0){ std::cout << "  Found " << good_buff_count << " " << convert_to_hex(buffer_select) << " buffers\n"; }
 	}

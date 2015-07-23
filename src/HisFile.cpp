@@ -9,7 +9,6 @@
 #include "TH2I.h"
 
 #include "HisFile.h"
-#include "PlotsRegister.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Support Functions
@@ -384,10 +383,9 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 	}
 	
 	bool use_int;
-	short *sdata = NULL;
-	int *idata = NULL;
+	size_t num_bins = hd_size;
 	if(cell_size == 2){ // Cell size is a short int
-		sdata = (short*)hdata;
+		num_bins = num_bins/2;
 		use_int = false;
 		if(hd_size % 2 != 0){ 
 			err_flag = -5; 
@@ -395,7 +393,7 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 		}
 	}
 	else if(cell_size == 4){ // Cell size is a standard int
-		idata = (int*)hdata;
+		num_bins = num_bins/4;
 		use_int = true;
 		if(hd_size % 4 != 0){ 
 			err_flag = -6; 
@@ -411,12 +409,20 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 	stream << "d" << current_entry->hisID;
 
 	TH1I *hist = new TH1I(stream.str().c_str(), rstrip(current_entry->title).c_str(), 
-						  current_entry->scaled[0]-1, (double)current_entry->minc[0], (double)current_entry->maxc[0]);
+						  num_bins, (double)current_entry->minc[0], (double)current_entry->maxc[0]);
 
 	// Fill the histogram bins
-	for(short x = 0; x < current_entry->scaled[0]-1; x++){
-		if(use_int){ hist->SetBinContent(x+1, idata[x]); }
-		else{ hist->SetBinContent(x+1, sdata[x]); }
+	unsigned short sval;
+	unsigned int ival;
+	for(size_t x = 0; x < num_bins; x++){
+		if(use_int){ 
+			memcpy((char*)&ival, &hdata[4*x], 4);
+			hist->SetBinContent(x+1, ival); 
+		}
+		else{ 
+			memcpy((char*)&sval, &hdata[2*x], 2);
+			hist->SetBinContent(x+1, sval); 
+		}
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
 
@@ -452,10 +458,7 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 	}
 	
 	bool use_int;
-	short *sdata = NULL;
-	int *idata = NULL;
 	if(cell_size == 2){ // Cell size is a short int
-		sdata = (short*)hdata;
 		use_int = false;
 		if(hd_size % 2 != 0){ 
 			err_flag = -5; 
@@ -463,7 +466,6 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 		}
 	}
 	else if(cell_size == 4){ // Cell size is a standard int
-		idata = (int*)hdata;
 		use_int = true;
 		if(hd_size % 4 != 0){ 
 			err_flag = -6; 
@@ -483,12 +485,17 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 						  current_entry->scaled[1]-1, (double)current_entry->minc[1], (double)current_entry->maxc[1]);
 
 	// Fill the histogram bins
-	unsigned int arr_index;
+	unsigned short sval;
+	unsigned int ival;
 	for(short x = 0; x < current_entry->scaled[0]-1; x++){
 		for(short y = 0; y < current_entry->scaled[1]-1; y++){
-			arr_index = (unsigned int)y * (unsigned int)(current_entry->scaled[1]-1) + (unsigned int)x;
-			if(use_int){ hist->SetBinContent(hist->GetBin(x, y), idata[arr_index]); }
-			else{ hist->SetBinContent(hist->GetBin(x, y), sdata[arr_index]); }
+			if(use_int){ 
+				memcpy((char*)&ival, &hdata[y*current_entry->scaled[1]-1+x], 4);
+				hist->SetBinContent(hist->GetBin(x, y), ival); }
+			else{ 
+				memcpy((char*)&sval, &hdata[y*current_entry->scaled[1]-1+x], 2);
+				hist->SetBinContent(hist->GetBin(x, y), sval); 
+			}
 		}
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
@@ -681,11 +688,10 @@ void OutputHisFile::flush(){
 			current_entry = (*iter)->entry;
 			
 			// Seek to the specified bin
-			ofile.seekp(current_entry->offset + (*iter)->byte, std::ios::beg); // output offset
-			ofile.seekg(current_entry->offset + (*iter)->byte, std::ios::beg); // input offset
+			ofile.seekg(current_entry->offset*2 + (*iter)->byte, std::ios::beg); // input offset
 			
-			short sval;
-			int ival;
+			unsigned short sval = 0;
+			unsigned int ival = 0;
 			
 			// Overwrite the bin value
 			if(current_entry->use_int){
@@ -694,14 +700,16 @@ void OutputHisFile::flush(){
 				ival += (*iter)->weight;
 				
 				// Set the new value of the bin
+				ofile.seekp(current_entry->offset*2 + (*iter)->byte, std::ios::beg); // output offset
 				ofile.write((char*)&ival, 4);
 			}
 			else{
 				// Get the original value of the bin
 				ofile.read((char*)&sval, 2);
-				sval += (*iter)->weight;
+				sval += (short)(*iter)->weight;
 				
 				// Set the new value of the bin
+				ofile.seekp(current_entry->offset*2 + (*iter)->byte, std::ios::beg); // output offset
 				ofile.write((char*)&sval, 2);
 			}
 		}
@@ -766,7 +774,7 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	
 	// Seek to the end of this histogram file
 	ofile.seekp(0, std::ios::end);
-	entry_->offset = (size_t)ofile.tellp();
+	entry_->offset = (size_t)ofile.tellp()/2; // Set the file offset (in 2 byte words)
 	drr_entries.push_back(entry_);
 
 	// Extend the size of the histogram file
@@ -877,6 +885,7 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 			// Check that x_ and y_ are within their respective axes
 			if(x_comp < (int)(*iter)->minc[0] || x_comp > (int)(*iter)->maxc[0]){ continue; }
 			dx = ((*iter)->maxc[0] - (*iter)->minc[0])/((*iter)->scaled[0]-1);
+			binx = (x_/dx);
 			
 			if((*iter)->hisDim > 1){
 				y_comp = (short)(y_ / (*iter)->comp[1]);
@@ -901,6 +910,32 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 	return false;
 }
 
+bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
+	if(!writable){ return false; }
+
+	// Search for the specified histogram in the .drr entry list
+	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+		if((*iter)->hisID == hisID_){
+			// Check that x_ and y_ are within their respective axes
+			if(x_ < 0 || x_ >= (*iter)->scaled[0]-1){ break; }
+			if((*iter)->hisDim > 1 && (y_ < 0 || y_ >= (*iter)->scaled[1]-1)){ break; }
+		
+			// Push this fill into the queue
+			fill_queue *fill;
+			if((*iter)->hisDim == 1){ fill = new fill_queue((*iter), x_, weight_); }
+			else{ fill = new fill_queue((*iter), y_ * ((*iter)->scaled[1]-1) + x_, weight_); }
+			fills_waiting.push_back(fill);
+	
+			if(++flush_count >= flush_wait){ flush(); }
+			return true;
+		}
+	}
+	
+	//if(debug_mode){ std::cout << "debug: Failed to find his id = " << hisID_ << " in the drr entry list!\n"; }
+	
+	return false;
+}
+	
 bool OutputHisFile::Open(std::string fname_prefix){
 	if(writable){ 
 		if(debug_mode){ std::cout << "debug: The .his file is already open!\n"; }
@@ -912,7 +947,7 @@ bool OutputHisFile::Open(std::string fname_prefix){
 	
 	//touch.close();
 	ofile.open((fname+".his").c_str(), std::ios::out | std::ios::in | std::ios::trunc | std::ios::binary);
-	flush_wait = 10000;
+	flush_wait = 100000;
 	flush_count = 0;
 	return (writable = ofile.good());
 }

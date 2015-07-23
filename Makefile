@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthorns//PixieSuitePLD
+PIXIE_SUITE_DIR = /home/cory/Research/PixieSuite/
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -328,13 +328,13 @@ $(PULSE_VIEWER): $(PULSE_VIEWER_SRC)
 install: tools
 #	Install tools into the install directory
 	@echo "Installing tools to "$(INSTALL_DIR)
-	@if [ ! -e $(INSTALL_DIR)/hexRead ]; then ln -s $(HEX_READ) $(INSTALL_DIR)/hexRead; fi
-	@if [ ! -e $(INSTALL_DIR)/his2root ]; then ln -s $(HIS_2_ROOT) $(INSTALL_DIR)/his2root; fi
-	@if [ ! -e $(INSTALL_DIR)/hisReader ]; then ln -s $(HIS_READER) $(INSTALL_DIR)/hisReader; fi
-	@if [ ! -e $(INSTALL_DIR)/raw2root ]; then ln -s $(RAW_2_ROOT) $(INSTALL_DIR)/raw2root; fi
-	@if [ ! -e $(INSTALL_DIR)/ldfReader ]; then ln -s $(LDF_READER) $(INSTALL_DIR)/ldfReader; fi
-#	@if [ ! -e $(INSTALL_DIR)/rawViewer ]; then ln -s $(RAW_VIEWER) $(INSTALL_DIR)/rawViewer; fi
-	@if [ ! -e $(INSTALL_DIR)/pulseViewer ]; then ln -s $(PULSE_VIEWER) $(INSTALL_DIR)/pulseViewer; fi
+	@ln -s -f $(HEX_READ) $(INSTALL_DIR)/hexRead
+	@ln -s -f $(HIS_2_ROOT) $(INSTALL_DIR)/his2root
+	@ln -s -f $(HIS_READER) $(INSTALL_DIR)/hisReader
+	@ln -s -f $(RAW_2_ROOT) $(INSTALL_DIR)/raw2root
+	@ln -s -f $(LDF_READER) $(INSTALL_DIR)/ldfReader
+#	@ln -s -f $(RAW_VIEWER) $(INSTALL_DIR)/rawViewer
+	@ln -s -f $(PULSE_VIEWER) $(INSTALL_DIR)/pulseViewer
 
 #####################################################################
 

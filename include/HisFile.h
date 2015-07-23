@@ -231,6 +231,9 @@ class OutputHisFile : public HisFile{
 	/// Increment a histogram at (x, y) by weight_
 	bool Fill(int hisID_, int x_, int y_, int weight_=1);
 	
+	/// Increment a histogram at bin (x, y) by weight_
+	bool FillBin(int hisID_, int x_, int y_, int weight_=1);
+	
 	/// Open a new .his file
 	bool Open(std::string fname_prefix);
 	
