@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/cory/Research/PixieSuite/
+PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuite/
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64

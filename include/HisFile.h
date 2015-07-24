@@ -39,6 +39,11 @@ struct drr_entry{
 	float calcon[4]; /// Calibration for X axis
 	char title[41]; /// Title
 	bool use_int; /// True if the size of a cell is 4 bytes
+	
+	float dx; /// Bin width for the x-axis
+	float dy; /// Bin width for the y-axis
+	
+	size_t total_size; /// Size of histogram (in bytes)
 
 	/// Default constructor
 	drr_entry(){}
@@ -49,15 +54,43 @@ struct drr_entry{
 	/// Constructor for 2d histogram
 	drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
 			  short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_);
+
+	/// Check that a specified global bin is in range
+	bool check_bin(int bin_){ return ((bin_ >= (int)total_size)?false:true); }
+
+	/// Check that a specified x bin is in range.
+	bool check_x_bin(int x_){ return ((x_ < 0 || x_ >= scaled[0])?false:true); }
+	
+	/// Check that a specified x value is in range.
+	bool check_x_range(int x_){ return ((x_ < minc[0] || x_ > maxc[0])?false:true); }
+	
+	/// Check that a specified y bin is in range. Always returns true for 1d plots.
+	bool check_y_bin(int y_){ return (((y_ < 0 || y_ >= scaled[1]) && hisDim >= 2)?false:true); }
+	
+	/// Check that a specified y value is in range. Always returns true for 1d plots.
+	bool check_y_range(int y_){ return (((y_ < minc[1] || y_ > maxc[1]) && hisDim >= 2)?false:true); }
+	
+	/// Return the global array bin for a given x and y bin
+	bool get_bin(int x_, int y_, int &bin);
+
+	/// Return the local x and y bins for a given global bin
+	bool get_bin_xy(int global_, int &x, int &y);
+	
+	/// Return the global array bin for a given x, y coordinate
+	bool find_bin(int x_, int y_, int &bin);
+	
+	/// Return the global array bin for a given x, y coordinate
+	bool find_bin_xy(int x_, int y_, int &x, int &y);
 };
 
 struct fill_queue{
 	drr_entry *entry; /// .drr entry of the histogram to be filled
 	int byte; /// Offset of bin (in bytes)
 	int weight; /// Weight of fill
+	bool good;
 	
 	fill_queue(drr_entry *entry_, int bin_, int w_){
-		entry = entry_; byte = bin_ * entry->halfWords * 2; weight = w_;
+		entry = entry_; byte = bin_ * entry->halfWords * 2; weight = w_; good = entry->check_bin(bin_);
 	}
 };
 
@@ -201,7 +234,7 @@ class OutputHisFile : public HisFile{
 
 	/// Flush histogram fills to file
 	void flush();
-	
+
   public:
 	OutputHisFile();
   
@@ -239,6 +272,10 @@ class OutputHisFile : public HisFile{
 	
 	/// Close the histogram file and write the drr file
 	void Close();
+	
+	void Test1D(int hisID_);
+	
+	void Test2D(int hisID_);
 };
 
 extern OutputHisFile *output_his; /// The global .his file handler
