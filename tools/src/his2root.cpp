@@ -93,6 +93,12 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
+	int err_code = his_file.GetError(false);
+	if(err_code != 0 && err_code != 5){
+		his_file.GetError();
+		std::cout << std::endl;
+	}
+	
 	std::cout << " Done! Wrote " << count << " histograms to '" << output_fname << "'\n";
 	std::streampos rsize = (std::streampos)file->GetSize();
 	std::cout << "  Output file size is " << rsize << " bytes, reduction of " << 100*(1-(1.0*rsize)/his_file.GetHisFilesize()) << "%\n";

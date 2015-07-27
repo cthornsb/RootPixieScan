@@ -22,6 +22,39 @@ void count1cc_(const int &dammID, const int &x, const int &y);
 /// Unknown
 void set2cc_(const int &dammID, const int &x, const int &y, const int &z);
 
+/// Histogram data storage object
+struct HisData{
+	unsigned int *idata;
+	unsigned short *sdata;
+	size_t size;
+	bool use_int;
+	bool init;
+	
+	/// Default constructor
+	HisData();
+	
+	/// Destructor
+	~HisData();
+	
+	/// Return true if the array is initialized and ready to read data
+	bool IsInit(){ return init; }
+	
+	/// Initialize the int or short array to a specified size_
+	void Initialize(size_t size_, bool use_int_);
+	
+	/// Read histogram data from an input histogram file
+	bool Read(std::ifstream *input_);
+	
+	/// Return an element of the array
+	unsigned int Get(size_t index_);
+	
+	/// Set an element of the array at a given index
+	unsigned int Set(size_t index_, unsigned int val_);
+	
+	/// Delete the data arrays and reset all variables
+	void Delete();
+};
+
 /// drr entry information
 struct drr_entry{
 	int hisID; /// ID of the histogram
@@ -39,12 +72,14 @@ struct drr_entry{
 	float calcon[4]; /// Calibration for X axis
 	char title[41]; /// Title
 	bool use_int; /// True if the size of a cell is 4 bytes
+	bool good; /// True if word size is either 2 (short) or 4 bytes (int)
+
+	size_t total_bins; /// Total number of bins (number of elements in array)
+	size_t total_size; /// Size of histogram (in bytes) (total size of array)
 	
 	float dx; /// Bin width for the x-axis
 	float dy; /// Bin width for the y-axis
 	
-	size_t total_size; /// Size of histogram (in bytes)
-
 	/// Default constructor
 	drr_entry(){}
 	
@@ -55,20 +90,23 @@ struct drr_entry{
 	drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
 			  short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_);
 
+	/// Initialize variables not stored in the .drr entry
+	void initialize();
+
 	/// Check that a specified global bin is in range
-	bool check_bin(int bin_){ return ((bin_ >= (int)total_size)?false:true); }
+	bool check_bin(int bin_){ return ((bin_ < 0 || bin_ >= (int)total_bins)?false:true); }
 
 	/// Check that a specified x bin is in range.
-	bool check_x_bin(int x_){ return ((x_ < 0 || x_ >= scaled[0])?false:true); }
+	bool check_x_bin(int x_){ return ((x_ < 0 || x_ > (int)scaled[0])?false:true); }
 	
 	/// Check that a specified x value is in range.
-	bool check_x_range(int x_){ return ((x_ < minc[0] || x_ > maxc[0])?false:true); }
+	bool check_x_range(int x_){ return ((x_ < (int)minc[0] || x_ > (int)maxc[0])?false:true); }
 	
 	/// Check that a specified y bin is in range. Always returns true for 1d plots.
-	bool check_y_bin(int y_){ return (((y_ < 0 || y_ >= scaled[1]) && hisDim >= 2)?false:true); }
+	bool check_y_bin(int y_){ return (((y_ < 0 || y_ > (int)scaled[1]) && hisDim >= 2)?false:true); }
 	
 	/// Check that a specified y value is in range. Always returns true for 1d plots.
-	bool check_y_range(int y_){ return (((y_ < minc[1] || y_ > maxc[1]) && hisDim >= 2)?false:true); }
+	bool check_y_range(int y_){ return (((y_ < (int)minc[1] || y_ > (int)maxc[1]) && hisDim >= 2)?false:true); }
 	
 	/// Return the global array bin for a given x and y bin
 	bool get_bin(int x_, int y_, int &bin);
@@ -87,10 +125,11 @@ struct fill_queue{
 	drr_entry *entry; /// .drr entry of the histogram to be filled
 	int byte; /// Offset of bin (in bytes)
 	int weight; /// Weight of fill
-	bool good;
+	bool good; /// True if the histo array index is within range
 	
 	fill_queue(drr_entry *entry_, int bin_, int w_){
 		entry = entry_; byte = bin_ * entry->halfWords * 2; weight = w_; good = entry->check_bin(bin_);
+		if(byte < 0){ std::cout << " his id = " << entry_->hisID << " byte offset is less than zero (" << byte << ")!\n"; }
 	}
 };
 
@@ -103,11 +142,10 @@ class HisFile{
 	std::ifstream his; /// The input .his file
 	
 	int hists_processed; /// The number of histograms which have been processed
-	
 	int err_flag; /// Integer value for storing error information
 	
-	char *hdata; /// Array for storing histogram data
-	size_t hd_size; /// Size of histogram data array
+	HisData *data; /// The histogram data storage object
+	bool his_ready; /// True if a histogram is loaded and ready to read
 	
 	// drr header information
 	char initial[13]; /// String HHIRFDIR0001
@@ -123,10 +161,13 @@ class HisFile{
 	drr_entry *read_entry();
 	
 	/// Set the size of the histogram and allocate memory for data storage
-	void set_hist_size();
+	bool set_hist_size();
 	
 	/// Delete all drr entries and clear the entries vector
 	void clear_drr_entries();
+	
+	/// Initialize all variables
+	void initialize();
 
   public:
 	HisFile();
@@ -187,13 +228,12 @@ class HisFile{
 	short GetDimension();
 
 	/// Return pointer to the histogram data array
-	char *GetData(){ return hdata; }
-
-	/// Return the size of the histogram data array (in bytes)
-	size_t GetDataSize(){ return hd_size; }
-
-	/// Return the size of the histogram cells (in bytes)
-	size_t GetCellSize();
+	/*unsigned int *GetIntegerData(){ return idata; }
+	
+	unsigned short *GetShortData(){ return sdata; }*/
+	
+	/// Return a pointer to the histogram data storage object
+	HisData *GetData(){ return data; }
 
 	/// Get a pointer to a root TH1I
 	TH1I *GetTH1(int hist_=-1);
@@ -245,6 +285,9 @@ class OutputHisFile : public HisFile{
 	/// Return true if the output .his file is open and writable and false otherwise
 	bool IsWritable(){ return writable; }
 	
+	/// Return a pointer to the output file
+	std::fstream *GetOutputFile(){ return &ofile; }
+	
 	/// Set the number of fills to wait between file flushes
 	void SetFlushWait(unsigned int wait_){ flush_wait = wait_; }
 	
@@ -273,9 +316,7 @@ class OutputHisFile : public HisFile{
 	/// Close the histogram file and write the drr file
 	void Close();
 	
-	void Test1D(int hisID_);
-	
-	void Test2D(int hisID_);
+	void TestBoundaries();
 };
 
 extern OutputHisFile *output_his; /// The global .his file handler

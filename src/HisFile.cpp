@@ -71,6 +71,73 @@ void set_char_array(char *output, const std::string &input_, size_t arr_size_){
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct HisData
+///////////////////////////////////////////////////////////////////////////////
+
+HisData::HisData(){
+	use_int = false;
+	init = false;
+	idata = NULL;
+	sdata = NULL;
+	size = 0;
+}
+
+HisData::~HisData(){
+	this->Delete();
+}
+
+void HisData::Initialize(size_t size_, bool use_int_){
+	if(init){ this->Delete(); }
+	use_int = use_int_;
+	size = size_;
+	if(use_int){ idata = new unsigned int[size_]; sdata = NULL; }
+	else{ sdata = new unsigned short[size_]; idata = NULL; }
+	init = true;
+}
+
+bool HisData::Read(std::ifstream *input_){
+	if(!init || !input_ || !input_->good()){ return false; }
+	if(use_int){ 
+		unsigned int temp;
+		for(size_t i = 0; i < size; i++){
+			input_->read((char*)&temp, 4);
+			idata[i] = temp;
+		}
+	}
+	else{ 
+		unsigned short temp;
+		for(size_t i = 0; i < size; i++){
+			input_->read((char*)&temp, 2);
+			sdata[i] = temp;
+		} 
+	}
+	return true;
+}
+
+unsigned int HisData::Get(size_t index_){
+	if(!init || index_ >= size){ return 0; }
+	if(use_int){ return idata[index_]; }
+	return (unsigned int)sdata[index_];
+}
+
+unsigned int HisData::Set(size_t index_, unsigned int val_){
+	if(!init || index_ >= size){ return 0; }
+	if(use_int){ return (idata[index_] = val_); }
+	return (unsigned int)(sdata[index_] = (unsigned short)val_);
+}
+
+void HisData::Delete(){
+	if(idata){ delete[] idata; }
+	if(sdata){ delete[] sdata; }
+	
+	use_int = false;
+	init = false;
+	idata = NULL;
+	sdata = NULL;
+	size = 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct drr_entry
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -82,7 +149,7 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, sh
 	params[0] = 0; params[1] = 0; params[2] = 0; params[3] = 0; 
 	raw[0] = raw_; raw[1] = 0; raw[2] = 0; raw[3] = 0; 
 	scaled[0] = scaled_; scaled[1] = 0; scaled[2] = 0; scaled[3] = 0;
-	comp[0] = raw_/scaled_; comp[1] = 0;  comp[2] = 0; comp[3] = 0;
+	comp[0] = raw_/scaled_; comp[1] = 1;  comp[2] = 1; comp[3] = 1;
 	minc[0] = min_; minc[1] = 0; minc[2] = 0; minc[3] = 0;
 	maxc[0] = max_; maxc[1] = 0; maxc[2] = 0; maxc[3] = 0;
 	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
@@ -90,17 +157,22 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, sh
 	dx = ((float)(maxc[0]-minc[0]))/(scaled[0]-1.0);
 	dy = 0.0;
 	
-	total_size = scaled[0]*2*halfWords; // Total histo size in bytes
-	
 	// Set label and titles
 	set_char_array(xlabel, "            ", 13);
 	set_char_array(ylabel, "            ", 13);
 	set_char_array(title, std::string(title_), 41);
 
+	total_bins = scaled[0];
+	total_size = total_bins * 2 * halfWords;
+
+	good = true;
 	offset = 0; // The file offset will be set later
-	if(2*halfWords_ == 4){ use_int = true; }
+	if(2*halfWords == 4){ use_int = true; }
 	else if(2*halfWords == 2){ use_int = false; }
-	else{ std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; }
+	else{ 
+		std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; 
+		good = false;
+	}
 }
 
 /// Constructor for 2d histogram
@@ -112,25 +184,56 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, 
 	params[0] = 0; params[1] = 0; params[2] = 0; params[3] = 0; 
 	raw[0] = Xraw_; raw[1] = Yraw_; raw[2] = 0; raw[3] = 0; 
 	scaled[0] = Xscaled_; scaled[1] = Yscaled_; scaled[2] = 0; scaled[3] = 0;
-	comp[0] = Xraw_/Xscaled_; comp[1] = Yraw_/Yscaled_;  comp[2] = 0; comp[3] = 0;
+	comp[0] = Xraw_/Xscaled_; comp[1] = Yraw_/Yscaled_;  comp[2] = 1; comp[3] = 1;
 	minc[0] = Xmin_; minc[1] = Ymin_; minc[2] = 0; minc[3] = 0;
 	maxc[0] = Xmax_; maxc[1] = Ymax_; maxc[2] = 0; maxc[3] = 0;
 	calcon[0] = 0; calcon[1] = 0; calcon[2] = 0; calcon[3] = 0;
 
 	dx = ((float)(maxc[0]-minc[0]))/(scaled[0]-1.0);
 	dy = ((float)(maxc[1]-minc[1]))/(scaled[1]-1.0);
-	
-	total_size = scaled[0]*scaled[1]*2*halfWords; // Total histo size in bytes
+
+	total_bins = scaled[0]*scaled[1];
+	total_size = total_bins * 2 * halfWords;
 	
 	// Set label and titles
 	set_char_array(xlabel, "            ", 13);
 	set_char_array(ylabel, "            ", 13);
 	set_char_array(title, std::string(title_), 41);
 
+	good = true;
 	offset = 0; // The file offset will be set later
-	if(2*halfWords_ == 4){ use_int = true; }
+	if(2*halfWords == 4){ use_int = true; }
 	else if(2*halfWords == 2){ use_int = false; }
-	else{ std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; }
+	else{ 
+		std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; 
+		good = false;
+	}
+}
+
+void drr_entry::initialize(){
+	if(hisDim == 1){
+		dx = ((float)(maxc[0]-minc[0]))/(scaled[0]-1.0);
+		dy = 0.0;
+
+		total_bins = scaled[0];
+		total_size = total_bins * 2 * halfWords;
+	}
+	else if(hisDim == 2){
+		dx = ((float)(maxc[0]-minc[0]))/(scaled[0]-1.0);
+		dy = ((float)(maxc[1]-minc[1]))/(scaled[1]-1.0);
+
+		total_bins = scaled[0]*scaled[1];
+		total_size = total_bins * 2 * halfWords;
+	}
+	else{ return; }
+	
+	good = true;
+	if(2*halfWords == 4){ use_int = true; }
+	else if(2*halfWords == 2){ use_int = false; }
+	else{ 
+		std::cout << "Invalid cell size (" << 2*halfWords << ")!\n"; 
+		good = false;
+	}
 }
 
 bool drr_entry::get_bin(int x_, int y_, int &bin){
@@ -180,16 +283,11 @@ drr_entry* HisFile::read_entry(){
 	drr.read(output->ylabel, 12); output->ylabel[12] = '\0';
 	drr.read((char*)&output->calcon, 16);
 	drr.read(output->title, 40); output->title[40] = '\0';
+
+	// Update variables not stored in the .drr file
+	output->initialize();
 	
 	return output;
-}
-
-/// Set the size of the histogram and allocate memory for data storage
-void HisFile::set_hist_size(){
-	if(hdata){ delete[] hdata; }
-
-	hd_size = current_entry->total_size;
-	hdata = new char[hd_size];
 }
 
 /// Delete all drr drr_entries and clear the drr_entries vector
@@ -201,20 +299,21 @@ void HisFile::clear_drr_entries(){
 	current_entry = NULL;
 }
 
-HisFile::HisFile(){
-	hdata = NULL;
-	hd_size = 0;
+void HisFile::initialize(){
+	data = new HisData();
+	current_entry = NULL;
 	err_flag = 0;
 	hists_processed = 0;
 	is_good = false;
 	is_open = false;
 }
 
+HisFile::HisFile(){
+	initialize();
+}
+
 HisFile::HisFile(const char *prefix_){
-	hdata = NULL;
-	hd_size = 0;
-	err_flag = 0;
-	hists_processed = 0;
+	initialize();
 	LoadDrr(prefix_);
 }
 
@@ -222,7 +321,8 @@ HisFile::~HisFile(){
 	drr.close();
 	his.close();
 	
-	if(hdata){ delete[] hdata; }
+	if(data){ delete data; }
+
 	clear_drr_entries();
 }
 
@@ -376,16 +476,6 @@ short HisFile::GetDimension(){
 	return current_entry->hisDim; 
 }
 
-/// Return the size of the histogram cells (in bytes)
-size_t HisFile::GetCellSize(){
-	err_flag = 0; // Reset the error flag 
-	if(!current_entry){ 
-		err_flag = -1;
-		return 0; 
-	}
-	return current_entry->halfWords * 2;
-}
-
 /// Get a pointer to a root TH1I
 TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 	err_flag = 0; // Reset the error flag
@@ -393,68 +483,28 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 		err_flag = -1; 
 		return NULL; 
 	}
-	
-	size_t cell_size = current_entry->halfWords*2;
-	
-	// Check that the cell size is not too large
-	if(cell_size > 4){ 
-		err_flag = -2; 
-		return NULL; 
-	}
-	
+
 	// Get the histogram from the file
 	if(hist_ != -1 && GetHistogram(hist_) == 0){			
 		err_flag = -3; 
-		return NULL; 
-	}
+		return false; 
+	}	
 	
 	// Check that this histogram has the correct dimension
 	if(current_entry->hisDim != 1){			
 		err_flag = -4; 
-		return NULL; 
-	}
-	
-	bool use_int;
-	size_t num_bins = hd_size;
-	if(cell_size == 2){ // Cell size is a short int
-		num_bins = num_bins/2;
-		use_int = false;
-		if(hd_size % 2 != 0){ 
-			err_flag = -5; 
-			return NULL; 
-		}
-	}
-	else if(cell_size == 4){ // Cell size is a standard int
-		num_bins = num_bins/4;
-		use_int = true;
-		if(hd_size % 4 != 0){ 
-			err_flag = -6; 
-			return NULL; 
-		}
-	}
-	else{ // Unrecognized cell size
-		err_flag = -7; 
-		return NULL; 
+		return false; 
 	}
 	
 	std::stringstream stream;
 	stream << "d" << current_entry->hisID;
 
 	TH1I *hist = new TH1I(stream.str().c_str(), rstrip(current_entry->title).c_str(), 
-						  num_bins, (double)current_entry->minc[0], (double)current_entry->maxc[0]);
+						  current_entry->total_bins, (double)current_entry->minc[0], (double)current_entry->maxc[0]+1);
 
 	// Fill the histogram bins
-	unsigned short sval;
-	unsigned int ival;
-	for(size_t x = 0; x < num_bins; x++){
-		if(use_int){ 
-			memcpy((char*)&ival, &hdata[4*x], 4);
-			hist->SetBinContent(x+1, ival); 
-		}
-		else{ 
-			memcpy((char*)&sval, &hdata[2*x], 2);
-			hist->SetBinContent(x+1, sval); 
-		}
+	for(size_t x = 0; x < current_entry->total_bins; x++){
+		hist->SetBinContent(x+1, data->Get(x)); 
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
 
@@ -466,14 +516,6 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 	err_flag = 0; // Reset the error flag
 	if(hist_ == -1 && !current_entry){ 
 		err_flag = -1; 
-		return NULL; 
-	}
-	
-	size_t cell_size = current_entry->halfWords*2;
-	
-	// Check that the cell size is not too large
-	if(cell_size > 4){ 
-		err_flag = -2; 
 		return NULL; 
 	}
 	
@@ -489,51 +531,19 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 		return NULL; 
 	}
 	
-	bool use_int;
-	size_t num_bins = hd_size;
-	if(cell_size == 2){ // Cell size is a short int
-		num_bins = num_bins/2;
-		use_int = false;
-		if(hd_size % 2 != 0){ 
-			err_flag = -5; 
-			return NULL; 
-		}
-	}
-	else if(cell_size == 4){ // Cell size is a standard int
-		num_bins = num_bins/4;
-		use_int = true;
-		if(hd_size % 4 != 0){ 
-			err_flag = -6; 
-			return NULL; 
-		}
-	}
-	else{ // Unrecognized cell size
-		err_flag = -7; 
-		return NULL; 
-	}
-	
 	std::stringstream stream;
 	stream << "dd" << current_entry->hisID;
 
 	TH2I *hist = new TH2I(stream.str().c_str(), rstrip(current_entry->title).c_str(), 
-						  current_entry->scaled[0]-1, (double)current_entry->minc[0], (double)current_entry->maxc[0],
-						  current_entry->scaled[1]-1, (double)current_entry->minc[1], (double)current_entry->maxc[1]);
+						  current_entry->scaled[0], (double)current_entry->minc[0], (double)current_entry->maxc[0]+1,
+						  current_entry->scaled[1], (double)current_entry->minc[1], (double)current_entry->maxc[1]+1);
 
 	// Fill the histogram bins
-	unsigned short sval;
-	unsigned int ival;
-	size_t arr_index;
-	for(short y = 0; y < current_entry->scaled[1]-1; y++){
-		for(short x = 0; x < current_entry->scaled[0]-1; x++){
-			arr_index = (size_t)y*(size_t)current_entry->scaled[0]+(size_t)x;
-			if(arr_index >= num_bins){ continue; }
-			else if(use_int){ 
-				memcpy((char*)&ival, &hdata[arr_index], 4);
-				hist->SetBinContent(hist->GetBin(x, y), ival); }
-			else{ 
-				memcpy((char*)&sval, &hdata[arr_index], 2);
-				hist->SetBinContent(hist->GetBin(x, y), sval); 
-			}
+	int bin = 0;
+	for(short i = 0; i < current_entry->scaled[1]; i++){ // y
+		for(short j = 0; j < current_entry->scaled[0]; j++){ // x
+			current_entry->get_bin(j, i, bin);
+			hist->SetBinContent(hist->GetBin(j+1, i+1), data->Get(bin));
 		}
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
@@ -554,26 +564,26 @@ size_t HisFile::GetHistogram(int hist_, bool no_copy_/*=false*/){
 		err_flag = 4;
 		return 0; 
 	}
-	
+
 	// Get the requested drr entry
 	GetEntry(hist_);
 	if(!current_entry){ 
 		err_flag = -1;
 		return 0; 
 	}
-	
+
 	if(!no_copy_){
-		// Set up the histogram data array
-		set_hist_size();
-	
 		// Seek to the start of this histogram
+		std::cout << " setting offset of " << current_entry->offset*2 << std::endl;
 		his.seekg(current_entry->offset*2, std::ios::beg);
 
 		// Read the histogram data
-		his.read(hdata, hd_size);
+		std::cout << " reading " << current_entry->total_bins*4 << " bytes from .his file\n";
+		data->Initialize(current_entry->total_bins, current_entry->use_int);
+		data->Read(&his);
 	}
-	
-	return hd_size;
+
+	return current_entry->total_size;
 }
 
 /// Load a specified histogram by ID
@@ -603,7 +613,7 @@ size_t HisFile::GetNextHistogram(bool no_copy_/*=false*/){
 		err_flag = 5;
 		return 0; 
 	}
-	
+
 	return GetHistogram(hists_processed++, no_copy_);
 }
 
@@ -726,6 +736,9 @@ void OutputHisFile::flush(){
 			if(!(*iter)->good){ continue; }
 			
 			current_entry = (*iter)->entry;
+			
+			//std::cout << " " << current_entry->offset*2 << ", " << (*iter)->byte << ", " << current_entry->offset*2 + (*iter)->byte << std::endl;
+			std::cout << current_entry->hisID << " fill into " << current_entry->offset*2 + (*iter)->byte << std::endl;
 			
 			// Seek to the specified bin
 			ofile.seekg(current_entry->offset*2 + (*iter)->byte, std::ios::beg); // input offset
@@ -900,27 +913,11 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 	// Search for the specified histogram in the .drr entry list
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
-			double dx, dy;
-			int x_comp, y_comp;
-			int binx=0, biny=0;
-			x_comp = (short)(x_ / (*iter)->comp[0]);
-			
-			// Check that x_ and y_ are within their respective axes
-			if(x_comp < (int)(*iter)->minc[0] || x_comp > (int)(*iter)->maxc[0]){ continue; }
-			dx = ((*iter)->maxc[0] - (*iter)->minc[0])/((*iter)->scaled[0]-1);
-			binx = (x_/dx);
-			
-			if((*iter)->hisDim > 1){
-				y_comp = (short)(y_ / (*iter)->comp[1]);
-				if(y_comp < (int)(*iter)->minc[1] || y_comp > (int)(*iter)->maxc[1]){ continue; }
-				else{
-					dy = ((*iter)->maxc[0] - (*iter)->minc[0])/((*iter)->scaled[0]-1); 
-					biny = (y_/dy);
-				}
-			}
-		
+			int bin;
+			if(!(*iter)->find_bin(x_/(*iter)->comp[0], y_/(*iter)->comp[1], bin)){ return false; }		
+
 			// Push this fill into the queue
-			fill_queue *fill = new fill_queue((*iter), binx * ((*iter)->scaled[0]-1) + biny, weight_);
+			fill_queue *fill = new fill_queue((*iter), bin, weight_);
 			fills_waiting.push_back(fill);
 	
 			if(++flush_count >= flush_wait){ flush(); }
@@ -937,14 +934,11 @@ bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
 	// Search for the specified histogram in the .drr entry list
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
-			// Check that x_ and y_ are within their respective axes
-			if(x_ < 0 || x_ >= (*iter)->scaled[0]){ break; }
-			if((*iter)->hisDim > 1 && (y_ < 0 || y_ >= (*iter)->scaled[1])){ break; }
+			int bin;
+			if(!(*iter)->get_bin(x_, y_, bin)){ return false; }
 		
 			// Push this fill into the queue
-			fill_queue *fill;
-			if((*iter)->hisDim == 1){ fill = new fill_queue((*iter), x_, weight_); }
-			else{ fill = new fill_queue((*iter), y_*(*iter)->scaled[0] + x_, weight_); }
+			fill_queue *fill = new fill_queue((*iter), bin, weight_);
 			fills_waiting.push_back(fill);
 	
 			if(++flush_count >= flush_wait){ flush(); }
@@ -983,48 +977,18 @@ void OutputHisFile::Close(){
 	ofile.close();
 }
 
-void OutputHisFile::Test1D(int hisID_){
+void OutputHisFile::TestBoundaries(){
 	if(!writable){ return; }
 
 	// Search for the specified histogram in the .drr entry list
+	int dummy1 = 0xaaaaaaaa;
+	int dummy2 = 0xbbbbbbbb;
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-		if((*iter)->hisID == hisID_){
-			fill_queue *fill1 = new fill_queue((*iter), 0, 1);
-			fill_queue *fill2 = new fill_queue((*iter), (*iter)->scaled[0]-1, 1);
-			fills_waiting.push_back(fill1);
-			fills_waiting.push_back(fill2);
-			flush_count += 2;
-			if(flush_count >= flush_wait){ flush(); }
-			return;
+		ofile.seekp((*iter)->offset*2, std::ios::beg);
+		ofile.write((char*)&dummy1, 4);
+		for(int i = 1; i < (int)(*iter)->total_bins-1; i++){
+			ofile.write((char*)&dummy2, 4);
 		}
-	}
-}
-
-void OutputHisFile::Test2D(int hisID_){
-	if(!writable){ return; }
-
-	// Search for the specified histogram in the .drr entry list
-	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-		if((*iter)->hisID == hisID_){
-			for(int x = 0; x < (*iter)->scaled[0]; x++){ // Horizontal lines
-				fill_queue *fill1 = new fill_queue((*iter), x, 1); // bottom
-				fill_queue *fill2 = new fill_queue((*iter), ((*iter)->scaled[1]-1)*(*iter)->scaled[0] + x, 1); // top
-				fills_waiting.push_back(fill1);
-				fills_waiting.push_back(fill2);
-				flush_count += 2;
-				if(flush_count >= flush_wait){ flush(); }
-			}
-			//std::cout << "(" << (*iter)->scaled[0] << ", " << (*iter)->scaled[1] << ")\n";
-			for(int y = 0; y < (*iter)->scaled[1]; y++){ // Horizontal lines
-				fill_queue *fill1 = new fill_queue((*iter), y*(*iter)->scaled[0], 1); // left side
-				fill_queue *fill2 = new fill_queue((*iter), y*(*iter)->scaled[0] + ((*iter)->scaled[0]-1), 1); // right side
-				//std::cout << "2d: (0, " << y*(*iter)->scaled[0] << ") and (" << ((*iter)->scaled[0]-1) << ", " << y*(*iter)->scaled[0] << ")\n";
-				fills_waiting.push_back(fill1);
-				fills_waiting.push_back(fill2);
-				flush_count += 2;
-				if(flush_count >= flush_wait){ flush(); }
-			}
-			return;
-		}
+		ofile.write((char*)&dummy1, 4);
 	}
 }
