@@ -77,8 +77,7 @@ void set_char_array(char *output, const std::string &input_, size_t arr_size_){
 HisData::HisData(){
 	use_int = false;
 	init = false;
-	idata = NULL;
-	sdata = NULL;
+	data = NULL;
 	size = 0;
 }
 
@@ -90,51 +89,46 @@ void HisData::Initialize(size_t size_, bool use_int_){
 	if(init){ this->Delete(); }
 	use_int = use_int_;
 	size = size_;
-	if(use_int){ idata = new unsigned int[size_]; sdata = NULL; }
-	else{ sdata = new unsigned short[size_]; idata = NULL; }
+	data = new unsigned int[size_];
 	init = true;
 }
 
 bool HisData::Read(std::ifstream *input_){
 	if(!init || !input_ || !input_->good()){ return false; }
-	if(use_int){ 
-		unsigned int temp;
-		for(size_t i = 0; i < size; i++){
-			input_->read((char*)&temp, 4);
-			idata[i] = temp;
-		}
-	}
-	else{ 
-		unsigned short temp;
-		for(size_t i = 0; i < size; i++){
-			input_->read((char*)&temp, 2);
-			sdata[i] = temp;
-		} 
+	unsigned int temp;
+	for(size_t i = 0; i < size; i++){
+		input_->read((char*)&temp, 4);
+		data[i] = temp;
 	}
 	return true;
 }
 
 unsigned int HisData::Get(size_t index_){
 	if(!init || index_ >= size){ return 0; }
-	if(use_int){ return idata[index_]; }
-	return (unsigned int)sdata[index_];
+	return data[index_];
 }
 
 unsigned int HisData::Set(size_t index_, unsigned int val_){
 	if(!init || index_ >= size){ return 0; }
-	if(use_int){ return (idata[index_] = val_); }
-	return (unsigned int)(sdata[index_] = (unsigned short)val_);
+	return (data[index_] = val_);
+}
+
+unsigned int HisData::Set(size_t index_, unsigned short val_){
+	if(!init || index_ >= size){ return 0; }
+	return (data[index_] = (unsigned int)val_);
 }
 
 void HisData::Delete(){
-	if(idata){ delete[] idata; }
-	if(sdata){ delete[] sdata; }
+	if(data){ delete[] data; }
 	
 	use_int = false;
 	init = false;
-	idata = NULL;
-	sdata = NULL;
+	data = NULL;
 	size = 0;
+}
+
+unsigned int& HisData::operator [](const size_t &index_){
+	return data[index_];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -300,7 +294,6 @@ void HisFile::clear_drr_entries(){
 }
 
 void HisFile::initialize(){
-	data = new HisData();
 	current_entry = NULL;
 	err_flag = 0;
 	hists_processed = 0;
@@ -320,8 +313,6 @@ HisFile::HisFile(const char *prefix_){
 HisFile::~HisFile(){
 	drr.close();
 	his.close();
-	
-	if(data){ delete data; }
 
 	clear_drr_entries();
 }
@@ -504,7 +495,7 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 
 	// Fill the histogram bins
 	for(size_t x = 0; x < current_entry->total_bins; x++){
-		hist->SetBinContent(x+1, data->Get(x)); 
+		hist->SetBinContent(x+1, data[x]); 
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
 
@@ -543,7 +534,7 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 	for(short i = 0; i < current_entry->scaled[1]; i++){ // y
 		for(short j = 0; j < current_entry->scaled[0]; j++){ // x
 			current_entry->get_bin(j, i, bin);
-			hist->SetBinContent(hist->GetBin(j+1, i+1), data->Get(bin));
+			hist->SetBinContent(hist->GetBin(j+1, i+1), data[bin]);
 		}
 	}
 	hist->ResetStats(); // Update the histogram statistics to include new bin content
@@ -579,8 +570,8 @@ size_t HisFile::GetHistogram(int hist_, bool no_copy_/*=false*/){
 
 		// Read the histogram data
 		std::cout << " reading " << current_entry->total_bins*4 << " bytes from .his file\n";
-		data->Initialize(current_entry->total_bins, current_entry->use_int);
-		data->Read(&his);
+		data.Initialize(current_entry->total_bins, current_entry->use_int);
+		data.Read(&his);
 	}
 
 	return current_entry->total_size;

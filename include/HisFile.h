@@ -23,13 +23,14 @@ void count1cc_(const int &dammID, const int &x, const int &y);
 void set2cc_(const int &dammID, const int &x, const int &y, const int &z);
 
 /// Histogram data storage object
-struct HisData{
-	unsigned int *idata;
-	unsigned short *sdata;
+class HisData{
+  private:
+	unsigned int *data;
 	size_t size;
 	bool use_int;
 	bool init;
-	
+
+  public:	
 	/// Default constructor
 	HisData();
 	
@@ -45,14 +46,23 @@ struct HisData{
 	/// Read histogram data from an input histogram file
 	bool Read(std::ifstream *input_);
 	
+	/// Return a pointer to the raw data array
+	unsigned int *GetData(){ return data; }
+	
 	/// Return an element of the array
 	unsigned int Get(size_t index_);
 	
 	/// Set an element of the array at a given index
 	unsigned int Set(size_t index_, unsigned int val_);
 	
+	/// Set an element of the array at a given index
+	unsigned int Set(size_t index_, unsigned short val_);
+	
 	/// Delete the data arrays and reset all variables
 	void Delete();
+	
+	/// Array subscript overload. No array range checking!
+	unsigned int& operator[](const size_t &index_);
 };
 
 /// drr entry information
@@ -144,7 +154,7 @@ class HisFile{
 	int hists_processed; /// The number of histograms which have been processed
 	int err_flag; /// Integer value for storing error information
 	
-	HisData *data; /// The histogram data storage object
+	HisData data; /// The histogram data storage object
 	bool his_ready; /// True if a histogram is loaded and ready to read
 	
 	// drr header information
@@ -233,7 +243,7 @@ class HisFile{
 	unsigned short *GetShortData(){ return sdata; }*/
 	
 	/// Return a pointer to the histogram data storage object
-	HisData *GetData(){ return data; }
+	HisData *GetData(){ return &data; }
 
 	/// Get a pointer to a root TH1I
 	TH1I *GetTH1(int hist_=-1);
