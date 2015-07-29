@@ -90,6 +90,9 @@ struct drr_entry{
 	float dx; /// Bin width for the x-axis
 	float dy; /// Bin width for the y-axis
 	
+	unsigned long long total_counts; /// Total number of attempted histogram fills
+	unsigned long long good_counts; /// Total number of actual histogram fills
+	
 	/// Default constructor
 	drr_entry(){}
 	
@@ -129,6 +132,12 @@ struct drr_entry{
 	
 	/// Return the global array bin for a given x, y coordinate
 	bool find_bin_xy(int x_, int y_, int &x, int &y);
+
+	/// Print a 128 byte .drr file entry block
+	void print_drr(std::ofstream *file_);
+
+	/// Print a .list file entry
+	void print_list(std::ofstream *file_);
 };
 
 struct fill_queue{
@@ -281,6 +290,8 @@ class OutputHisFile : public HisFile{
 	unsigned int flush_wait; /// Number of fills to wait between flushes
 	unsigned int flush_count; /// Number of fills since last flush
 	std::vector<fill_queue*> fills_waiting; /// Vector containing list of histograms to be filled
+	std::vector<int> failed_fills; /// Vector containing list of histogram fills into an invalid his id
+	std::streampos total_his_size; /// Total size of .his file
 
 	/// Flush histogram fills to file
 	void flush();

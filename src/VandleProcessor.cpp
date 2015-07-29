@@ -274,9 +274,7 @@ bool VandleProcessor::Process(RawEvent &event)
 	// start the process timer
 	StartProcess();
 
-#ifdef USE_HHIRF	
 	if(use_damm){ plot(D_PROBLEMS, 30); } //DEBUGGING
-#endif
 	if(RetrieveData(event)){
 		bool output = AnalyzeData(event);
 		//CrossTalk();
@@ -308,9 +306,7 @@ bool VandleProcessor::RetrieveData(RawEvent &event)
 	startEvents.insert(startEvents.end(), liquidStarts.begin(), liquidStarts.end());
 
 	if(smallEvents.empty() && bigEvents.empty()) {
-#ifdef USE_HHIRF
 		if(use_damm){ plot(D_PROBLEMS, 27); } //DEBUGGING
-#endif
 		return(false);
 	}
 	 
@@ -325,9 +321,7 @@ bool VandleProcessor::RetrieveData(RawEvent &event)
 	BuildBars(smallMap, "small", barMap);
 	
 	if(barMap.empty()) {
-#ifdef USE_HHIRF
 		if(use_damm){ plot(D_PROBLEMS, 25); } //DEBUGGING
-#endif
 		return(false);
 	}
 
@@ -357,7 +351,6 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 		   idOffset = dammIds::BIG_OFFSET;
 		TimingCal calibration = GetTimingCal((*itBar).first);
 	
-#ifdef USE_HHIRF
 		const int resMult = 2; //set resolution of histograms
 		const int resOffset = 200; // offset of histograms
 		double timeDiff = bar.timeDiff;
@@ -366,7 +359,6 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 			plot(DD_TIMEDIFFBARS+idOffset, timeDiff*resMult+resOffset, barLoc);
 			plot(DD_TQDCAVEVSTDIFF+idOffset,  timeDiff*resMult+resOffset, bar.qdc);
 		}
-#endif
 		WalkTriggerVandle(startMap, bar);
 
 		//Loop over the starts in the event
@@ -414,7 +406,6 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 			bar.corTimeOfFlight.insert(make_pair(startLoc, corTOF));
 			bar.energy.insert(make_pair(startLoc, energy));
 
-#ifdef USE_HHIRF
 			unsigned int barPlusStartLoc = barLoc*2 + startLoc;	
 			if(use_damm){
 				//if(corTOF >= 5) // cut out the gamma prompt
@@ -475,7 +466,6 @@ bool VandleProcessor::AnalyzeData(RawEvent& rawev)
 					plot(DD_TOFBARS_VETO+idOffset, TOF, barPlusStartLoc);
 				}
 			} 
-#endif
 		}// for(TimingDataMap::iterator itStart
 	} //(BarMap::iterator itBar
 
@@ -490,7 +480,6 @@ void VandleProcessor::BuildBars(const TimingDataMap &endMap, const string &type,
 		TimingDataMap::const_iterator itEndB = itEndA;
 		itEndB++;
 
-#ifdef USE_HHIRF	
 		if(use_damm){
 			if(itEndB == endMap.end()) {
 			  plot(D_PROBLEMS, 0);  //--- is it the end?
@@ -507,7 +496,6 @@ void VandleProcessor::BuildBars(const TimingDataMap &endMap, const string &type,
 			  continue;
 			}
 		}
-#endif
 	
 		IdentKey barKey((*itEndA).first.first, type); //--- makes first part of pair of barKey same as endMap
 		TimingCal calibrations = GetTimingCal(barKey);
@@ -567,11 +555,9 @@ void VandleProcessor::CrossTalk(void)
 	CrossTalkKey barsOfInterest(barA.first, barB.first);
 	CrossTalkMap::iterator itBars = crossTalk.find(barsOfInterest);
 	
-#ifdef USE_HHIRF	
 	const int resMult = 2; //set resolution of histograms
 	const int resOffset = 200; // set offset of histograms
 	if(itBars != crossTalk.end() && use_damm){ plot(D_CROSSTALK, (*itBars).second * resMult + resOffset); }
-#endif
 	
 	//Carbon Recoil Stuff
 	BarMap::iterator itBarA = barMap.find(barA);
@@ -589,7 +575,6 @@ void VandleProcessor::CrossTalk(void)
 
 	//bool onBar = (tdiffA + tdiffB <= 0.75 && tdiffA + tdiffB >= 0.25);
 
-#ifdef USE_HHIRF
 	double tdiffA = (*itBarA).second.walkCorTimeDiff;
 	double tdiffB = (*itBarB).second.walkCorTimeDiff;
 	double qdcA = (*itBarA).second.qdc;
@@ -604,7 +589,6 @@ void VandleProcessor::CrossTalk(void)
 		plot(3952, muonTOF*resMult*10 + resOffset);
 		}
 	}
-#endif
 } //void VandleProcessor::CrossTalk
 
 
@@ -623,7 +607,6 @@ void VandleProcessor::FillMap(const vector<ChanEvent*> &eventList, const string 
 	
 		if(type == "start"){ continue; }
 
-#ifdef USE_HHIRF		
 		if(use_damm){
 			if((*itTemp).second.dataValid && (*itTemp).first.second == "right") {
 				plot(DD_TQDCBARS + OFFSET, (*itTemp).second.tqdc, location*2); //--- 0 + 30/70 (seems to be 30)
@@ -634,12 +617,10 @@ void VandleProcessor::FillMap(const vector<ChanEvent*> &eventList, const string 
 				plot(DD_MAXIMUMBARS + OFFSET, (*itTemp).second.maxval, location*2+1); //--- 1 + 30/70 (seems to be 30)
 			}
 		}
-#endif
 	}//for(vector<chanEvent
 }
 
 void VandleProcessor::WalkTriggerVandle(const TimingInformation::TimingDataMap &trigger, const TimingInformation::BarData &bar) {
-#ifdef USE_HHIRF
 	double cutoff = 1500;
 	for(TimingDataMap::const_iterator it = trigger.begin(); it != trigger.end(); it++) {
 		plot(DD_DEBUGGING4, bar.lMaxVal, bar.rMaxVal); //--- 104, found at 3204, declared but not functioning
@@ -653,5 +634,4 @@ void VandleProcessor::WalkTriggerVandle(const TimingInformation::TimingDataMap &
 			plot(DD_DEBUGGING8, (bar.walkCorTimeAve - (*it).second.walkCorTime)*2+500, (*it).second.maxval);
 		}
 	}
-#endif
 }

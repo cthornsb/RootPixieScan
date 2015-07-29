@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuite/
+PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuitePLD/
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -19,10 +19,6 @@ ACQ2_LIBDIR = /usr/acq2/lib
 # Flag for new readout system. Set to 0 for the classic scan
 # Switching this flag may require a full recompilation (make clean && make)
 NEW_READOUT = 1
-
-# Flag for turning damm on or off (must be set for damm)
-# Switching this flag may require a full recompilation (make clean && make)
-USE_HHIRF = 1
 
 # Flag for verbosity
 VERBOSE = 0
@@ -50,9 +46,6 @@ ifeq ($(NEW_READOUT), 1)
 else
 	LDLIBS += -lgfortran
 endif
-
-# NEED TO REMOVE!!!
-CFLAGS += -DUSE_HHIRF
 
 ifeq ($(VERBOSE), 1)
 	CFLAGS += -DVERBOSE

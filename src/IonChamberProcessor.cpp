@@ -26,7 +26,6 @@ IonChamberProcessor::IonChamberProcessor(bool save_waveforms_) : EventProcessor(
 }
 
 bool IonChamberProcessor::InitDamm(void) {
-#ifdef USE_HHIRF
     std::cout << " IonChamberProcessor: Initializing the damm output\n";
     if(use_damm){
         std::cout << " IonChamberProcessor: Warning! Damm output already initialized\n";
@@ -39,9 +38,6 @@ bool IonChamberProcessor::InitDamm(void) {
     
     use_damm = true;
     return true;
-#else
-	return false;
-#endif
 }
 
 // Initialize for root output
@@ -79,12 +75,10 @@ bool IonChamberProcessor::Process(RawEvent &event){
     for(iter1 = ionDelta.begin(), iter2 = ionEnergy.begin(); iter1 != ionDelta.end() && iter2 != ionEnergy.end(); iter1++, iter2++) {
         double dE = (*iter1)->GetEnergy();
         double E = (*iter2)->GetEnergy();
-#ifdef USE_HHIRF
         if(use_damm){ 
         	plot(D_DE_E_ION, E, dE); 
         	plot(D_SUM_ION, E+dE);
         }
-#endif
         if(use_root){ 
             structure.Append(dE, E);
             //if(save_waveforms){ waveform.Append(trigger.trace); }
@@ -93,9 +87,7 @@ bool IonChamberProcessor::Process(RawEvent &event){
         }
         multiplicity++;
     }
-#ifdef USE_HHIRF
     if(use_damm){ plot(D_MULT_ION, multiplicity); }
-#endif
     
     EndProcess();
     return output;

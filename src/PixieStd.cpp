@@ -712,9 +712,7 @@ bool ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev)
         if (dtimebin < 0 || dtimebin > (unsigned)(SE)) {
             cout << "strange dtime for id " << id << ":" << dtimebin << endl;
         }
-#ifdef USE_HHIRF
         driver->plot(D_TIME + id, dtimebin);
-#endif
         usedDetectors.insert((*modChan)[id].GetType());
         rawev.AddChan(*iEvent);
 
@@ -741,7 +739,6 @@ bool ScanList(vector<ChanEvent*> &eventList, RawEvent& rawev)
  * milliseconds, the deadtime, time between events, and time width of an event.
  */
 void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
-#ifdef USE_HHIRF
     static const int specNoBins = SE;
 
     static double start, stop;
@@ -821,7 +818,6 @@ void HistoStats(unsigned int id, double diff, double clock, HistoPoints event){
         driver->plot(D_HIT_SPECTRUM, id);
         driver->plot(D_SCALAR + id, runTimeSecs);
     }
-#endif
 }
 
 

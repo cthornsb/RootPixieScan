@@ -604,9 +604,7 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 		if (trace.HasValue("filterEnergy") ) {	 
 			if (trace.GetValue("filterEnergy") > 0) {
 				energy = trace.GetValue("filterEnergy");
-#ifdef USE_HHIRF
 				if(use_damm && write_raw){ plot(D_FILTER_ENERGY + id, energy); }
-#endif
 			} 
 			else { energy = 2; }
 		}

@@ -24,9 +24,7 @@ class TraceExtractor : public TraceAnalyzer {
     TraceExtractor(const std::string &aType, const std::string &aSubtype);
     ~TraceExtractor();    
 
-#ifdef USE_HHIRF  
     virtual void DeclarePlots(void);
-#endif   
     virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
 };
 

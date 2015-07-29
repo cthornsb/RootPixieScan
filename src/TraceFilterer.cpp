@@ -12,13 +12,10 @@
 #include "RandomPool.hpp"
 #include "Trace.hpp"
 #include "TraceFilterer.hpp"
+#include "DammPlotIds.hpp"
 
 using namespace std;
-
-#ifdef USE_HHIRF
-#include "DammPlotIds.hpp"
 using namespace dammIds::trace;
-#endif
 
 const int TraceFilterer::energyBins = SC;
 const double TraceFilterer::energyScaleFactor = 2.198; //< TO BE USED WITH MAGIC +40 ENERGY SAMPLE LOCATION
@@ -40,7 +37,6 @@ TraceFilterer::PulseInfo::PulseInfo(Trace::size_type theTime, double theEnergy) 
 	isFound = true;
 }
 
-#ifdef USE_HHIRF
 TraceFilterer::TraceFilterer() : TracePlotter(filterer::OFFSET, filterer::RANGE), fastParms(5,5), energyParms(100,100), thirdParms(20,10)
 {
 	//? this uses some legacy values for third parms, are they appropriate
@@ -60,27 +56,6 @@ TraceFilterer::TraceFilterer(int offset, int range) : TracePlotter(offset, range
 	slowThreshold = thirdParms.GetRiseSamples() * 2;
 	useThirdFilter = false;
 }
-#else
-TraceFilterer::TraceFilterer() : fastParms(5,5), energyParms(100,100), thirdParms(20,10)
-{
-	//? this uses some legacy values for third parms, are they appropriate
-	name = "Filterer";
-	
-	fastThreshold = fastParms.GetRiseSamples()  * 3;
-	slowThreshold = thirdParms.GetRiseSamples() * 2;
-	useThirdFilter = false;
-}
-
-TraceFilterer::TraceFilterer(int offset, int range) : fastParms(5,5), energyParms(100,100), thirdParms(20,10)
-{
-	//? this uses some legacy values for third parms, are they appropriate
-	name = "Filterer";
-	
-	fastThreshold = fastParms.GetRiseSamples()  * 3;
-	slowThreshold = thirdParms.GetRiseSamples() * 2;
-	useThirdFilter = false;
-}
-#endif
 
 TraceFilterer::~TraceFilterer()
 {
@@ -138,7 +113,6 @@ bool TraceFilterer::Init(const string &filterFileName /* = filter.txt */)
 	return true;
 }
 
-#ifdef USE_HHIRF
 void TraceFilterer::DeclarePlots(void)
 {
 	using namespace dammIds::trace;
@@ -152,7 +126,6 @@ void TraceFilterer::DeclarePlots(void)
 	DeclareHistogram2D(DD_REJECTED_TRACE, traceBins, numTraces, "rejected traces");
 	DeclareHistogram1D(D_ENERGY1, energyBins, "E1 from trace"); 
 }
-#endif
 
 void TraceFilterer::Analyze(Trace &trace, const string &type, const string &subtype)
 {
@@ -173,9 +146,7 @@ void TraceFilterer::Analyze(Trace &trace, const string &type, const string &subt
 			static int rejectedTraces = 0;
 
 			if (rejectedTraces < numTraces)
-#ifdef USE_HHIRF
 			trace.Plot(DD_REJECTED_TRACE, rejectedTraces++);
-#endif
 			EndAnalyze(); // update timing
 			return;
 		}
@@ -199,22 +170,18 @@ void TraceFilterer::Analyze(Trace &trace, const string &type, const string &subt
 			trace.SetValue("filterEnergy", pulse.energy);
 		}
 
-#ifdef USE_HHIRF
 		// now plot some stuff
 		fastFilter.ScalePlot(DD_FILTER1, numTracesAnalyzed, fastParms.GetRiseSamples() );
 		energyFilter.ScalePlot(DD_FILTER2, numTracesAnalyzed, energyParms.GetRiseSamples() );
 		if (useThirdFilter) {
 			thirdFilter.ScalePlot(DD_FILTER3, numTracesAnalyzed, thirdParms.GetRiseSamples() );
 		}
-#endif
 		// calculated values at end of traces
 		/*
 		plot(DD_TRACE, trace.size() + 10, numTracesAnalyzed, energy);
 		plot(DD_TRACE, trace.size() + 11, numTracesAnalyzed, time);
 		*/
-#ifdef USE_HHIRF
 		plot(D_ENERGY1, pulse.energy);
-#endif
 	} // sufficient analysis level
 
 	EndAnalyze(trace);

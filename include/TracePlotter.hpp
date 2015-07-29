@@ -22,9 +22,7 @@ class TracePlotter : public TraceAnalyzer {
     TracePlotter(int offset, int range);
     ~TracePlotter();    
 
-#ifdef USE_HHIRF
     virtual void DeclarePlots(void);
-#endif
     virtual void Analyze(Trace &trace, const std::string &type, const std::string &subtype);
 };
 

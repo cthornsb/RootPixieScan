@@ -14,24 +14,18 @@
 
 #include <unistd.h>
 
-#ifdef USE_HHIRF
 #include "DammPlotIds.hpp"
-#endif
-
 #include "Trace.hpp"
 #include "TraceAnalyzer.hpp"
 
 using std::cout;
 using std::endl;
 using std::string;
+using namespace dammIds::trace;
 
 /**
  * Set default filter parameters
  */
-
-#ifdef USE_HHIRF
-using namespace dammIds::trace;
-#endif
 
 void TraceAnalyzer::_initialize(){
     name = "Trace";
@@ -46,7 +40,6 @@ void TraceAnalyzer::_initialize(){
 	start_time = clock();
 }
 
-#ifdef USE_HHIRF
 TraceAnalyzer::TraceAnalyzer() : histo(OFFSET, RANGE){
     _initialize();
 }
@@ -64,25 +57,6 @@ TraceAnalyzer::TraceAnalyzer(int offset, int range, std::string name_) : histo(o
     _initialize();
     name = name_;
 }
-#else
-TraceAnalyzer::TraceAnalyzer(){
-    _initialize();
-}
-
-TraceAnalyzer::TraceAnalyzer(std::string name_){
-    _initialize();
-    name = name_;
-}
-
-TraceAnalyzer::TraceAnalyzer(int offset, int range){
-    _initialize();
-}
-
-TraceAnalyzer::TraceAnalyzer(int offset, int range, std::string name_){
-    _initialize();
-    name = name_;
-}
-#endif
 
 /** Output time processing traces */
 TraceAnalyzer::~TraceAnalyzer() 

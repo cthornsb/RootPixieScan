@@ -44,11 +44,7 @@ const double Correlator::minImpTime = 5e-3;
 const double Correlator::corrTime   = 60; // used to be 3300
 const double Correlator::fastTime   = 40e-6;
 
-#ifdef USE_HHIRF
 Correlator::Correlator() : histo(OFFSET, RANGE), lastImplant(NULL), lastDecay(NULL), condition(UNKNOWN_CONDITION)
-#else
-Correlator::Correlator() : lastImplant(NULL), lastDecay(NULL), condition(UNKNOWN_CONDITION)
-#endif
 {
 }
 
@@ -200,7 +196,6 @@ Correlator::~Correlator()
     }    
 }
 
-#ifdef USE_HHIRF
 void Correlator::DeclarePlots()
 {
     using namespace dammIds::correlator;
@@ -216,18 +211,15 @@ void Correlator::DeclarePlots()
 
     done = true;
 }
-#endif
 
 void Correlator::Correlate(EventInfo &event, unsigned int fch, unsigned int bch)
 {
-#ifdef USE_HHIRF
     using namespace dammIds::correlator;
 
     if (fch < 0 || fch >= arraySize || bch < 0  || bch >= arraySize) {
 	plot(D_CONDITION, INVALID_LOCATION);
 	return;
     }
-#endif
 
     CorrelationList &theList = decaylist[fch][bch];
     
@@ -243,17 +235,13 @@ void Correlator::Correlate(EventInfo &event, unsigned int fch, unsigned int bch)
 	    
 	    condition = VALID_IMPLANT;
 	    if ( lastImplant != NULL ) {
-#ifdef USE_HHIRF
 		double dt = event.time - lastImplant->time;
 		plot(D_TIME_BW_ALL_IMPLANTS, dt * pixie::clockInSeconds / 1e-6);
-#endif
 	    } 
 	    if ( !std::isnan(lastTime) ) {
 		condition = BACK_TO_BACK_IMPLANT;
 		event.dtime = event.time - lastTime;
-#ifdef USE_HHIRF
 		plot(D_TIME_BW_IMPLANTS, event.dtime * pixie::clockInSeconds / 100e-3);
-#endif
 	    } else {
 		event.dtime = INFINITY;
 	    }
@@ -339,9 +327,7 @@ void Correlator::Correlate(EventInfo &event, unsigned int fch, unsigned int bch)
 	    break;
     }
 
-#ifdef USE_HHIRF    
     plot(D_CONDITION, condition);
-#endif
 }
 
 /**

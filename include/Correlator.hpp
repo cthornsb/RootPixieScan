@@ -12,10 +12,7 @@
 
 #include <cmath>
 
-#ifdef USE_HHIRF
 #include "Plots.hpp"
-#endif
-
 #include "DammPlotIds.hpp"
 
 // forward declarations
@@ -98,10 +95,7 @@ public:
     Correlator();
     virtual ~Correlator();
 
-#ifdef USE_HHIRF    
     void DeclarePlots(void);
-#endif
-    
     void Init(RawEvent &rawev);
     void Correlate(EventInfo &event, unsigned int fch, unsigned int bch);  
     void CorrelateAll(EventInfo &event); 
@@ -122,7 +116,6 @@ public:
     }
     
 private:
-#ifdef USE_HHIRF
     Plots histo;
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
         histo.Plot(dammId, val1, val2, val3, name);
@@ -133,7 +126,6 @@ private:
     virtual void DeclareHistogram2D(int dammId, int xSize, int ySize, const char* title) {
         histo.DeclareHistogram2D(dammId, xSize, ySize, title);
     }
-#endif
         
     static const size_t arraySize = 40; /**< Size of the 2D array to hold the decay lists */
 

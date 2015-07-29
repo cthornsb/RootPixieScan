@@ -8,10 +8,7 @@
 #include <numeric>
 
 #include "Trace.hpp"
-
-#ifdef USE_HHIRF
 #include "DammPlotIds.hpp"
-#endif
 
 using namespace std;
 using namespace dammIds::trace;
@@ -27,9 +24,7 @@ Trace emptyTrace; ///< an empty trace for const references to point to
  * Plots are static, class-wide variable, so every trace instance has
  * an access to the same histogram range
  */
-#ifdef USE_HHIRF
 Plots Trace::histo(OFFSET, RANGE);
-#endif
 
 /**
  * Defines how to implement a trapezoidal filter characterized by two
@@ -150,7 +145,6 @@ unsigned int Trace::FindMaxInfo(std::string tDelay)
     return (itTrace-begin());
 }
 
-#ifdef USE_HHIRF
 void Trace::Plot(int id)
 {
     for (size_type i=0; i < size(); i++) {
@@ -192,4 +186,3 @@ void Trace::OffsetPlot(int id, int row, double offset)
 	histo.Plot(id, i, row, max(0., at(i) - offset));
     }
 }
-#endif

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -158,6 +159,8 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, sh
 
 	total_bins = scaled[0];
 	total_size = total_bins * 2 * halfWords;
+	total_counts = 0;
+	good_counts = 0;
 
 	good = true;
 	offset = 0; // The file offset will be set later
@@ -193,6 +196,8 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, 
 	set_char_array(xlabel, "            ", 13);
 	set_char_array(ylabel, "            ", 13);
 	set_char_array(title, std::string(title_), 41);
+	total_counts = 0;
+	good_counts = 0;
 
 	good = true;
 	offset = 0; // The file offset will be set later
@@ -254,6 +259,27 @@ bool drr_entry::find_bin_xy(int x_, int y_, int &x, int &y){
 	x = (int)roundf(x_/dx);
 	y = (int)roundf(y_/dy);
 	return true;
+}
+
+void drr_entry::print_drr(std::ofstream *file_){
+	file_->write((char*)&hisDim, 2);
+	file_->write((char*)&halfWords, 2);
+	file_->write((char*)&params, 8);
+	file_->write((char*)&raw, 8);
+	file_->write((char*)&scaled, 8);
+	file_->write((char*)&minc, 8);
+	file_->write((char*)&maxc, 8);
+	file_->write((char*)&offset, 4);
+	file_->write(xlabel, 12);
+	file_->write(ylabel, 12);
+	file_->write((char*)&calcon, 16);
+	file_->write(title, 40);
+}
+
+void drr_entry::print_list(std::ofstream *file_){
+	*file_ << std::setw(5) << hisID << std::setw(5) << hisDim << std::setw(4) << halfWords << std::setw(9) << scaled[0];
+	*file_ << std::setw(8) << comp[0] << std::setw(6) << minc[0] << std::setw(6) << maxc[0] << std::setw(9) << offset;
+	*file_ << "  " << title << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -497,7 +523,7 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 	for(size_t x = 0; x < current_entry->total_bins; x++){
 		hist->SetBinContent(x+1, data[x]); 
 	}
-	hist->ResetStats(); // Update the histogram statistics to include new bin content
+	hist->ResetStats(); // Update the histogram statistics to include nfew bin content
 
 	return hist;
 }
@@ -727,9 +753,7 @@ void OutputHisFile::flush(){
 			if(!(*iter)->good){ continue; }
 			
 			current_entry = (*iter)->entry;
-			
-			//std::cout << " " << current_entry->offset*2 << ", " << (*iter)->byte << ", " << current_entry->offset*2 + (*iter)->byte << std::endl;
-			std::cout << current_entry->hisID << " fill into " << current_entry->offset*2 + (*iter)->byte << std::endl;
+			current_entry->good_counts++;
 			
 			// Seek to the specified bin
 			ofile.seekg(current_entry->offset*2 + (*iter)->byte, std::ios::beg); // input offset
@@ -817,6 +841,9 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	
 	for(size_t i = 0; i < entry_->total_size; i++){ ofile.write(&dummy, 1); }
 	
+	ofile.seekp(0, std::ios::end);
+	total_his_size = ofile.tellp();
+	
 	return entry_->total_size;
 }
 
@@ -826,7 +853,7 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 		return false; 
 	}
 
-	bool retval = false;
+	bool retval = true;
 
 	set_char_array(initial, "HHIRFDIR0001", 13);
 	set_char_array(description, descrip_, 41);
@@ -865,18 +892,7 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 		// Write the drr entries
 		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 			if(debug_mode){ std::cout << "debug: Writing .drr entry for his id = " << (*iter)->hisID << std::endl; }
-			drr_file.write((char*)&(*iter)->hisDim, 2);
-			drr_file.write((char*)&(*iter)->halfWords, 2);
-			drr_file.write((char*)&(*iter)->params, 8);
-			drr_file.write((char*)&(*iter)->raw, 8);
-			drr_file.write((char*)&(*iter)->scaled, 8);
-			drr_file.write((char*)&(*iter)->minc, 8);
-			drr_file.write((char*)&(*iter)->maxc, 8);
-			drr_file.write((char*)&(*iter)->offset, 4);
-			drr_file.write((*iter)->xlabel, 12); (*iter)->xlabel[12] = '\0';
-			drr_file.write((*iter)->ylabel, 12); (*iter)->ylabel[12] = '\0';
-			drr_file.write((char*)&(*iter)->calcon, 16);
-			drr_file.write((*iter)->title, 40); (*iter)->title[40] = '\0';
+			(*iter)->print_drr(&drr_file);
 		}
 		
 		// Write the histogram IDs
@@ -884,18 +900,54 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 			his_id = (*iter)->hisID;
 			drr_file.write((char*)&his_id, 4);
 		}
-		
-		finalized = true;
-		retval = true;
 	}
-	
-	drr_file.close();
-	
-	if(!retval){
+	else{
 		if(debug_mode){ std::cout << "debug: Failed to open the .drr file for writing!\n"; }
-		return false;
+		retval = false;
 	}
-	return true;
+	drr_file.close();
+
+	// Write the .log file
+	std::ofstream log_file((fname+".log").c_str());
+	if(log_file.good()){
+		log_file << "  HID      TOTAL      GOOD\n\n";
+		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+			log_file << std::setw(5) << (*iter)->hisID << std::setw(10) << (*iter)->total_counts << std::setw(10) << (*iter)->good_counts << std::endl;
+		}
+		log_file << "\nFailed histogram fills:\n\n";
+		for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+			log_file << std::setw(5) << *iter << std::endl;
+		}
+	}
+	else{
+		if(debug_mode){ std::cout << "debug: Failed to open the .log file for writing!\n"; }
+		retval = false;
+	}
+	log_file.close();
+	
+	// Write the .list file (I'm trying to preserve the format of the original file)
+	std::ofstream list_file((fname+".list").c_str());
+	if(list_file.good()){
+		int temp_count = 0;
+		list_file << std::setw(7) << drr_entries.size() << " HISTOGRAMS," << std::setw(13) << total_his_size/2 << " HALF-WORDS\n ID-LIST:\n";
+		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+			if(temp_count++ == 8){ list_file << std::endl; }
+			list_file << std::setw(8) << (*iter)->hisID;
+		}
+		list_file << "\n  HID  DIM HWPC  LEN(CH)   COMPR  MIN   MAX   OFFSET    TITLE\n";
+		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+			(*iter)->print_list(&list_file);
+		}
+	}
+	else{
+		if(debug_mode){ std::cout << "debug: Failed to open the .list file for writing!\n"; }
+		retval = false;
+	}
+	list_file.close();	
+
+	finalized = true;
+	
+	return retval;
 }
 
 bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
@@ -905,6 +957,7 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
 			int bin;
+			(*iter)->total_counts++;
 			if(!(*iter)->find_bin(x_/(*iter)->comp[0], y_/(*iter)->comp[1], bin)){ return false; }		
 
 			// Push this fill into the queue
@@ -915,6 +968,16 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 			return true;
 		}
 	}
+	
+	// Check if this his ID is in the bad histogram list
+	bool in_bad_list = false;
+	for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+		if(*iter == hisID_){
+			in_bad_list = true;
+			break;
+		}
+	}
+	if(!in_bad_list){ failed_fills.push_back(hisID_); }
 	
 	return false;
 }
@@ -936,6 +999,16 @@ bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
 			return true;
 		}
 	}
+	
+	// Check if this his ID is in the bad histogram list
+	bool in_bad_list = false;
+	for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+		if(*iter == hisID_){
+			in_bad_list = true;
+			break;
+		}
+	}
+	if(!in_bad_list){ failed_fills.push_back(hisID_); }
 	
 	return false;
 }
@@ -966,20 +1039,4 @@ void OutputHisFile::Close(){
 	
 	writable = false;
 	ofile.close();
-}
-
-void OutputHisFile::TestBoundaries(){
-	if(!writable){ return; }
-
-	// Search for the specified histogram in the .drr entry list
-	int dummy1 = 0xaaaaaaaa;
-	int dummy2 = 0xbbbbbbbb;
-	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-		ofile.seekp((*iter)->offset*2, std::ios::beg);
-		ofile.write((char*)&dummy1, 4);
-		for(int i = 1; i < (int)(*iter)->total_bins-1; i++){
-			ofile.write((char*)&dummy2, 4);
-		}
-		ofile.write((char*)&dummy1, 4);
-	}
 }

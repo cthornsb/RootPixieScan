@@ -55,7 +55,6 @@ FittingAnalyzer::FittingAnalyzer() : TraceAnalyzer(OFFSET, RANGE, "Fitting")
 
 //********** DeclarePlots **********
 bool FittingAnalyzer::InitDamm(){
-#ifdef USE_HHIRF
 	std::cout << " FittingAnalyzer: Initializing the damm output\n";
 	if(use_damm){
 		std::cout << " FittingAnalyzer: Warning! Damm output already initialized\n";
@@ -76,9 +75,6 @@ bool FittingAnalyzer::InitDamm(){
 	use_damm = true;
 
 	return true;
-#else
-	return false;
-#endif
 }
 
 //********** Analyze **********
@@ -87,9 +83,7 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 	StartAnalyze();
 	TraceAnalyzer::Analyze(trace, detType, detSubtype);
 	if(trace.HasValue("saturation") || trace.empty()) {
-#ifdef USE_HHIRF
 		if(use_damm){ plot(D_SAT,2); }
-#endif
 		EndAnalyze();
 	 	return;
 	}
@@ -106,7 +100,6 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 	}
 
 	static int counter = 0;
-#ifdef USE_HHIRF
 	const double qdcToMax = trace.GetValue("qdcToMax");
 	if(use_damm){
 		for(unsigned int i = 0; i < trace.size(); i++)
@@ -116,7 +109,6 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 		plot(DD_MAXVALPOS, maxPos, maxVal);
 		plot(D_SIGMA, sigmaBaseline*100);
 	}
-#endif
 	counter++;
 
 	if(sigmaBaseline > 3.0) {
@@ -197,7 +189,6 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 	trace.InsertValue("phase", fitPars.front()+maxPos);
 	trace.InsertValue("walk", CalcWalk(maxVal, detType, detSubtype));
 
-#ifdef USE_HHIRF
 	double chi = gsl_blas_dnrm2(s->f);
 	double dof = sizeFit - numParams;
 	double chisqPerDof = pow(chi, 2.0)/dof;
@@ -207,7 +198,6 @@ void FittingAnalyzer::Analyze(Trace &trace, const string &detType, const string 
 		plot(D_CHISQPERDOF, chisqPerDof);
 		plot(DD_QDCMASK, chisqPerDof, maxVal);
 	}
-#endif
 
 	gsl_multifit_fdfsolver_free (s);
 	gsl_matrix_free (covar);

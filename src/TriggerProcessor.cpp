@@ -36,7 +36,6 @@ TriggerProcessor::TriggerProcessor(bool save_waveforms_) : EventProcessor(OFFSET
 
 
 bool TriggerProcessor::InitDamm(void) {
-#ifdef USE_HHIRF
     std::cout << " TriggerProcessor: Initializing the damm output\n";
     if(use_damm){
         std::cout << " TriggerProcessor: Warning! Damm output already initialized\n";
@@ -48,9 +47,6 @@ bool TriggerProcessor::InitDamm(void) {
     
     use_damm = true;
     return true;
-#else
-	return false;
-#endif
 }
 
 // Initialize for root output
@@ -86,9 +82,7 @@ bool TriggerProcessor::PreProcess(RawEvent &event){
     	TimingInformation::TimingData trigger((*it));
         double energy = (*it)->GetEnergy();
         if (energy > detectors::triggerThreshold){ ++multiplicity; }
-#ifdef USE_HHIRF
         if(use_damm){ plot(D_ENERGY_TRIGGER, energy); }
-#endif
         if(use_root){ 
             structure.Append((*it)->GetTime(), energy);
             if(save_waveforms){ waveform.Append(trigger.trace); }
@@ -96,9 +90,7 @@ bool TriggerProcessor::PreProcess(RawEvent &event){
             count++;
         }
     }
-#ifdef USE_HHIRF
     if(use_damm){ plot(D_MULT_TRIGGER, multiplicity); }
-#endif
     
     EndProcess();
     return output;

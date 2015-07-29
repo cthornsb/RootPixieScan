@@ -45,7 +45,6 @@ LogicProcessor::LogicProcessor(bool save_waveforms_) : EventProcessor(OFFSET, RA
 }
 
 bool LogicProcessor::InitDamm(){
-#ifdef USE_HHIRF
     std::cout << " LogicProcessor: Initializing the damm output\n";
     if(use_damm){
         std::cout << " LogicProcessor: Warning! Damm output already initialized\n";
@@ -71,9 +70,6 @@ bool LogicProcessor::InitDamm(){
     
     use_damm = true;
     return true;
-#else
-	return true;
-#endif
 }
 
 /**< Nothing to do to init Root output for logic, return true */
@@ -111,24 +107,19 @@ bool LogicProcessor::BasicProcessing(RawEvent &event) {
 		double timediff;
 
 		if(subtype == "start") {
-#ifdef USE_HHIRF
 			if (!std::isnan(lastStartTime.at(loc)) && use_damm) {
 			    timediff = time - lastStartTime.at(loc);
 				plot(D_TDIFF_STARTX + loc, timediff / logicPlotResolution);
 				plot(D_TDIFF_SUMX + loc,   timediff / logicPlotResolution);
 			}
-#endif
 
 			//? bounds checking
 			lastStartTime.at(loc) = time;
 			logicStatus.at(loc) = true;
 
 			startCount.at(loc)++;
-#ifdef USE_HHIRF
 			if(use_damm){ plot(D_COUNTER_START, loc); }
-#endif
 		} else if (subtype == "stop") {
-#ifdef USE_HHIRF
 	  	    if (!std::isnan(lastStopTime.at(loc)) && use_damm) {
 			timediff = time - lastStopTime.at(loc);
 			plot(D_TDIFF_STOPX + loc, timediff / logicPlotResolution);
@@ -138,15 +129,12 @@ bool LogicProcessor::BasicProcessing(RawEvent &event) {
 					plot(D_TDIFF_LENGTHX + loc, moveTime / logicPlotResolution);
 				}
 			}
-#endif
 			//? bounds checking
 			lastStopTime.at(loc) = time;
 			logicStatus.at(loc) = false;
 
 			stopCount.at(loc)++;
-#ifdef USE_HHIRF
 			if(use_damm){ plot(D_COUNTER_STOP, loc); }
-#endif
 		}
     }
     
@@ -187,7 +175,6 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
 		startTimeBin = max(0, startTimeBin - firstTimeBin);
 		timeBin -= firstTimeBin;
 
-#ifdef USE_HHIRF		    
 		if(use_damm){ 
 			for (int bin=startTimeBin; bin < timeBin; bin++) {
 				int row = bin / plotSize;
@@ -196,7 +183,6 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
 				plot(DD_RUNTIME_LOGIC + loc, col, row, 1);
 			}
 		}
-#endif
     }
     
     for (vector<ChanEvent*>::const_iterator it = triggers.begin(); it != triggers.end(); it++) {
@@ -206,7 +192,6 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
         if (timeBin >= maxBin || timeBin < 0)
             continue;
 
-#ifdef USE_HHIRF        
         if(use_damm){
             int row = timeBin / plotSize;
             int col = timeBin % plotSize;
@@ -216,7 +201,6 @@ bool LogicProcessor::TriggerProcessing(RawEvent &event) {
                 plot(DD_RUNTIME_LOGIC + i, col, row, 5);
             }
         }
-#endif
     }
 
     for (vector<ChanEvent*>::const_iterator it = scalers.begin(); it != scalers.end(); it++) {
