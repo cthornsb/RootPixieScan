@@ -46,9 +46,11 @@ void set2cc_(const int &dammID, const int &x, const int &y, const int &z){
 
 /// Strip trailing whitespace from a c-string
 std::string rstrip(char *input_){
-	unsigned int index = strlen(input_)-1;
-	std::string output = "";
+	if(strlen(input_) == 0){ return std::string(""); }
 
+	unsigned int index = (int)strlen(input_)-1;
+	std::string output = "";
+	
 	// Skip all trailing whitespace
 	while(input_[index--] == ' ' && index > 0){ }
 	
@@ -153,9 +155,9 @@ drr_entry::drr_entry(unsigned int hisID_, unsigned short halfWords_, unsigned sh
 	dy = 0.0;
 	
 	// Set label and titles
-	set_char_array(xlabel, "            ", 13);
-	set_char_array(ylabel, "            ", 13);
-	set_char_array(title, std::string(title_), 41);
+	set_char_array(xlabel, "            ", 12);
+	set_char_array(ylabel, "            ", 12);
+	set_char_array(title, std::string(title_), 40);
 
 	total_bins = scaled[0];
 	total_size = total_bins * 2 * halfWords;
@@ -193,9 +195,9 @@ drr_entry::drr_entry(unsigned int hisID_, unsigned short halfWords_, unsigned sh
 	total_size = total_bins * 2 * halfWords;
 	
 	// Set label and titles
-	set_char_array(xlabel, "            ", 13);
-	set_char_array(ylabel, "            ", 13);
-	set_char_array(title, std::string(title_), 41);
+	set_char_array(xlabel, "            ", 12);
+	set_char_array(ylabel, "            ", 12);
+	set_char_array(title, std::string(title_), 40);
 	total_counts = 0;
 	good_counts = 0;
 
@@ -279,7 +281,7 @@ void drr_entry::print_drr(std::ofstream *file_){
 void drr_entry::print_list(std::ofstream *file_){
 	*file_ << std::setw(5) << hisID << std::setw(5) << hisDim << std::setw(4) << halfWords << std::setw(9) << scaled[0];
 	*file_ << std::setw(8) << comp[0] << std::setw(6) << minc[0] << std::setw(6) << maxc[0] << std::setw(9) << offset;
-	*file_ << "  " << title << std::endl;
+	*file_ << "  " << rstrip(title) << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -724,7 +726,7 @@ void HisFile::PrintEntry(){
 	std::cout << "hisID: " << current_entry->hisID << std::endl;
 	std::cout << "dimension: " << current_entry->hisDim << std::endl;
 	std::cout << "num hwords: " << current_entry->halfWords << std::endl;
-	std::cout << "title: " << current_entry->title << std::endl;
+	std::cout << "title: " << rstrip(current_entry->title) << std::endl;
 	std::cout << "xlabel: " << current_entry->xlabel << std::endl;
 	std::cout << "ylabel: " << current_entry->ylabel << std::endl;
 	std::cout << "offset: " << current_entry->offset << std::endl;
@@ -850,7 +852,7 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	entry_->offset = (size_t)ofile.tellp()/2; // Set the file offset (in 2 byte words)
 	drr_entries.push_back(entry_);
 
-	if(debug_mode){	std::cout << "debug: Extending .his file by " << entry_->total_size << " bytes for his ID = " << entry_->hisID << " i.e. '" << entry_->title << "'\n"; }
+	if(debug_mode){	std::cout << "debug: Extending .his file by " << entry_->total_size << " bytes for his ID = " << entry_->hisID << " i.e. '" << rstrip(entry_->title) << "'\n"; }
 
 	char *block = new char[entry_->total_size];	
 	memset(block, 0x0, entry_->total_size);
@@ -871,8 +873,8 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 
 	bool retval = true;
 
-	set_char_array(initial, "HHIRFDIR0001", 13);
-	set_char_array(description, descrip_, 41);
+	set_char_array(initial, "HHIRFDIR0001", 12);
+	set_char_array(description, descrip_, 40);
 	
 	if(debug_mode){ std::cout << "debug: NHIS = " << drr_entries.size() << std::endl; }
 	nHis = drr_entries.size(); 
