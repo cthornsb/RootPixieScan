@@ -107,46 +107,46 @@ struct drr_entry{
 	void initialize();
 
 	/// Check that a specified global bin is in range
-	bool check_bin(int bin_){ return ((bin_ < 0 || bin_ >= (int)total_bins)?false:true); }
+	bool check_bin(size_t bin_){ return ((bin_ < 0 || bin_ >= total_bins)?false:true); }
 
 	/// Check that a specified x bin is in range.
-	bool check_x_bin(int x_){ return ((x_ < 0 || x_ > (int)scaled[0])?false:true); }
+	bool check_x_bin(unsigned int x_){ return ((x_ < 0 || x_ > (unsigned int)scaled[0])?false:true); }
 	
 	/// Check that a specified x value is in range.
-	bool check_x_range(int x_){ return ((x_ < (int)minc[0] || x_ > (int)maxc[0])?false:true); }
+	bool check_x_range(unsigned int x_){ return ((x_ < (unsigned int)minc[0] || x_ > (unsigned int)maxc[0])?false:true); }
 	
 	/// Check that a specified y bin is in range. Always returns true for 1d plots.
-	bool check_y_bin(int y_){ return (((y_ < 0 || y_ > (int)scaled[1]) && hisDim >= 2)?false:true); }
+	bool check_y_bin(unsigned int y_){ return (((y_ < 0 || y_ > (unsigned int)scaled[1]) && hisDim >= 2)?false:true); }
 	
 	/// Check that a specified y value is in range. Always returns true for 1d plots.
-	bool check_y_range(int y_){ return (((y_ < (int)minc[1] || y_ > (int)maxc[1]) && hisDim >= 2)?false:true); }
+	bool check_y_range(unsigned int y_){ return (((y_ < (unsigned int)minc[1] || y_ > (unsigned int)maxc[1]) && hisDim >= 2)?false:true); }
 	
 	/// Return the global array bin for a given x and y bin
-	bool get_bin(int x_, int y_, int &bin);
+	bool get_bin(unsigned int x_, unsigned int y_, unsigned int &bin);
 
 	/// Return the local x and y bins for a given global bin
-	bool get_bin_xy(int global_, int &x, int &y);
+	bool get_bin_xy(unsigned int global_, unsigned int &x, unsigned int &y);
 	
 	/// Return the global array bin for a given x, y coordinate
-	bool find_bin(int x_, int y_, int &bin);
+	bool find_bin(unsigned int x_, unsigned int y_, unsigned int &bin);
 	
 	/// Return the global array bin for a given x, y coordinate
-	bool find_bin_xy(int x_, int y_, int &x, int &y);
+	bool find_bin_xy(unsigned int x_, unsigned int y_, unsigned int &x, unsigned int &y);
 
 	/// Print a 128 byte .drr file entry block
 	void print_drr(std::ofstream *file_);
 
-	/// Print a .list file entry
+	/// Print a formatted .list file entry
 	void print_list(std::ofstream *file_);
 };
 
 struct fill_queue{
 	drr_entry *entry; /// .drr entry of the histogram to be filled
-	int byte; /// Offset of bin (in bytes)
-	int weight; /// Weight of fill
+	unsigned int byte; /// Offset of bin (in bytes)
+	unsigned int weight; /// Weight of fill
 	bool good; /// True if the histo array index is within range
 	
-	fill_queue(drr_entry *entry_, int bin_, int w_){
+	fill_queue(drr_entry *entry_, unsigned int bin_, unsigned int w_){
 		entry = entry_; byte = bin_ * entry->halfWords * 2; weight = w_; good = entry->check_bin(bin_);
 		if(byte < 0){ std::cout << " his id = " << entry_->hisID << " byte offset is less than zero (" << byte << ")!\n"; }
 	}
@@ -326,10 +326,10 @@ class OutputHisFile : public HisFile{
 	bool Finalize(bool make_list_file_=false, const std::string &descrip_="RootPixieScan .drr file");
 	
 	/// Increment a histogram at (x, y) by weight_
-	bool Fill(unsigned int hisID_, int x_, int y_, int weight_=1);
+	bool Fill(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_=1);
 	
 	/// Increment a histogram at bin (x, y) by weight_
-	bool FillBin(unsigned int hisID_, int x_, int y_, int weight_=1);
+	bool FillBin(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_=1);
 	
 	/// Open a new .his file
 	bool Open(std::string fname_prefix);

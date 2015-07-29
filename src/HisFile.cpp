@@ -235,29 +235,29 @@ void drr_entry::initialize(){
 	}
 }
 
-bool drr_entry::get_bin(int x_, int y_, int &bin){
+bool drr_entry::get_bin(unsigned int x_, unsigned int y_, unsigned int &bin){
 	if(!check_x_bin(x_) || !check_y_bin(y_)){ return false; } // Range check
 	bin = y_*scaled[0] + x_;
 	return true;
 }
 
-bool drr_entry::get_bin_xy(int bin_, int &x, int &y){
+bool drr_entry::get_bin_xy(unsigned int bin_, unsigned int &x, unsigned int &y){
 	if(!check_x_bin(x) || !check_y_bin(y)){ return false; } // Range check
 	x = bin_%scaled[0];
 	y = bin_/scaled[0];
 	return true;
 }
 
-bool drr_entry::find_bin(int x_, int y_, int &bin){
+bool drr_entry::find_bin(unsigned int x_, unsigned int y_, unsigned int &bin){
 	if(!check_x_range(x_) || !check_y_range(y_)){ return false; } // Range check
-	bin = ((int)roundf(y_/dy)*scaled[0] + (int)roundf(x_/dx));
+	bin = ((unsigned int)roundf(y_/dy)*scaled[0] + (unsigned int)roundf(x_/dx));
 	return true;
 }
 
-bool drr_entry::find_bin_xy(int x_, int y_, int &x, int &y){
+bool drr_entry::find_bin_xy(unsigned int x_, unsigned int y_, unsigned int &x, unsigned int &y){
 	if(!check_x_range(x_) || !check_y_range(y_)){ return false; } // Range check
-	x = (int)roundf(x_/dx);
-	y = (int)roundf(y_/dy);
+	x = (unsigned int)roundf(x_/dx);
+	y = (unsigned int)roundf(y_/dy);
 	return true;
 }
 
@@ -556,9 +556,9 @@ TH2I* HisFile::GetTH2(int hist_/*=-1*/){
 						  current_entry->scaled[1], (double)current_entry->minc[1], (double)current_entry->maxc[1]+1);
 
 	// Fill the histogram bins
-	int bin = 0;
-	for(short i = 0; i < current_entry->scaled[1]; i++){ // y
-		for(short j = 0; j < current_entry->scaled[0]; j++){ // x
+	unsigned int bin = 0;
+	for(unsigned int i = 0; i < (unsigned int)current_entry->scaled[1]; i++){ // y
+		for(unsigned int j = 0; j < (unsigned int)current_entry->scaled[0]; j++){ // x
 			current_entry->get_bin(j, i, bin);
 			hist->SetBinContent(hist->GetBin(j+1, i+1), data[bin]);
 		}
@@ -936,15 +936,15 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 	return retval;
 }
 
-bool OutputHisFile::Fill(unsigned int hisID_, int x_, int y_, int weight_/*=1*/){
+bool OutputHisFile::Fill(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_/*=1*/){
 	if(!writable){ return false; }
 
 	// Search for the specified histogram in the .drr entry list
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
-			int bin;
+			unsigned int bin;
 			(*iter)->total_counts++;
-			if(!(*iter)->find_bin(x_/(*iter)->comp[0], y_/(*iter)->comp[1], bin)){ return false; }		
+			if(!(*iter)->find_bin((unsigned int)(x_/(*iter)->comp[0]), (unsigned int)(y_/(*iter)->comp[1]), bin)){ return false; }		
 
 			// Push this fill into the queue
 			fill_queue *fill = new fill_queue((*iter), bin, weight_);
@@ -968,13 +968,13 @@ bool OutputHisFile::Fill(unsigned int hisID_, int x_, int y_, int weight_/*=1*/)
 	return false;
 }
 
-bool OutputHisFile::FillBin(unsigned int hisID_, int x_, int y_, int weight_){
+bool OutputHisFile::FillBin(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_){
 	if(!writable){ return false; }
 
 	// Search for the specified histogram in the .drr entry list
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
-			int bin;
+			unsigned int bin;
 			(*iter)->total_counts++;
 			if(!(*iter)->get_bin(x_, y_, bin)){ return false; }
 		
