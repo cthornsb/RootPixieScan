@@ -98,10 +98,18 @@ void HisData::Initialize(size_t size_, bool use_int_){
 
 bool HisData::Read(std::ifstream *input_){
 	if(!init || !input_ || !input_->good()){ return false; }
-	unsigned int temp;
+	unsigned int temp1;
+	unsigned short temp2;
 	for(size_t i = 0; i < size; i++){
-		input_->read((char*)&temp, 4);
-		data[i] = temp;
+		if(use_int){ 
+			input_->read((char*)&temp1, 4); 
+			data[i] = temp1;
+		}
+		else{ 
+			input_->read((char*)&temp2, 2); 
+			data[i] = (unsigned int)temp2;
+		}
+		
 	}
 	return true;
 }
@@ -526,7 +534,7 @@ TH1I* HisFile::GetTH1(int hist_/*=-1*/){
 	for(size_t x = 0; x < current_entry->total_bins; x++){
 		hist->SetBinContent(x+1, data[x]); 
 	}
-	hist->ResetStats(); // Update the histogram statistics to include nfew bin content
+	hist->ResetStats(); // Update the histogram statistics to include new bin content
 
 	return hist;
 }
@@ -594,11 +602,9 @@ size_t HisFile::GetHistogram(unsigned int hist_, bool no_copy_/*=false*/){
 
 	if(!no_copy_){
 		// Seek to the start of this histogram
-		std::cout << " setting offset of " << current_entry->offset*2 << std::endl;
 		his.seekg(current_entry->offset*2, std::ios::beg);
 
 		// Read the histogram data
-		std::cout << " reading " << current_entry->total_bins*4 << " bytes from .his file\n";
 		data.Initialize(current_entry->total_bins, current_entry->use_int);
 		data.Read(&his);
 	}
