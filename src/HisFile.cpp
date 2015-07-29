@@ -748,7 +748,6 @@ void OutputHisFile::flush(){
 	if(debug_mode){ std::cout << "debug: Flushing histogram entries to file.\n"; }
 
 	if(writable){ // Do the filling
-		std::streampos location;
 		for(std::vector<fill_queue*>::iterator iter = fills_waiting.begin(); iter != fills_waiting.end(); iter++){
 			if(!(*iter)->good){ continue; }
 			
@@ -835,11 +834,15 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	entry_->offset = (size_t)ofile.tellp()/2; // Set the file offset (in 2 byte words)
 	drr_entries.push_back(entry_);
 
-	char dummy = 0x0;
-
 	if(debug_mode){	std::cout << "debug: Extending .his file by " << entry_->total_size << " bytes for his ID = " << entry_->hisID << " i.e. '" << entry_->title << "'\n"; }
+
+	char *block = new char[entry_->total_size];	
+	memset(block, 0x0, entry_->total_size);
+	ofile.write(block, entry_->total_size);
+	delete[] block;
 	
-	for(size_t i = 0; i < entry_->total_size; i++){ ofile.write(&dummy, 1); }
+	//char dummy = 0x0;
+	//for(size_t i = 0; i < entry_->total_size; i++){ ofile.write(&dummy, 1); }
 	
 	ofile.seekp(0, std::ios::end);
 	total_his_size = ofile.tellp();
@@ -907,32 +910,15 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 	}
 	drr_file.close();
 
-	// Write the .log file
-	std::ofstream log_file((fname+".log").c_str());
-	if(log_file.good()){
-		log_file << "  HID      TOTAL      GOOD\n\n";
-		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-			log_file << std::setw(5) << (*iter)->hisID << std::setw(10) << (*iter)->total_counts << std::setw(10) << (*iter)->good_counts << std::endl;
-		}
-		log_file << "\nFailed histogram fills:\n\n";
-		for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
-			log_file << std::setw(5) << *iter << std::endl;
-		}
-	}
-	else{
-		if(debug_mode){ std::cout << "debug: Failed to open the .log file for writing!\n"; }
-		retval = false;
-	}
-	log_file.close();
-	
 	// Write the .list file (I'm trying to preserve the format of the original file)
 	std::ofstream list_file((fname+".list").c_str());
 	if(list_file.good()){
 		int temp_count = 0;
 		list_file << std::setw(7) << drr_entries.size() << " HISTOGRAMS," << std::setw(13) << total_his_size/2 << " HALF-WORDS\n ID-LIST:\n";
 		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-			if(temp_count++ == 8){ list_file << std::endl; }
+			if(temp_count % 8 == 0 && temp_count != 0){ list_file << std::endl; }
 			list_file << std::setw(8) << (*iter)->hisID;
+			temp_count++;
 		}
 		list_file << "\n  HID  DIM HWPC  LEN(CH)   COMPR  MIN   MAX   OFFSET    TITLE\n";
 		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
@@ -989,6 +975,7 @@ bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
 			int bin;
+			(*iter)->total_counts++;
 			if(!(*iter)->get_bin(x_, y_, bin)){ return false; }
 		
 			// Push this fill into the queue
@@ -1033,6 +1020,21 @@ void OutputHisFile::Close(){
 	flush();
 
 	if(!finalized){ Finalize(); }
+
+	// Write the .log file
+	std::ofstream log_file((fname+".log").c_str());
+	if(log_file.good()){
+		log_file << "  HID      TOTAL      GOOD\n\n";
+		for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+			log_file << std::setw(5) << (*iter)->hisID << std::setw(10) << (*iter)->total_counts << std::setw(10) << (*iter)->good_counts << std::endl;
+		}
+		log_file << "\nFailed histogram fills:\n\n";
+		for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+			log_file << std::setw(5) << *iter << std::endl;
+		}
+	}
+	else if(debug_mode){ std::cout << "debug: Failed to open the .log file for writing!\n"; }
+	log_file.close();
 
 	// Clear the .drr entries in the entries vector
 	clear_drr_entries();

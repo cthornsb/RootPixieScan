@@ -127,7 +127,6 @@ VandleProcessor::VandleProcessor(const int RP_OFFSET, const int RANGE, int i):
 
 //********** Damm stuff **********
 bool VandleProcessor::InitDamm(){
-#ifdef USE_HHIRF
 	std::cout << " VandleProcessor: Initializing the damm output\n";
 	if(use_damm){
 		std::cout << " VandleProcessor: Warning! Damm output already initialized\n";
@@ -243,9 +242,6 @@ bool VandleProcessor::InitDamm(){
 	
 	use_damm = true;
 	return true;
-#else
-	return false;
-#endif
 }// Declare Plots
 
 // Initialize for root output
