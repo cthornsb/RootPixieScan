@@ -137,7 +137,7 @@ unsigned int& HisData::operator [](const size_t &index_){
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Constructor for 1d histogram
-drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, short min_, short max_, const char * title_){
+drr_entry::drr_entry(unsigned int hisID_, unsigned short halfWords_, unsigned short raw_, unsigned short scaled_, unsigned short min_, unsigned short max_, const char * title_){
 	hisID = hisID_; hisDim = 1; halfWords = halfWords_;
 
 	// Set range and scaling variables
@@ -173,8 +173,8 @@ drr_entry::drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, sh
 }
 
 /// Constructor for 2d histogram
-drr_entry::drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
-					 short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_){
+drr_entry::drr_entry(unsigned int hisID_, unsigned short halfWords_, unsigned short Xraw_, unsigned short Xscaled_, unsigned short Xmin_, unsigned short Xmax_,
+					 unsigned short Yraw_, unsigned short Yscaled_, unsigned short Ymin_, unsigned short Ymax_, const char * title_){
 	hisID = hisID_; hisDim = 2; halfWords = halfWords_;
 
 	// Set range and scaling variables
@@ -575,7 +575,7 @@ void HisFile::GetEntry(size_t id_){
 }
 
 /// Load the specified histogram
-size_t HisFile::GetHistogram(int hist_, bool no_copy_/*=false*/){
+size_t HisFile::GetHistogram(unsigned int hist_, bool no_copy_/*=false*/){
 	err_flag = 0; // Reset the error flag
 	if(!is_open){ 
 		err_flag = 4;
@@ -604,7 +604,7 @@ size_t HisFile::GetHistogram(int hist_, bool no_copy_/*=false*/){
 }
 
 /// Load a specified histogram by ID
-size_t HisFile::GetHistogramByID(int hist_id_, bool no_copy_/*=false*/){
+size_t HisFile::GetHistogramByID(unsigned int hist_id_, bool no_copy_/*=false*/){
 	err_flag = 0; // Reset the error flag
 	if(!is_open){ 
 		err_flag = 4;
@@ -936,7 +936,7 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 	return retval;
 }
 
-bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
+bool OutputHisFile::Fill(unsigned int hisID_, int x_, int y_, int weight_/*=1*/){
 	if(!writable){ return false; }
 
 	// Search for the specified histogram in the .drr entry list
@@ -957,7 +957,7 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 	
 	// Check if this his ID is in the bad histogram list
 	bool in_bad_list = false;
-	for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+	for(std::vector<unsigned int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
 		if(*iter == hisID_){
 			in_bad_list = true;
 			break;
@@ -968,7 +968,7 @@ bool OutputHisFile::Fill(int hisID_, int x_, int y_, int weight_/*=1*/){
 	return false;
 }
 
-bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
+bool OutputHisFile::FillBin(unsigned int hisID_, int x_, int y_, int weight_){
 	if(!writable){ return false; }
 
 	// Search for the specified histogram in the .drr entry list
@@ -989,7 +989,7 @@ bool OutputHisFile::FillBin(int hisID_, int x_, int y_, int weight_){
 	
 	// Check if this his ID is in the bad histogram list
 	bool in_bad_list = false;
-	for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+	for(std::vector<unsigned int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
 		if(*iter == hisID_){
 			in_bad_list = true;
 			break;
@@ -1029,7 +1029,7 @@ void OutputHisFile::Close(){
 			log_file << std::setw(5) << (*iter)->hisID << std::setw(10) << (*iter)->total_counts << std::setw(10) << (*iter)->good_counts << std::endl;
 		}
 		log_file << "\nFailed histogram fills:\n\n";
-		for(std::vector<int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+		for(std::vector<unsigned int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
 			log_file << std::setw(5) << *iter << std::endl;
 		}
 	}

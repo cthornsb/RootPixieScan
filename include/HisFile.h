@@ -67,16 +67,16 @@ class HisData{
 
 /// drr entry information
 struct drr_entry{
-	int hisID; /// ID of the histogram
-	short hisDim; /// Number of dimensions
-	short halfWords; /// Number of half-words (2 bytes) per channel
-	short params[4]; /// Parameter id numbers, for each dimension (up to 4)
-	short raw[4]; /// Raw length
-	short scaled[4]; /// Scaled length
-	short comp[4]; /// The compression level of the histogram
-	short minc[4]; /// Min channel number
-	short maxc[4]; /// Max channel number
-	int offset; /// Location in his file (in 2-bytes units)
+	unsigned int hisID; /// ID of the histogram
+	unsigned short hisDim; /// Number of dimensions
+	unsigned short halfWords; /// Number of half-words (2 bytes) per channel
+	unsigned short params[4]; /// Parameter id numbers, for each dimension (up to 4)
+	unsigned short raw[4]; /// Raw length
+	unsigned short scaled[4]; /// Scaled length
+	unsigned short comp[4]; /// The compression level of the histogram
+	unsigned short minc[4]; /// Min channel number
+	unsigned short maxc[4]; /// Max channel number
+	unsigned int offset; /// Location in his file (in 2-bytes units)
 	char xlabel[13]; /// X axis label
 	char ylabel[13]; /// Y axis label
 	float calcon[4]; /// Calibration for X axis
@@ -90,18 +90,18 @@ struct drr_entry{
 	float dx; /// Bin width for the x-axis
 	float dy; /// Bin width for the y-axis
 	
-	unsigned long long total_counts; /// Total number of attempted histogram fills
-	unsigned long long good_counts; /// Total number of actual histogram fills
+	unsigned int total_counts; /// Total number of attempted histogram fills
+	unsigned int good_counts; /// Total number of actual histogram fills
 	
 	/// Default constructor
 	drr_entry(){}
 	
 	/// Constructor for 1d histogram
-	drr_entry(int hisID_, short halfWords_, short raw_, short scaled_, short min_, short max_, const char * title_);
+	drr_entry(unsigned int hisID_, unsigned short halfWords_, unsigned short raw_, unsigned short scaled_, unsigned short min_, unsigned short max_, const char * title_);
 	
 	/// Constructor for 2d histogram
-	drr_entry(int hisID_, short halfWords_, short Xraw_, short Xscaled_, short Xmin_, short Xmax_,
-			  short Yraw_, short Yscaled_, short Ymin_, short Ymax_, const char * title_);
+	drr_entry(unsigned int hisID_, unsigned short halfWords_, unsigned short Xraw_, unsigned short Xscaled_, unsigned short Xmin_, unsigned short Xmax_,
+			  unsigned short Yraw_, unsigned short Yscaled_, unsigned short Ymin_, unsigned short Ymax_, const char * title_);
 
 	/// Initialize variables not stored in the .drr entry
 	void initialize();
@@ -264,10 +264,10 @@ class HisFile{
 	void GetEntry(size_t id_);
 
 	/// Load the specified histogram
-	size_t GetHistogram(int hist_, bool no_copy_=false);
+	size_t GetHistogram(unsigned int hist_, bool no_copy_=false);
 	
 	/// Load a specified histogram by ID
-	size_t GetHistogramByID(int hist_id_, bool no_copy_=false);
+	size_t GetHistogramByID(unsigned int hist_id_, bool no_copy_=false);
 	
 	/// Load the next histogram specified in the .drr file
 	size_t GetNextHistogram(bool no_copy_=false);
@@ -290,7 +290,7 @@ class OutputHisFile : public HisFile{
 	unsigned int flush_wait; /// Number of fills to wait between flushes
 	unsigned int flush_count; /// Number of fills since last flush
 	std::vector<fill_queue*> fills_waiting; /// Vector containing list of histograms to be filled
-	std::vector<int> failed_fills; /// Vector containing list of histogram fills into an invalid his id
+	std::vector<unsigned int> failed_fills; /// Vector containing list of histogram fills into an invalid his id
 	std::streampos total_his_size; /// Total size of .his file
 
 	/// Flush histogram fills to file
@@ -326,10 +326,10 @@ class OutputHisFile : public HisFile{
 	bool Finalize(bool make_list_file_=false, const std::string &descrip_="RootPixieScan .drr file");
 	
 	/// Increment a histogram at (x, y) by weight_
-	bool Fill(int hisID_, int x_, int y_, int weight_=1);
+	bool Fill(unsigned int hisID_, int x_, int y_, int weight_=1);
 	
 	/// Increment a histogram at bin (x, y) by weight_
-	bool FillBin(int hisID_, int x_, int y_, int weight_=1);
+	bool FillBin(unsigned int hisID_, int x_, int y_, int weight_=1);
 	
 	/// Open a new .his file
 	bool Open(std::string fname_prefix);
