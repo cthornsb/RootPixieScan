@@ -389,7 +389,7 @@ int main(int argc, char *argv[]){
 	MapFile theMapFile;
 
 	// Initialize detector driver with the output filename
-	DetectorDriver *driver = new DetectorDriver(output_filename_prefix.str());
+	DetectorDriver *driver = new DetectorDriver(output_filename_prefix.str(), debug_mode);
 
 	std::cout << sys_message_head << "Using output filename prefix '" << output_filename_prefix.str() << "'.\n";
 	if(debug_mode){ std::cout << sys_message_head << "Using debug mode.\n"; }

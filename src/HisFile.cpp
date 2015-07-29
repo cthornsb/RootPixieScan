@@ -327,6 +327,7 @@ void HisFile::initialize(){
 	hists_processed = 0;
 	is_good = false;
 	is_open = false;
+	debug_mode = false;
 }
 
 HisFile::HisFile(){
@@ -813,16 +814,27 @@ void OutputHisFile::flush(){
 }
 
 OutputHisFile::OutputHisFile(){
+	fname = "";
 	writable = false;
 	finalized = false;
 	existing_file = false;
-	debug_mode = true;
+	flush_wait = 100000;
+	flush_count = 0;
+	total_his_size = 0;
+	
+	initialize();
 }
 
 OutputHisFile::OutputHisFile(std::string fname_prefix){
+	fname = "";
+	writable = false;
 	finalized = false;
 	existing_file = false;
-	debug_mode = true;
+	flush_wait = 100000;
+	flush_count = 0;
+	total_his_size = 0;
+	
+	initialize();
 	Open(fname_prefix);
 }
 
@@ -1019,8 +1031,6 @@ bool OutputHisFile::Open(std::string fname_prefix){
 	
 	//touch.close();
 	ofile.open((fname+".his").c_str(), std::ios::out | std::ios::in | std::ios::trunc | std::ios::binary);
-	flush_wait = 100000;
-	flush_count = 0;
 	return (writable = ofile.good());
 }
 

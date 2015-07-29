@@ -109,7 +109,7 @@ DetectorDriver* DetectorDriver::get() {
 	return instance;
 }
 
-DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/) : histo(OFFSET, RANGE) 
+DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/, bool debug_/*=false*/) : histo(OFFSET, RANGE) 
 {
 	time(&start_time); // Start the master timer
 	is_init = false;
@@ -184,6 +184,7 @@ DetectorDriver::DetectorDriver(std::string output_filename/*="output"*/) : histo
 	if(config_args.HasName("DAMM", arg_value) && arg_value == "1"){ 
 		use_damm = true; 
 		output_his = new OutputHisFile(root_fname);
+		if(debug_){ output_his->SetDebugMode(); }
 		if(output_his->IsWritable()){ 
 			std::cout << "DetectorDriver: Using DAMM output\n"; 
 			MapFile theMapFile = MapFile();

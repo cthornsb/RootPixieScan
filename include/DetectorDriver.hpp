@@ -109,7 +109,7 @@ class DetectorDriver {
  public: 
 	RawEventStructure structure;
  
-    DetectorDriver(std::string output_filename_="output");
+    DetectorDriver(std::string output_filename_="output", bool debug_=false);
     DetectorDriver (const DetectorDriver&);
     DetectorDriver& operator= (DetectorDriver const&);
   
