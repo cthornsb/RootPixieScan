@@ -720,9 +720,6 @@ void HisFile::PrintEntry(){
 		err_flag = -1;
 		return; 
 	}
-
-	// hd1d(damm id, half-words per channel, param length, hist length, x-low, x-high, title)
-	// hd2d(damm id, half-words per channel, x-param length, x-hist length, x-low, x-high, y-param length, y-hist length, y-low, y-high, title)
 	
 	std::cout << "hisID: " << current_entry->hisID << std::endl;
 	std::cout << "dimension: " << current_entry->hisDim << std::endl;
@@ -744,12 +741,11 @@ void HisFile::PrintEntry(){
 // class OutputHisFile
 ///////////////////////////////////////////////////////////////////////////////
 
-bool OutputHisFile::find_drr_in_list(unsigned int hisID_, drr_entry *output){
+drr_entry *OutputHisFile::find_drr_in_list(unsigned int hisID_){
 	// Search for the specified histogram in the .drr entry list
 	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
 		if((*iter)->hisID == hisID_){
-			output = (*iter);
-			return true;
+			return (*iter);
 		}
 	}
 	
@@ -763,8 +759,7 @@ bool OutputHisFile::find_drr_in_list(unsigned int hisID_, drr_entry *output){
 	}
 	if(!in_bad_list){ failed_fills.push_back(hisID_); }
 	
-	output = NULL;
-	return false;
+	return NULL;
 }
 
 void OutputHisFile::flush(){
@@ -844,7 +839,7 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	}
 	
 	// Search for existing histogram with the same id
-	if(find_drr_in_list(entry_->hisID, NULL)){
+	if(find_drr_in_list(entry_->hisID)){
 		if(debug_mode){ std::cout << "debug: His id = " << entry_->hisID << " is already in the drr entry list!\n"; }
 		
 		return false;
@@ -861,9 +856,6 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	memset(block, 0x0, entry_->total_size);
 	ofile.write(block, entry_->total_size);
 	delete[] block;
-	
-	//char dummy = 0x0;
-	//for(size_t i = 0; i < entry_->total_size; i++){ ofile.write(&dummy, 1); }
 	
 	ofile.seekp(0, std::ios::end);
 	total_his_size = ofile.tellp();
@@ -960,8 +952,8 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 bool OutputHisFile::Fill(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_/*=1*/){
 	if(!writable){ return false; }
 
-	drr_entry *temp_drr = NULL;
-	if(find_drr_in_list(hisID_, temp_drr)){
+	drr_entry *temp_drr = find_drr_in_list(hisID_);
+	if(temp_drr){
 		unsigned int bin;
 		temp_drr->total_counts++;
 		if(!temp_drr->find_bin((unsigned int)(x_/temp_drr->comp[0]), (unsigned int)(y_/temp_drr->comp[1]), bin)){ return false; }		
@@ -979,8 +971,8 @@ bool OutputHisFile::Fill(unsigned int hisID_, unsigned int x_, unsigned int y_, 
 bool OutputHisFile::FillBin(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_){
 	if(!writable){ return false; }
 
-	drr_entry *temp_drr = NULL;
-	if(find_drr_in_list(hisID_, temp_drr)){
+	drr_entry *temp_drr = find_drr_in_list(hisID_);
+	if(temp_drr){
 		unsigned int bin;
 		temp_drr->total_counts++;
 		if(!temp_drr->get_bin(x_, y_, bin)){ return false; }
@@ -999,8 +991,8 @@ bool OutputHisFile::FillBin(unsigned int hisID_, unsigned int x_, unsigned int y
 bool OutputHisFile::Zero(unsigned int hisID_){
 	if(!writable){ return false; }
 	
-	drr_entry *temp_drr = NULL;
-	if(find_drr_in_list(hisID_, temp_drr)){
+	drr_entry *temp_drr = find_drr_in_list(hisID_);
+	if(temp_drr){
 		ofile.seekp(temp_drr->offset*2, std::ios::beg);
 		
 		char *block = new char[temp_drr->total_size];	

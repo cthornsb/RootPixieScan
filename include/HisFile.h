@@ -294,7 +294,7 @@ class OutputHisFile : public HisFile{
 	std::streampos total_his_size; /// Total size of .his file
 
 	/// Find the specified .drr entry in the drr list using its histogram id
-	bool find_drr_in_list(unsigned int hisID_, drr_entry *output=NULL);
+	drr_entry *find_drr_in_list(unsigned int hisID_);
 
 	/// Flush histogram fills to file
 	void flush();
@@ -342,8 +342,6 @@ class OutputHisFile : public HisFile{
 	
 	/// Close the histogram file and write the drr file
 	void Close();
-	
-	void TestBoundaries();
 };
 
 extern OutputHisFile *output_his; /// The global .his file handler
