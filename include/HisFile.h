@@ -293,6 +293,9 @@ class OutputHisFile : public HisFile{
 	std::vector<unsigned int> failed_fills; /// Vector containing list of histogram fills into an invalid his id
 	std::streampos total_his_size; /// Total size of .his file
 
+	/// Find the specified .drr entry in the drr list using its histogram id
+	bool find_drr_in_list(unsigned int hisID_, drr_entry *output=NULL);
+
 	/// Flush histogram fills to file
 	void flush();
 
@@ -330,6 +333,9 @@ class OutputHisFile : public HisFile{
 	
 	/// Increment a histogram at bin (x, y) by weight_
 	bool FillBin(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_=1);
+	
+	/// Zero the specified histogram 
+	bool Zero(unsigned int hisID_);
 	
 	/// Open a new .his file
 	bool Open(std::string fname_prefix);

@@ -744,6 +744,29 @@ void HisFile::PrintEntry(){
 // class OutputHisFile
 ///////////////////////////////////////////////////////////////////////////////
 
+bool OutputHisFile::find_drr_in_list(unsigned int hisID_, drr_entry *output){
+	// Search for the specified histogram in the .drr entry list
+	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
+		if((*iter)->hisID == hisID_){
+			output = (*iter);
+			return true;
+		}
+	}
+	
+	// Check if this his ID is in the bad histogram list
+	bool in_bad_list = false;
+	for(std::vector<unsigned int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
+		if(*iter == hisID_){
+			in_bad_list = true;
+			break;
+		}
+	}
+	if(!in_bad_list){ failed_fills.push_back(hisID_); }
+	
+	output = NULL;
+	return false;
+}
+
 void OutputHisFile::flush(){
 	if(debug_mode){ std::cout << "debug: Flushing histogram entries to file.\n"; }
 
@@ -821,12 +844,10 @@ size_t OutputHisFile::push_back(drr_entry *entry_){
 	}
 	
 	// Search for existing histogram with the same id
-	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-		if((*iter)->hisID == entry_->hisID){ // Found a match in the drr entry list
-			if(debug_mode){ std::cout << "debug: His id = " << entry_->hisID << " is already in the drr entry list!\n"; }
-			
-			return false;
-		}
+	if(find_drr_in_list(entry_->hisID, NULL)){
+		if(debug_mode){ std::cout << "debug: His id = " << entry_->hisID << " is already in the drr entry list!\n"; }
+		
+		return false;
 	}
 	
 	// Seek to the end of this histogram file
@@ -939,31 +960,18 @@ bool OutputHisFile::Finalize(bool make_list_file_/*=false*/, const std::string &
 bool OutputHisFile::Fill(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_/*=1*/){
 	if(!writable){ return false; }
 
-	// Search for the specified histogram in the .drr entry list
-	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-		if((*iter)->hisID == hisID_){
-			unsigned int bin;
-			(*iter)->total_counts++;
-			if(!(*iter)->find_bin((unsigned int)(x_/(*iter)->comp[0]), (unsigned int)(y_/(*iter)->comp[1]), bin)){ return false; }		
+	drr_entry *temp_drr = NULL;
+	if(find_drr_in_list(hisID_, temp_drr)){
+		unsigned int bin;
+		temp_drr->total_counts++;
+		if(!temp_drr->find_bin((unsigned int)(x_/temp_drr->comp[0]), (unsigned int)(y_/temp_drr->comp[1]), bin)){ return false; }		
 
-			// Push this fill into the queue
-			fill_queue *fill = new fill_queue((*iter), bin, weight_);
-			fills_waiting.push_back(fill);
-	
-			if(++flush_count >= flush_wait){ flush(); }
-			return true;
-		}
+		// Push this fill into the queue
+		fill_queue *fill = new fill_queue(temp_drr, bin, weight_);
+		fills_waiting.push_back(fill);
+
+		if(++flush_count >= flush_wait){ flush(); }
 	}
-	
-	// Check if this his ID is in the bad histogram list
-	bool in_bad_list = false;
-	for(std::vector<unsigned int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
-		if(*iter == hisID_){
-			in_bad_list = true;
-			break;
-		}
-	}
-	if(!in_bad_list){ failed_fills.push_back(hisID_); }
 	
 	return false;
 }
@@ -971,31 +979,37 @@ bool OutputHisFile::Fill(unsigned int hisID_, unsigned int x_, unsigned int y_, 
 bool OutputHisFile::FillBin(unsigned int hisID_, unsigned int x_, unsigned int y_, unsigned int weight_){
 	if(!writable){ return false; }
 
-	// Search for the specified histogram in the .drr entry list
-	for(std::vector<drr_entry*>::iterator iter = drr_entries.begin(); iter != drr_entries.end(); iter++){
-		if((*iter)->hisID == hisID_){
-			unsigned int bin;
-			(*iter)->total_counts++;
-			if(!(*iter)->get_bin(x_, y_, bin)){ return false; }
+	drr_entry *temp_drr = NULL;
+	if(find_drr_in_list(hisID_, temp_drr)){
+		unsigned int bin;
+		temp_drr->total_counts++;
+		if(!temp_drr->get_bin(x_, y_, bin)){ return false; }
+	
+		// Push this fill into the queue
+		fill_queue *fill = new fill_queue(temp_drr, bin, weight_);
+		fills_waiting.push_back(fill);
+
+		if(++flush_count >= flush_wait){ flush(); }
+		return true;
+	}
+	
+	return false;
+}
+	
+bool OutputHisFile::Zero(unsigned int hisID_){
+	if(!writable){ return false; }
+	
+	drr_entry *temp_drr = NULL;
+	if(find_drr_in_list(hisID_, temp_drr)){
+		ofile.seekp(temp_drr->offset*2, std::ios::beg);
 		
-			// Push this fill into the queue
-			fill_queue *fill = new fill_queue((*iter), bin, weight_);
-			fills_waiting.push_back(fill);
-	
-			if(++flush_count >= flush_wait){ flush(); }
-			return true;
-		}
+		char *block = new char[temp_drr->total_size];	
+		memset(block, 0x0, temp_drr->total_size);
+		ofile.write(block, temp_drr->total_size);
+		delete[] block;
+		
+		return true;
 	}
-	
-	// Check if this his ID is in the bad histogram list
-	bool in_bad_list = false;
-	for(std::vector<unsigned int>::iterator iter = failed_fills.begin(); iter != failed_fills.end(); iter++){
-		if(*iter == hisID_){
-			in_bad_list = true;
-			break;
-		}
-	}
-	if(!in_bad_list){ failed_fills.push_back(hisID_); }
 	
 	return false;
 }
