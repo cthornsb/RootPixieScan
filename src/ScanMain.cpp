@@ -1,18 +1,32 @@
 
 #include <iostream>
+#include <sstream>
 #include <string.h>
 #include <thread>
+
+#ifndef SIMPLE_SCAN
 
 #include "MapFile.hpp"
 #include "NewPixieStd.hpp"
 #include "DetectorDriver.hpp"
 
+#else
+
+#include "Unpacker.hpp"
+	
+#endif
+
 #include "hribf_buffers.h"
 #include "poll2_socket.h"
-#include "CTerminal.h"
 
-#define SCAN_VERSION "1.1.05"
-#define SCAN_DATE "June 25th, 2015"
+#ifdef USE_NCURSES
+
+#include "CTerminal.h"
+	
+#endif
+
+#define SCAN_VERSION "1.1.06"
+#define SCAN_DATE "August 3rd, 2015"
 
 std::string prefix, extension;
 
@@ -40,11 +54,21 @@ HEAD_buffer headbuff;
 DATA_buffer databuff;
 EOF_buffer eofbuff;
 
+#ifndef SIMPLE_SCAN
 std::string sys_message_head = "PixieLDF: ";
+#else
+std::string sys_message_head = "SimpleLDF: ";
+#endif
 
+#ifdef USE_NCURSES
 Terminal *terminal_;
+#endif
 
-void start_run_control(DetectorDriver *driver_){
+#ifndef SIMPLE_SCAN
+void start_run_control(){
+#else
+void start_run_control(Unpacker *core_){
+#endif
 	if(debug_mode){
 		pldHead.SetDebugMode();
 		pldData.SetDebugMode();
@@ -80,8 +104,11 @@ void start_run_control(DetectorDriver *driver_){
 
 				std::stringstream status;
 				if(!poll_server.Select(dummy)){
+#ifdef USE_NCURSES
+
 					status << "\e[0;33m" << "[IDLE]" << "\e[0m" << " Waiting for a spill...";
 					terminal_->SetStatus(status.str());
+#endif
 					continue; 
 				}
 
@@ -91,8 +118,10 @@ void start_run_control(DetectorDriver *driver_){
 				else if(nBytes < 8){
 					continue;
 				}
+#ifdef USE_NCURSES
 				status << "\e[0;32m" << "[RECV] " << "\e[0m" << nBytes;
 				terminal_->SetStatus(status.str());
+#endif
 
 				if(debug_mode){ std::cout << "debug: Received " << nBytes << " bytes from the network\n"; }
 				memcpy((char *)&current_chunk, &shm_data[0], 4);
@@ -125,7 +154,11 @@ void start_run_control(DetectorDriver *driver_){
 				int word1 = 2, word2 = 9999;
 				memcpy(&data[nTotalBytes], (char *)&word1, 4);
 				memcpy(&data[nTotalBytes+4], (char *)&word2, 4);
+#ifndef SIMPLE_SCAN
 				ReadSpill(data, nTotalBytes/4 + 2, is_verbose); 
+#else
+				core_->ReadSpill(data, nTotalBytes/4 + 2, is_verbose); 
+#endif
 			}
 			num_spills_recvd++;
 		}
@@ -133,19 +166,25 @@ void start_run_control(DetectorDriver *driver_){
 	else if(file_format == 0){
 		char *data = NULL;
 		bool full_spill;
-		bool bad_spill;
+		bool bad_spill = false;
 		int nBytes;
 		
 		if(!dry_run_mode){ data = new char[1000000]; }
 		
-		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, bad_spill, dry_run_mode)){ 
+		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, dry_run_mode)){ 
 			if(full_spill){ 
 				if(debug_mode){ 
 					std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
 					std::cout << "debug: Read up to word number " << input_file.tellg()/4 << " in input file\n";
 				}
 				if(!dry_run_mode){ 
-					if(!bad_spill){ ReadSpill(data, nBytes/4, is_verbose); }
+					if(!bad_spill){ 
+#ifndef SIMPLE_SCAN
+						ReadSpill(data, nBytes/4, is_verbose); 
+#else
+						core_->ReadSpill(data, nBytes/4, is_verbose); 
+#endif
+					}
 					else{ std::cout << " WARNING: Spill has been flagged as corrupt, skipping (at word " << input_file.tellg()/4 << " in file)!\n"; }
 				}
 			}
@@ -180,8 +219,12 @@ void start_run_control(DetectorDriver *driver_){
 			if(!dry_run_mode){ 
 				int word1 = 2, word2 = 9999;
 				memcpy(&data[nBytes], (char *)&word1, 4);
-				memcpy(&data[nBytes+4], (char *)&word2, 4);			
-				ReadSpill(data, nBytes/4 + 2, is_verbose); 
+				memcpy(&data[nBytes+4], (char *)&word2, 4);
+#ifndef SIMPLE_SCAN
+
+#else	
+				core_->ReadSpill(data, nBytes/4 + 2, is_verbose); 
+#endif
 			}
 			num_spills_recvd++;
 		}
@@ -201,6 +244,7 @@ void start_run_control(DetectorDriver *driver_){
 	run_ctrl_exit = true;
 }
 
+#ifdef USE_NCURSES
 void start_cmd_control(Terminal *terminal_){
 	std::string cmd = "", arg;
 
@@ -225,6 +269,7 @@ void start_cmd_control(Terminal *terminal_){
 		}
 	}		
 }
+#endif
 
 std::string GetExtension(const char *filename_, std::string &prefix){
 	unsigned int count = 0;
@@ -264,23 +309,29 @@ void help(char *name_){
 int main(int argc, char *argv[]){
 	if(argc < 2 || argv[1][0] == '-'){
 		if(argc >= 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)){ // Display version information
+#ifndef SIMPLE_SCAN
 			std::cout << " PixieLDF-------v" << SCAN_VERSION << " (" << SCAN_DATE << ")\n";
+#else
+			std::cout << " SimpleLDF------v" << SCAN_VERSION << " (" << SCAN_DATE << ")\n";
+#endif
 			std::cout << " |hribf_buffers-v" << HRIBF_BUFFERS_VERSION << " (" << HRIBF_BUFFERS_DATE << ")\n";
+#ifdef USE_NCURSES
 			std::cout << " |CTerminal-----v" << CTERMINAL_VERSION << " (" << CTERMINAL_DATE << ")\n";
+#endif
 			std::cout << " |poll2_socket--v" << POLL2_SOCKET_VERSION << " (" << POLL2_SOCKET_DATE << ")\n";
 		}
 		else{ help(argv[0]); }
 		return 1;
 	}
-
+	
 	debug_mode = false;
 	dry_run_mode = false;
 	shm_mode = false;
 
 	num_spills_recvd = 0;
 
-	std::stringstream output_filename_prefix;
-	output_filename_prefix << argv[1];
+	std::stringstream output_filename;
+	output_filename << argv[1];
 	
 	long file_start_offset = 0;
 
@@ -358,9 +409,11 @@ int main(int argc, char *argv[]){
 		}
 	}
 
+#ifdef USE_NCURSES
 	// Initialize the command terminal
 	Terminal terminal;
 	terminal_ = &terminal;
+#endif
 
 	if(!shm_mode){
 		input_file.open((prefix+"."+extension).c_str(), std::ios::binary);
@@ -375,23 +428,30 @@ int main(int argc, char *argv[]){
 			std::cout << " ERROR: Failed to open shm socket 5555!\n";
 			return 1;
 		}
-		
+
+#ifdef USE_NCURSES		
 		// Only initialize the terminal if this is shared-memory mode
 		terminal.Initialize(".pixieldf.cmd");
 		terminal.SetPrompt("PIXIELDF $ ");
-		terminal.AddStatusWindow();	
+		terminal.AddStatusWindow();
+#endif
 
 		std::cout << "\n PIXIELDF v" << SCAN_VERSION << "\n"; 
 		std::cout << " ==  ==  ==  ==  == \n\n"; 
 	}
 
+#ifndef SIMPLE_SCAN
 	// Load the map file
 	MapFile theMapFile;
 
 	// Initialize detector driver with the output filename
-	DetectorDriver *driver = new DetectorDriver(output_filename_prefix.str(), debug_mode);
+	DetectorDriver *driver = new DetectorDriver(output_filename.str(), debug_mode);
+#else
+	// Initialize unpacker core with the output filename
+	Unpacker *core = new Unpacker(output_filename.str(), debug_mode);
+#endif
 
-	std::cout << sys_message_head << "Using output filename prefix '" << output_filename_prefix.str() << "'.\n";
+	std::cout << sys_message_head << "Using output filename prefix '" << output_filename.str() << "'.\n";
 	if(debug_mode){ std::cout << sys_message_head << "Using debug mode.\n"; }
 	if(dry_run_mode){ std::cout << sys_message_head << "Doing a dry run.\n"; }
 	if(shm_mode){ 
@@ -445,13 +505,22 @@ int main(int argc, char *argv[]){
 			input_file.seekg(file_start_offset*4);
 			std::cout << " Input file is now at " << input_file.tellg() << " bytes\n";
 		}
-		
-		start_run_control(driver);
+
+#ifndef SIMPLE_SCAN
+		start_run_control();
+#else		
+		start_run_control(core);
+#endif
 	}
 	else{ 
+#ifdef USE_NCURSES
 		// Start the run control thread
 		std::cout << "\nStarting data control thread\n";
-		std::thread runctrl(start_run_control, driver);
+#ifndef SIMPLE_SCAN
+		std::thread runctrl(start_run_control);
+#else
+		std::thread runctrl(start_run_control, core);
+#endif
 	
 		// Start the command control thread. This needs to be the last thing we do to
 		// initialize, so the user cannot enter commands before setup is complete
@@ -465,6 +534,11 @@ int main(int argc, char *argv[]){
 		// Close the socket and restore the terminal
 		terminal.Close();
 		poll_server.Close();
+#else
+		// This is NOT a valid solution. There is no way to safely exit the scan.
+		// This is simply a way to get the code to compile with no ncurses support.
+		start_run_control(core);
+#endif
 		
 		//Reprint the leader as the carriage was returned
 		std::cout << "Running PixieLDF v" << SCAN_VERSION << " (" << SCAN_DATE << ")\n";
@@ -476,7 +550,12 @@ int main(int argc, char *argv[]){
 
 	// Clean up detector driver
 	std::cout << "\nCleaning up..\n";
+	
+#ifndef SIMPLE_SCAN
 	driver->Delete();
+#else
+	delete core;
+#endif
 	
 	return 0;
 }

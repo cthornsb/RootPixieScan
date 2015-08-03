@@ -197,6 +197,18 @@ void VandleStructure::Append(const unsigned int &location_, const double &tof_, 
 	vandle_mult++;
 }
 
+void VandleStructure::Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, const double &tsHigh_, const double &qdc_){
+	vandle_loc.push_back(location_);
+	vandle_TOF.push_back(tof_);
+	vandle_lqdc.push_back(lqdc_);
+	vandle_rqdc.push_back(rqdc_);
+	vandle_tsLow.push_back(tsLow_);
+	vandle_tsHigh.push_back(tsHigh_);
+	vandle_qdc.push_back(qdc_);
+	
+	vandle_mult++;
+}
+
 void VandleStructure::Zero(){
 	if(vandle_mult == 0){ return ; } // Structure is already empty
 	vandle_loc.clear();

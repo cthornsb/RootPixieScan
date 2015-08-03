@@ -163,7 +163,11 @@ class VandleStructure : public TObject {
 	void Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
 			     const double &tsHigh_, const double &lMaxVal_, const double &rMaxVal_, const double &qdc_, const double &energy_, const double &recoilE_,
 			     const double &recoilAngle_, const double &ejectAngle_, const double &excitedE_, const double &flightPath_, const double &x_, const double &y_, const double &z_);
-    
+
+    // Simpler method for appending data to the object
+    // Calling this method will mark the event as valid
+	void Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, const double &tsHigh_, const double &qdc_);
+			     
     // Zero the data structure
     void Zero();
     
