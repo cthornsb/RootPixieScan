@@ -118,8 +118,10 @@ class DetectorDriver {
 
     Plots histo;
     
+    bool SetRawEventMode(bool state_=true){ return (write_raw = state_); }
+    
     virtual void plot(int dammId, double val1, double val2 = -1, double val3 = -1, const char* name="h") {
-        histo.Plot(dammId, val1, val2, val3, name);
+        if(use_damm){ histo.Plot(dammId, val1, val2, val3, name); }
     }
 
     int ProcessEvent(const string &, RawEvent& rawev);

@@ -37,6 +37,8 @@ unsigned long num_spills_recvd;
 bool is_verbose;
 bool debug_mode;
 bool dry_run_mode;
+bool dump_raw_events;
+bool force_overwrite;
 bool shm_mode;
 
 bool kill_all = false;
@@ -304,6 +306,8 @@ void help(char *name_){
 	std::cout << "  --quiet    - Toggle off verbosity flag\n";
 	std::cout << "  --dry-run  - Extract spills from file, but do no processing\n";
 	std::cout << "  --fast-fwd [word] - Skip ahead to a specified word in the file (start of file at zero)\n";
+	std::cout << "  --dump-raw-events - Write raw event data to the output root file (disabled by default)\n";
+	std::cout << "  --force-overwrite - Force a file overwrite if the output root file exists\n";
 }
 
 int main(int argc, char *argv[]){
@@ -326,6 +330,8 @@ int main(int argc, char *argv[]){
 	
 	debug_mode = false;
 	dry_run_mode = false;
+	dump_raw_events = false;
+	force_overwrite = false;
 	shm_mode = false;
 
 	num_spills_recvd = 0;
@@ -353,6 +359,12 @@ int main(int argc, char *argv[]){
 				return 1;
 			}
 			file_start_offset = atoll(argv[++arg_index]);
+		}
+		else if(strcmp(argv[arg_index], "--dump-raw-events") == 0){ 
+			dump_raw_events = true;
+		}
+		else if(strcmp(argv[arg_index], "--force-overwrite") == 0){ 
+			force_overwrite = true;
 		}
 		else if(strcmp(argv[arg_index], "--quiet") == 0){
 			is_verbose = false;
@@ -446,9 +458,13 @@ int main(int argc, char *argv[]){
 
 	// Initialize detector driver with the output filename
 	DetectorDriver *driver = new DetectorDriver(output_filename.str(), debug_mode);
+	if(dump_raw_events){ driver->SetRawEventMode(); }
 #else
 	// Initialize unpacker core with the output filename
-	Unpacker *core = new Unpacker(output_filename.str(), debug_mode);
+	Unpacker *core = new Unpacker();
+	if(debug_mode){ core->SetDebugMode(); }
+	if(dump_raw_events){ core->SetRawEventMode(); }
+	core->InitRootOutput(output_filename.str(), force_overwrite);
 #endif
 
 	std::cout << sys_message_head << "Using output filename prefix '" << output_filename.str() << "'.\n";

@@ -18,9 +18,6 @@
 
 #include <vector>
 
-#define NUM_PIXIE_MOD 12
-#define NUM_CHAN_PER_MOD 16
-
 /** RawEventStructure
  * \brief Raw pixie16 channel data
  * 
@@ -28,20 +25,21 @@
  */
 class RawEventStructure : public TObject {
   public:
-  	std::vector<double> raw_energy[NUM_PIXIE_MOD][NUM_CHAN_PER_MOD]; /**< Raw pixie energy */
-  	std::vector<double> raw_time[NUM_PIXIE_MOD][NUM_CHAN_PER_MOD]; /**< Raw pixie (low-res) time */
-    unsigned int raw_mult; //! Multiplicity of the raw events
-    unsigned int num_mod; //! Number of pixie modules
+  	std::vector<int> raw_mod; /// Module number
+  	std::vector<int> raw_chan; /// Channel number
+  	std::vector<double> raw_time; /// Raw pixie (low-res) time
+  	std::vector<double> raw_energy; /// Raw pixie energy
+    unsigned int raw_mult; /// Multiplicity of the raw events
 
-    RawEventStructure(unsigned int num_modules_=NUM_PIXIE_MOD);
+    RawEventStructure();
 
 	RawEventStructure(const RawEventStructure &other);
 
 	~RawEventStructure();
     
-    void Append(const int &mod_, const int &chan_, const double &time_, const double &energy_); /**< Fill the root variables with processed data */
+    void Append(const int &mod_, const int &chan_, const double &time_, const double &energy_); /// Fill the root variables with processed data
     
-    void Zero(); /**< Zero the data structure */
+    void Zero(); /// Zero the data structure
     
     void Set(RawEventStructure *other);
     
@@ -55,17 +53,17 @@ class RawEventStructure : public TObject {
  */
 class TriggerStructure : public TObject {
   public:
-	std::vector<double> trigger_time; /**< Raw pixie time */
-    std::vector<double> trigger_energy; /**< Raw pixie energy */
-    unsigned int trigger_mult; /**< Multiplicity of the trigger detector */
+	std::vector<double> trigger_time; /// Raw pixie time
+    std::vector<double> trigger_energy; /// Raw pixie energy
+    unsigned int trigger_mult; /// Multiplicity of the trigger detector
 
     TriggerStructure();
 
 	TriggerStructure(const TriggerStructure &other);
     
-    void Append(const double &time_, const double &energy_); /**< Fill the root variables with processed data */
+    void Append(const double &time_, const double &energy_); /// Fill the root variables with processed data
     
-    void Zero(); /**< Zero the data structure */
+    void Zero(); /// Zero the data structure
     
     void Set(TriggerStructure *other);
     
@@ -79,15 +77,15 @@ class TriggerStructure : public TObject {
  */
 class TriggerWaveform : public TObject {
   public:
-	std::vector<int> trigger_wave; /**< Integer vector for trigger pulses */
+	std::vector<int> trigger_wave; /// Integer vector for trigger pulses
 	
 	TriggerWaveform(){}
 	
 	TriggerWaveform(const TriggerWaveform &other){ trigger_wave = other.trigger_wave; }
 	
-	void Append(const std::vector<int> &pulse); /**< Fill the root variable with raw waveform data */
+	void Append(const std::vector<int> &pulse); /// Fill the root variable with raw waveform data
 	
-	void Zero(); /**< Zero the waveform */
+	void Zero(); /// Zero the waveform
 	
 	void Set(TriggerWaveform *other){ trigger_wave = other->trigger_wave; }
 	
@@ -101,17 +99,17 @@ class TriggerWaveform : public TObject {
  */
 class LiquidStructure : public TObject {
   public:
-    std::vector<double> liquid_TOF, liquid_tqdc, start_tqdc; /**< Double vectors for liquid scintillator detector variables */
-    std::vector<int> liquid_loc; /**< Integer vector for liquid detector location */
-    unsigned int liquid_mult; /**< Multiplicity of liquid detector event */
+    std::vector<double> liquid_TOF, liquid_tqdc, start_tqdc; /// Double vectors for liquid scintillator detector variables
+    std::vector<int> liquid_loc; /// Integer vector for liquid detector location
+    unsigned int liquid_mult; /// Multiplicity of liquid detector event
 
     LiquidStructure();
 
 	LiquidStructure(const LiquidStructure &other);
 
-    void Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_); /**< Fill the root variables with processed data */
+    void Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_); /// Fill the root variables with processed data
        
-    void Zero(); /**< Zero the data structure */ 
+    void Zero(); /// Zero the data structure 
        
     void Set(LiquidStructure *other);
        
@@ -195,9 +193,11 @@ class VandleWaveform : public TObject {
 	ClassDefNV(VandleWaveform, 1); // VandleWaveform
 };
 
-///////////////////////////////////////////////////////////
-// IonChamberProcessor
-///////////////////////////////////////////////////////////
+/** IonChamberStructure
+ * \brief Ion chamber data structure
+ * 
+ * Structure for detectors of type "ionchamber"
+ */
 class IonChamberStructure : public TObject {
   public:
     std::vector<double> ion_dE, ion_E, ion_sum;
