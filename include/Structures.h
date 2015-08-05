@@ -85,6 +85,8 @@ class TriggerWaveform : public TObject {
 	
 	void Append(const std::vector<int> &pulse); /// Fill the root variable with raw waveform data
 	
+	void Append(float *pulse, size_t size_); /// Fill the root variable with raw waveform data
+	
 	void Zero(); /// Zero the waveform
 	
 	void Set(TriggerWaveform *other){ trigger_wave = other->trigger_wave; }
@@ -107,7 +109,7 @@ class LiquidStructure : public TObject {
 
 	LiquidStructure(const LiquidStructure &other);
 
-    void Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_); /// Fill the root variables with processed data
+    void Append(const int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_); /// Fill the root variables with processed data
        
     void Zero(); /// Zero the data structure 
        
@@ -126,6 +128,8 @@ class LiquidWaveform : public TObject {
 	
 	// Fill the root variable with raw waveform data
 	void Append(const std::vector<int> &pulse);
+
+	void Append(float *pulse, size_t size_); /// Fill the root variable with raw waveform data
 	
 	// Zero the waveform
 	void Zero();
@@ -158,13 +162,13 @@ class VandleStructure : public TObject {
     
     // Add an entry to the data vector
     // Calling this method will mark the event as valid
-	void Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
+	void Append(const int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
 			     const double &tsHigh_, const double &lMaxVal_, const double &rMaxVal_, const double &qdc_, const double &energy_, const double &recoilE_,
 			     const double &recoilAngle_, const double &ejectAngle_, const double &excitedE_, const double &flightPath_, const double &x_, const double &y_, const double &z_);
 
     // Simpler method for appending data to the object
     // Calling this method will mark the event as valid
-	void Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, const double &tsHigh_, const double &qdc_);
+	void Append(const int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, const double &tsHigh_, const double &qdc_);
 			     
     // Zero the data structure
     void Zero();
@@ -184,6 +188,8 @@ class VandleWaveform : public TObject {
 	
 	// Fill the root variable with raw waveform data
 	void Append(const std::vector<int> &l_pulse, const std::vector<int> &r_pulse);
+
+	void Append(float *l_pulse, float *r_pulse, size_t size_); /// Fill the root variable with raw waveform data
 	
 	// Zero the waveform
 	void Zero();
@@ -217,6 +223,61 @@ class IonChamberStructure : public TObject {
     void Set(IonChamberStructure *other);
     
     ClassDefNV(IonChamberStructure, 1); // Vandle
+};
+
+/** GenericStructure
+ * \brief Generic data structure
+ * 
+ * Structure for detectors of a generic type
+ */
+class GenericStructure : public TObject {
+  public:
+    std::vector<double> generic_val1, generic_val2, generic_val3;
+    std::vector<double> generic_val4, generic_val5, generic_val6;
+    
+    std::vector<int> generic_loc;
+    unsigned int generic_mult; 
+
+    GenericStructure();
+
+	GenericStructure(const GenericStructure &other);
+    
+    // Add an entry to the data vector
+    // Calling this method will mark the event as valid
+	void Append(const int &location_, const double &val1_, const double &val2_, const double &val3_, const double &val4_, const double &val5_, const double &val6_);
+	void Append(const int &location_, const double &val1_, const double &val2_, const double &val3_, const double &val4_, const double &val5_);
+	void Append(const int &location_, const double &val1_, const double &val2_, const double &val3_, const double &val4_);
+	void Append(const int &location_, const double &val1_, const double &val2_, const double &val3_);
+	void Append(const int &location_, const double &val1_, const double &val2_);
+	void Append(const int &location_, const double &val1_);
+
+    // Zero the data structure
+    void Zero();
+    
+    void Set(GenericStructure *other);
+    
+    ClassDefNV(GenericStructure, 1); // Generic
+};
+
+class GenericWaveform : public TObject {
+  public:
+	std::vector<int> generic_wave;
+	
+	GenericWaveform(){}
+	
+	GenericWaveform(const GenericWaveform &other){ generic_wave = other.generic_wave; }
+	
+	// Fill the root variable with raw waveform data
+	void Append(const std::vector<int> &pulse);
+
+	void Append(float *pulse, size_t size_); /// Fill the root variable with raw waveform data
+	
+	// Zero the waveform
+	void Zero();
+	
+	void Set(GenericWaveform *other){ generic_wave = other->generic_wave; }
+	
+	ClassDefNV(GenericWaveform, 1); // GenericWaveform
 };
 
 #endif

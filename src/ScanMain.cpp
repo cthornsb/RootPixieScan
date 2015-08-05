@@ -39,6 +39,7 @@ bool debug_mode;
 bool dry_run_mode;
 bool dump_raw_events;
 bool force_overwrite;
+bool hires_timing;
 bool shm_mode;
 
 bool kill_all = false;
@@ -308,6 +309,7 @@ void help(char *name_){
 	std::cout << "  --fast-fwd [word] - Skip ahead to a specified word in the file (start of file at zero)\n";
 	std::cout << "  --dump-raw-events - Write raw event data to the output root file (disabled by default)\n";
 	std::cout << "  --force-overwrite - Force a file overwrite if the output root file exists\n";
+	std::cout << "  --hires-timing    - Toggle pulse fitting (hi-res timing) on\n";
 }
 
 int main(int argc, char *argv[]){
@@ -332,6 +334,7 @@ int main(int argc, char *argv[]){
 	dry_run_mode = false;
 	dump_raw_events = false;
 	force_overwrite = false;
+	hires_timing = false;
 	shm_mode = false;
 
 	num_spills_recvd = 0;
@@ -365,6 +368,9 @@ int main(int argc, char *argv[]){
 		}
 		else if(strcmp(argv[arg_index], "--force-overwrite") == 0){ 
 			force_overwrite = true;
+		}
+		else if(strcmp(argv[arg_index], "--hires-timing") == 0){ 
+			hires_timing = true;
 		}
 		else if(strcmp(argv[arg_index], "--quiet") == 0){
 			is_verbose = false;
@@ -464,7 +470,9 @@ int main(int argc, char *argv[]){
 	Unpacker *core = new Unpacker();
 	if(debug_mode){ core->SetDebugMode(); }
 	if(dump_raw_events){ core->SetRawEventMode(); }
+	
 	core->InitRootOutput(output_filename.str(), force_overwrite);
+	if(hires_timing){ core->SetHiResMode(true); }
 #endif
 
 	std::cout << sys_message_head << "Using output filename prefix '" << output_filename.str() << "'.\n";

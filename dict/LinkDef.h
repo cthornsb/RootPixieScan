@@ -19,4 +19,7 @@
 
 #pragma link C++ class IonChamberStructure+;
 
+#pragma link C++ class GenericStructure+;
+#pragma link C++ class GenericWaveform+;
+
 #endif

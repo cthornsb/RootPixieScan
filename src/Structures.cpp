@@ -74,8 +74,16 @@ void TriggerStructure::Set(TriggerStructure *other){
 }
 
 void TriggerWaveform::Append(const std::vector<int> &pulse){ // trigger_wave.size()/trigger_mult will give pulse size
+	trigger_wave.reserve(pulse.size());
 	for(std::vector<int>::const_iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		trigger_wave.push_back((*iter));
+	}
+}
+
+void TriggerWaveform::Append(float *pulse, size_t size_){
+	trigger_wave.reserve(size_);
+	for(size_t index = 0; index < size_; index++){
+		trigger_wave.push_back((int)pulse[index]);
 	}
 }
 
@@ -96,7 +104,7 @@ LiquidStructure::LiquidStructure(const LiquidStructure &other){
 	liquid_mult = other.liquid_mult;
 }
 
-void LiquidStructure::Append(const unsigned int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_){
+void LiquidStructure::Append(const int &location_, const double &TOF_, const double &ltqdc_, const double &stqdc_){
 	liquid_loc.push_back(location_);
 	liquid_TOF.push_back(TOF_);
 	liquid_tqdc.push_back(ltqdc_);
@@ -122,8 +130,16 @@ void LiquidStructure::Set(LiquidStructure *other){
 }
 
 void LiquidWaveform::Append(const std::vector<int> &pulse){ // liquid_wave.size()/liquid_mult will give pulse size
+	liquid_wave.reserve(pulse.size());
 	for(std::vector<int>::const_iterator iter = pulse.begin(); iter != pulse.end(); iter++){
 		liquid_wave.push_back((*iter));
+	}
+}
+
+void LiquidWaveform::Append(float *pulse, size_t size_){
+	liquid_wave.reserve(size_);
+	for(size_t index = 0; index < size_; index++){
+		liquid_wave.push_back((int)pulse[index]);
 	}
 }
 
@@ -158,7 +174,7 @@ VandleStructure::VandleStructure(const VandleStructure &other){
 	vandle_mult = other.vandle_mult;
 }
 
-void VandleStructure::Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
+void VandleStructure::Append(const int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, 
 			     const double &tsHigh_, const double &lMaxVal_, const double &rMaxVal_, const double &qdc_, const double &energy_, const double &recoilE_,
 			     const double &recoilAngle_, const double &ejectAngle_, const double &excitedE_, const double &flightPath_, const double &x_, const double &y_, const double &z_){
 	vandle_loc.push_back(location_);
@@ -184,7 +200,7 @@ void VandleStructure::Append(const unsigned int &location_, const double &tof_, 
 	vandle_mult++;
 }
 
-void VandleStructure::Append(const unsigned int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, const double &tsHigh_, const double &qdc_){
+void VandleStructure::Append(const int &location_, const double &tof_, const double &lqdc_, const double &rqdc_, const double &tsLow_, const double &tsHigh_, const double &qdc_){
 	vandle_loc.push_back(location_);
 	vandle_TOF.push_back(tof_);
 	vandle_lqdc.push_back(lqdc_);
@@ -249,9 +265,20 @@ VandleWaveform::VandleWaveform(const VandleWaveform &other){
 }
 
 void VandleWaveform::Append(const std::vector<int> &l_pulse, const std::vector<int> &r_pulse){ // left(right)_wave.size()/vandle_mult will give pulse size
+	left_wave.reserve(l_pulse.size());
+	right_wave.reserve(r_pulse.size());
 	for(std::vector<int>::const_iterator iter1 = l_pulse.begin(), iter2 = r_pulse.begin(); iter1 != l_pulse.end() && iter2 != r_pulse.end(); iter1++, iter2++){
 		left_wave.push_back((*iter1));
 		right_wave.push_back((*iter2));
+	}
+}
+
+void VandleWaveform::Append(float *l_pulse, float *r_pulse, size_t size_){
+	left_wave.reserve(size_);
+	right_wave.reserve(size_);
+	for(size_t index = 0; index < size_; index++){
+		left_wave.push_back((int)l_pulse[index]);
+		right_wave.push_back((int)r_pulse[index]);
 	}
 }
 
@@ -297,4 +324,112 @@ void IonChamberStructure::Set(IonChamberStructure *other){
 	ion_E = other->ion_E;
 	ion_sum = other->ion_sum;
 	ion_mult = other->ion_mult;
+}
+
+///////////////////////////////////////////////////////////
+// Generic
+///////////////////////////////////////////////////////////
+GenericStructure::GenericStructure(){ generic_mult = 0; }
+
+GenericStructure::GenericStructure(const GenericStructure &other){
+	generic_val1 = other.generic_val1;
+	generic_val2 = other.generic_val2;
+	generic_val3 = other.generic_val3;
+	generic_val4 = other.generic_val4;
+	generic_val5 = other.generic_val5;
+	generic_val6 = other.generic_val6;
+	generic_loc = other.generic_loc;
+	generic_mult = other.generic_mult;
+}
+
+void GenericStructure::Append(const int &location_, const double &val1_, const double &val2_, const double &val3_, const double &val4_, const double &val5_, const double &val6_){
+	generic_val1.push_back(val1_);
+	generic_val2.push_back(val2_);
+	generic_val3.push_back(val3_);
+	generic_val4.push_back(val4_);
+	generic_val5.push_back(val5_);
+	generic_val6.push_back(val6_);
+	generic_loc.push_back(location_);
+	generic_mult++;
+}
+
+void GenericStructure::Append(const int &location_, const double &val1_, const double &val2_, const double &val3_, const double &val4_, const double &val5_){
+	generic_val1.push_back(val1_);
+	generic_val2.push_back(val2_);
+	generic_val3.push_back(val3_);
+	generic_val4.push_back(val4_);
+	generic_val5.push_back(val5_);
+	generic_loc.push_back(location_);
+	generic_mult++;
+}
+
+void GenericStructure::Append(const int &location_, const double &val1_, const double &val2_, const double &val3_, const double &val4_){
+	generic_val1.push_back(val1_);
+	generic_val2.push_back(val2_);
+	generic_val3.push_back(val3_);
+	generic_val4.push_back(val4_);
+	generic_loc.push_back(location_);
+	generic_mult++;
+}
+
+void GenericStructure::Append(const int &location_, const double &val1_, const double &val2_, const double &val3_){
+	generic_val1.push_back(val1_);
+	generic_val2.push_back(val2_);
+	generic_val3.push_back(val3_);
+	generic_loc.push_back(location_);
+	generic_mult++;
+}
+
+void GenericStructure::Append(const int &location_, const double &val1_, const double &val2_){
+	generic_val1.push_back(val1_);
+	generic_val2.push_back(val2_);
+	generic_loc.push_back(location_);
+	generic_mult++;
+}
+
+void GenericStructure::Append(const int &location_, const double &val1_){
+	generic_val1.push_back(val1_);
+	generic_loc.push_back(location_);
+	generic_mult++;
+}
+
+void GenericStructure::Zero(){
+	if(generic_mult == 0){ return ; } // Structure is already empty
+	generic_val1.clear();
+	generic_val2.clear();
+	generic_val3.clear();
+	generic_val4.clear();
+	generic_val5.clear();
+	generic_val6.clear();
+	generic_loc.clear();
+	generic_mult = 0;
+}
+
+void GenericStructure::Set(GenericStructure *other){
+	generic_val1 = other->generic_val1;
+	generic_val2 = other->generic_val2;
+	generic_val3 = other->generic_val3;
+	generic_val4 = other->generic_val4;
+	generic_val5 = other->generic_val5;
+	generic_val6 = other->generic_val6;
+	generic_loc = other->generic_loc;
+	generic_mult = other->generic_mult;
+}
+
+void GenericWaveform::Append(const std::vector<int> &pulse){ // generic_wave.size()/generic_mult will give pulse size
+	generic_wave.reserve(pulse.size());
+	for(std::vector<int>::const_iterator iter = pulse.begin(); iter != pulse.end(); iter++){
+		generic_wave.push_back((*iter));
+	}
+}
+
+void GenericWaveform::Append(float *pulse, size_t size_){
+	generic_wave.reserve(size_);
+	for(size_t index = 0; index < size_; index++){
+		generic_wave.push_back((int)pulse[index]);
+	}
+}
+
+void GenericWaveform::Zero(){
+	if(generic_wave.size() > 0){ generic_wave.clear(); }
 }

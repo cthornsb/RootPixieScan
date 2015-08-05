@@ -18,12 +18,14 @@
 
 /// Create a DAMM 1D histogram (implemented for backwards compatibility)
 void hd1d_(int dammId, int nHalfWords, int rawlen, int histlen, int min, int max, const char *title, unsigned int length){
+	if(!output_his){ return; }
 	drr_entry *entry = new drr_entry(dammId, (short)nHalfWords, (short)rawlen, (short)histlen, (short)min, (short)max, title);
 	output_his->push_back(entry);
 }
 
 /// Create a DAMM 2D histogram (implemented for backwards compatibility)
 void hd2d_(int dammId, int nHalfWords, int rawXlen, int histXlen, int xMin, int xMax, int rawYlen, int histYlen, int yMin, int yMax, const char *title, unsigned int length){
+	if(!output_his){ return; }
 	drr_entry *entry = new drr_entry(dammId, (short)nHalfWords, (short)rawXlen, (short)histXlen, (short)xMin, (short)xMax,
 									 (short)rawYlen, (short)histYlen, (short)yMin, (short)yMax, title);
 	output_his->push_back(entry);
@@ -36,11 +38,13 @@ bool bantesti_(const int &id, const double &x, const double &y){
 
 /// Increment histogram dammID at x and y (implemented for backwards compatibility)
 void count1cc_(const int &dammID, const int &x, const int &y){
+	if(!output_his){ return; }
 	output_his->Fill(dammID, x, y);
 }
 
 /// Unknown (implemented for backwards compatibility)
 void set2cc_(const int &dammID, const int &x, const int &y, const int &z){
+	if(!output_his){ return; }
 	output_his->Fill(dammID, x, y, z);
 }
 
