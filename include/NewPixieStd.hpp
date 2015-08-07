@@ -20,7 +20,7 @@ void cleanup();
 /**
  * \brief Extract channel information from the raw parameter array ibuf
  */
-bool ReadSpill(char *ibuf, unsigned int nWords, bool is_verbose=true);
+bool ReadSpill(unsigned int *data, unsigned int nWords, bool is_verbose=true);
 
 bool Pixie16Error(int errornum);
 

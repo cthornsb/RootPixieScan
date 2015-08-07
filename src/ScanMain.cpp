@@ -84,8 +84,8 @@ void start_run_control(Unpacker *core_){
 	// Now we're ready to read the first data buffer
 	if(shm_mode){
 		std::cout << std::endl;
-		char data[1000000];
-		char shm_data[40008]; // Array to store the temporary shm data (~40 kB)
+		unsigned int data[250000];
+		unsigned int shm_data[10002]; // Array to store the temporary shm data (~40 kB)
 		int dummy;
 		int previous_chunk;
 		int current_chunk;
@@ -115,8 +115,8 @@ void start_run_control(Unpacker *core_){
 					continue; 
 				}
 
-				nBytes = poll_server.RecvMessage(shm_data, 40008); // Read from the socket
-				if(strcmp(shm_data, "$CLOSE_FILE") == 0 || strcmp(shm_data, "$OPEN_FILE") == 0 || strcmp(shm_data, "$KILL_SOCKET") == 0){ continue; } // Poll2 network flags
+				nBytes = poll_server.RecvMessage((char*)shm_data, 40008); // Read from the socket
+				if(strcmp((char*)shm_data, "$CLOSE_FILE") == 0 || strcmp((char*)shm_data, "$OPEN_FILE") == 0 || strcmp((char*)shm_data, "$KILL_SOCKET") == 0){ continue; } // Poll2 network flags
 				// Did not read enough bytes
 				else if(nBytes < 8){
 					continue;
@@ -167,14 +167,14 @@ void start_run_control(Unpacker *core_){
 		}
 	}
 	else if(file_format == 0){
-		char *data = NULL;
+		unsigned int *data = NULL;
 		bool full_spill;
 		bool bad_spill = false;
 		int nBytes;
 		
-		if(!dry_run_mode){ data = new char[1000000]; }
+		if(!dry_run_mode){ data = new unsigned int[250000]; }
 		
-		while(databuff.Read(&input_file, data, nBytes, 1000000, full_spill, dry_run_mode)){ 
+		while(databuff.Read(&input_file, (char*)data, nBytes, 1000000, full_spill, dry_run_mode)){ 
 			if(full_spill){ 
 				if(debug_mode){ 
 					std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
@@ -208,12 +208,12 @@ void start_run_control(Unpacker *core_){
 		if(!dry_run_mode){ delete[] data; }
 	}
 	else if(file_format == 1){
-		char *data = NULL;
+		unsigned int *data = NULL;
 		int nBytes;
 		
-		if(!dry_run_mode){ data = new char[4*(max_spill_size+2)]; }
+		if(!dry_run_mode){ data = new unsigned int[max_spill_size+2]; }
 		
-		while(pldData.Read(&input_file, data, nBytes, 4*max_spill_size, dry_run_mode)){ 
+		while(pldData.Read(&input_file, (char*)data, nBytes, 4*max_spill_size, dry_run_mode)){ 
 			if(debug_mode){ 
 				std::cout << "debug: Retrieved spill of " << nBytes << " bytes (" << nBytes/4 << " words)\n"; 
 				std::cout << "debug: Read up to word number " << input_file.tellg()/4 << " in input file\n";
@@ -224,7 +224,7 @@ void start_run_control(Unpacker *core_){
 				memcpy(&data[nBytes], (char *)&word1, 4);
 				memcpy(&data[nBytes+4], (char *)&word2, 4);
 #ifndef SIMPLE_SCAN
-
+				ReadSpill(data, nBytes/4 + 2, is_verbose); 
 #else	
 				core_->ReadSpill(data, nBytes/4 + 2, is_verbose); 
 #endif

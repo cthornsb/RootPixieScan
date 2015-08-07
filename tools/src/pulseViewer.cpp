@@ -12,7 +12,7 @@
 #include "TSystem.h"
 #include "TApplication.h"
 
-#include <sstream>
+#include <string.h>
 #include <iostream>
 #include <unistd.h>
 #include <stdlib.h>
@@ -20,11 +20,21 @@
 
 double PIXIE_TIME_RES = 4.0; // In ns
 
+std::string GetBranch(const char *branchname_){
+	std::string output = "";
+	for(size_t i = 0; i < strlen(branchname_); i++){
+		if(branchname_[i] == '_'){ break; }
+		output += branchname_[i];
+	}
+	return output;
+}
+
 void help(char * prog_name_){
 	std::cout << "  SYNTAX: " << prog_name_ << " [filename] [branchname] <options>\n";
 	std::cout << "   Available options:\n";
-	std::cout << "    --skip <num>       | Skip a number of entries between displaying pulses.\n";
-	std::cout << "    --fast-fwd <entry> | Skip a specified number of entries at the beginning of the tree.\n";
+	std::cout << "    --skip <num>         | Skip a number of entries between displaying pulses.\n";
+	std::cout << "    --mult-branch <name> | Explicitly specify the name of the multiplicity branch.\n";
+	std::cout << "    --fast-fwd <entry>   | Skip a specified number of entries at the beginning of the tree.\n";
 }
 
 // For compilation
@@ -38,6 +48,7 @@ int main(int argc, char* argv[]){
 	int skip = 0;
 	int start_entry = 0;
 	int index = 3;
+	std::string mult_branch = "";
 	while(index < argc){
 		if(strcmp(argv[index], "--skip") == 0){
 			if(index + 1 >= argc){
@@ -51,6 +62,15 @@ int main(int argc, char* argv[]){
 				skip = 0;
 			}
 			std::cout << " Skipping " << skip << " pulses\n";
+		}
+		else if(strcmp(argv[index], "--mult-branch") == 0){
+			if(index + 1 >= argc){
+				std::cout << " Error! Missing required argument to '--mult-branch'!\n";
+				help(argv[0]);
+				return 1;
+			}
+			mult_branch = std::string(argv[++index]);
+			std::cout << " Using branch '" << mult_branch << "' as multiplicity branch\n";
 		}
 		else if(strcmp(argv[index], "--fast-fwd") == 0){
 			if(index + 1 >= argc){
@@ -97,19 +117,20 @@ int main(int argc, char* argv[]){
 	}
 	tree->SetMakeClass(1);
 	
-	std::stringstream branch_name;
-	branch_name << argv[2];
+	std::string branch_name = std::string(argv[2]);
+	if(mult_branch == ""){ mult_branch = GetBranch(argv[2]) + "_mult"; }
+	
 	TBranch *b_wave, *b_mult;
-	tree->SetBranchAddress((branch_name.str()+"_wave").c_str(), &wave, &b_wave);
-	tree->SetBranchAddress((branch_name.str()+"_mult").c_str(), &mult, &b_mult);
+	tree->SetBranchAddress(branch_name.c_str(), &wave, &b_wave);
+	tree->SetBranchAddress(mult_branch.c_str(), &mult, &b_mult);
 	
 	if(!b_wave){
-		std::cout << " Failed to load the input branch '" << branch_name.str() << "_wave'\n";
+		std::cout << " Failed to load the input branch '" << branch_name << std::endl;
 		file->Close();
 		return 1;
 	}
 	if(!b_mult){
-		std::cout << " Failed to load the input branch '" << branch_name.str() << "_mult'\n";
+		std::cout << " Failed to load the input branch '" << mult_branch << std::endl;
 		file->Close();
 		return 1;
 	}

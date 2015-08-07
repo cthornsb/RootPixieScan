@@ -112,7 +112,7 @@ void cleanup(){
  * If the old pixie readout is used then this function is
  * redefined as hissub_.
  */
-bool ReadSpill(char *ibuf, unsigned int nWords, bool is_verbose/*=true*/){
+bool ReadSpill(unsigned int *data, unsigned int nWords, bool is_verbose/*=true*/){
 	const unsigned int maxVsn = 14; // No more than 14 pixie modules per crate
 	unsigned int nWords_read = 0;
 	
@@ -126,9 +126,6 @@ bool ReadSpill(char *ibuf, unsigned int nWords, bool is_verbose/*=true*/){
 	
 	// Pointer to singleton DetectorDriver class 
 	DetectorDriver* driver = DetectorDriver::get();
-
-	// Local version of ibuf pointer
-	word_t *data = (word_t *)ibuf;
 
 	int retval = 0; // return value from various functions
 	
