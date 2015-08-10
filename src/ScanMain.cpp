@@ -221,8 +221,8 @@ void start_run_control(Unpacker *core_){
 			
 			if(!dry_run_mode){ 
 				int word1 = 2, word2 = 9999;
-				memcpy(&data[nBytes], (char *)&word1, 4);
-				memcpy(&data[nBytes+4], (char *)&word2, 4);
+				memcpy(&data[(nBytes/4)], (char *)&word1, 4);
+				memcpy(&data[(nBytes/4)+1], (char *)&word2, 4);
 #ifndef SIMPLE_SCAN
 				ReadSpill(data, nBytes/4 + 2, is_verbose); 
 #else	
