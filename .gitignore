@@ -20,6 +20,9 @@ setup
 *.root
 RootDict.cpp
 RootDict.h
+Structures.cpp
+Structures.h
+LinkDef.h
 
 # Executable #
 ##############
@@ -29,6 +32,7 @@ DammPixieLDF
 
 # Tools #
 #########
+rcbuild
 hexRead
 his2root
 raw2root
@@ -39,6 +43,5 @@ pulseViewer
 
 # Other #
 #########
-*.sh
 *.dat
 *.cmd

@@ -72,6 +72,7 @@ INTERFACE_SRC_DIR = $(PIXIE_SUITE_DIR)/Interface/source
 
 TOOL_DIR = $(TOP_LEVEL)/tools
 TOOL_SRC_DIR = $(TOOL_DIR)/src
+TOOL_INC_DIR = $(TOOL_DIR)/include
 
 INSTALL_DIR = ~/bin
 
@@ -192,7 +193,7 @@ dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
 
 tools: $(HEX_READ) $(HIS_2_ROOT) $(HIS_READER) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
 
-.PHONY: clean tidy directory
+.PHONY: clean tidy directory structures
 
 .SECONDARY: $(DICT_DIR)/$(DICT_SOURCE).cpp $(ROOTOBJ)
 #	Want to keep the source files created by rootcint after compilation
@@ -272,13 +273,17 @@ $(DICT_OBJ_DIR)/%.o: $(DICT_DIR)/%.cpp
 #	Compile rootcint source files
 	$(CC) -c $(CFLAGS) $< -o $@
 
-$(DICT_OBJ_DIR)/%.so: $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
+$(DICT_OBJ_DIR)/%.so: structures $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
 #	Generate the root shared library (.so) for the dictionary
 	$(CC) -g -shared -Wl,-soname,lib$(DICT_SOURCE).so -o $(DICT_OBJ_DIR)/lib$(DICT_SOURCE).so $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o -lc
 
 $(DICT_DIR)/%.cpp: $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
 #	Generate the dictionary source files using rootcint
 	@cd $(DICT_DIR); rootcint -f $@ -c $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
+
+structures:
+#	Generate Structures.cpp/h and LinkDef.h if needed
+	@$(TOOL_DIR)/rcbuild.sh
 
 #####################################################################
 
