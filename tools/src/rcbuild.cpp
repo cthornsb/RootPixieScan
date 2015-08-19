@@ -137,23 +137,33 @@ void StructureEntry::WriteHeader(std::ofstream *file_){
 		(*file_) << "\t/// Destructor. Does nothing\n";
 		(*file_) << "\t~" << name << suffix[i] << "(){}\n\n";
 
-		(*file_) << "\t/// Default constructor\n";
+		(*file_) << "\t/// Push back with data\n";
 		(*file_) << "\tvoid Append(";
 		if(i == 0){ // Write the structure variables
 			(*file_) << "const " << structure_types.front()->type << " &" << structure_types.front()->name << "_";
 			for(std::vector<DataType*>::iterator iter = structure_types.begin()+1; iter != structure_types.end(); iter++){
 				if((*iter)->trace_value || (*iter)->mult_value){ continue; }
-				if(!(*iter)->mult_value){ (*file_) << ", const " << (*iter)->type << " &" << (*iter)->name << "_"; }
+				(*file_) << ", const " << (*iter)->type << " &" << (*iter)->name << "_";
 			}
 		}
 		else{ // Write the waveform variables
 			(*file_) << "const " << waveform_types.front()->decl << " &" << waveform_types.front()->name << "_";
 			for(std::vector<DataType*>::iterator iter = waveform_types.begin()+1; iter != waveform_types.end(); iter++){
 				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
-				if(!(*iter)->mult_value){ (*file_) << ", const " << (*iter)->decl << " &" << (*iter)->name << "_"; }
+				(*file_) << ", const " << (*iter)->decl << " &" << (*iter)->name << "_";
 			}
 		}
 		(*file_) << ");\n\n";
+		
+		if(i == 1){
+			(*file_) << "\t/// Overloaded Append method for pushing back waveforms with arrays\n";
+			(*file_) << "\tvoid Append(";
+			for(std::vector<DataType*>::iterator iter = waveform_types.begin(); iter != waveform_types.end(); iter++){
+				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
+				(*file_) << (*iter)->type << " *" << (*iter)->name << "_, ";
+			}
+			(*file_) << " const size_t &size_);\n\n";
+		}
 
 		(*file_) << "\t/// Zero the data " << suffix[i] << "\n";
 		(*file_) << "\tvoid Zero();\n\n";
@@ -209,12 +219,12 @@ void StructureEntry::WriteSource(std::ofstream *file_){
 			(*file_) << "const " << structure_types.front()->type << " &" << structure_types.front()->name << "_";
 			for(std::vector<DataType*>::iterator iter = structure_types.begin()+1; iter != structure_types.end(); iter++){
 				if((*iter)->trace_value || (*iter)->mult_value){ continue; }
-				if(!(*iter)->mult_value){ (*file_) << ", const " << (*iter)->type << " &" << (*iter)->name << "_"; }
+				(*file_) << ", const " << (*iter)->type << " &" << (*iter)->name << "_";
 			}
 			(*file_) << "){\n";
 			for(std::vector<DataType*>::iterator iter = structure_types.begin(); iter != structure_types.end(); iter++){
-				if((*iter)->trace_value || (*iter)->mult_value){ continue; }
-				if((*iter)->is_vector){ (*file_) << "\t" << (*iter)->name << ".push_back(" << (*iter)->name << "_);\n"; }
+				if((*iter)->trace_value){ continue; }
+				else if((*iter)->is_vector){ (*file_) << "\t" << (*iter)->name << ".push_back(" << (*iter)->name << "_);\n"; }
 				else if(!(*iter)->mult_value){ (*file_) << "\t" << (*iter)->name << " = " << (*iter)->name << "_;\n"; }
 				else{ (*file_) << "\t" << (*iter)->name << "++;\n"; }
 			}
@@ -223,16 +233,36 @@ void StructureEntry::WriteSource(std::ofstream *file_){
 			(*file_) << "const " << waveform_types.front()->decl << " &" << waveform_types.front()->name << "_";
 			for(std::vector<DataType*>::iterator iter = waveform_types.begin()+1; iter != waveform_types.end(); iter++){
 				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
-				if(!(*iter)->mult_value){ (*file_) << ", const " << (*iter)->decl << " &" << (*iter)->name << "_"; }
+				(*file_) << ", const " << (*iter)->decl << " &" << (*iter)->name << "_";
 			}
 			(*file_) << "){\n";
 			for(std::vector<DataType*>::iterator iter = waveform_types.begin(); iter != waveform_types.end(); iter++){
-				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
-				if(!(*iter)->mult_value){ (*file_) << "\t" << (*iter)->name << " = " << (*iter)->name << "_;\n"; }
+				if(!(*iter)->trace_value){ continue; }
+				else if(!(*iter)->mult_value){ (*file_) << "\t" << (*iter)->name << " = " << (*iter)->name << "_;\n"; }
 				else{ (*file_) << "\t" << (*iter)->name << "++;\n"; }
 			}
 		}
 		(*file_) << "}\n\n";
+		
+		// Add an overloaded append method for waveforms
+		if(i == 1){
+			(*file_) << "void " << name << suffix[i] << "::Append(";
+			for(std::vector<DataType*>::iterator iter = waveform_types.begin(); iter != waveform_types.end(); iter++){
+				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
+				(*file_) << (*iter)->type << " *" << (*iter)->name << "_, ";
+			}
+			(*file_) << " const size_t &size_){\n";
+			for(std::vector<DataType*>::iterator iter = waveform_types.begin(); iter != waveform_types.end(); iter++){
+				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
+				(*file_) << "\t" << (*iter)->name << ".reserve(size_);\n";
+			}
+			(*file_) << "\tfor(size_t index = 0; index < size_; index++){\n";
+			for(std::vector<DataType*>::iterator iter = waveform_types.begin(); iter != waveform_types.end(); iter++){
+				if(!(*iter)->trace_value || (*iter)->mult_value){ continue; }
+				(*file_) << "\t\t" << (*iter)->name << ".push_back(" << (*iter)->name << "_[index]);\n";
+			}
+			(*file_) << "\t}\n}\n\n";
+		}
 	
 		// Zero
 		(*file_) << "void " << name << suffix[i] << "::Zero(){\n";
@@ -371,7 +401,8 @@ bool StructureFile::Open(){
 	hppfile << "	virtual void Zero(){}\n\n";
 	hppfile << "	virtual Structure &operator = (const Structure &other_){ return Set(other_); }\n\n";
 	hppfile << "	virtual Structure &Set(const Structure &other_){ return *this; }\n\n";
-	hppfile << "	virtual Structure &Set(Structure *other_){ return *this; }\n";
+	hppfile << "	virtual Structure &Set(Structure *other_){ return *this; }\n\n";
+	hppfile << "    ClassDef(Structure, 1); // Structure\n";
 	hppfile << "};\n\n";
 	hppfile << "class Waveform : public TObject {\n";
 	hppfile << "  protected:\n";
@@ -382,7 +413,8 @@ bool StructureFile::Open(){
 	hppfile << "	virtual void Zero(){}\n\n";
 	hppfile << "	virtual Waveform &operator = (const Waveform &other_){ return Set(other_); }\n\n";
 	hppfile << "	virtual Waveform &Set(const Waveform &other_){ return *this; }\n\n";
-	hppfile << "	virtual Waveform &Set(Waveform *other_){ return *this; }\n";
+	hppfile << "	virtual Waveform &Set(Waveform *other_){ return *this; }\n\n";
+	hppfile << "    ClassDef(Waveform, 1); // Waveform\n";
 	hppfile << "};\n";
 	
 	cppfile << "#include \"Structures.h\"\n";
@@ -392,6 +424,8 @@ bool StructureFile::Open(){
 	linkfile << "#pragma link off all globals;\n";
 	linkfile << "#pragma link off all classes;\n";
 	linkfile << "#pragma link off all functions;\n\n";
+	linkfile << "#pragma link C++ class Structure+;\n";
+	linkfile << "#pragma link C++ class Waveform+;\n\n";
 	
 	init = true;
 	
@@ -506,8 +540,8 @@ void help(char * prog_name_){
 
 int main(int argc, char *argv[]){
 	if(argc < 2){
-		std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
-		help(argv[0]);
+		//std::cout << " Error: Invalid number of arguments to " << argv[0] << ". Expected 1, received " << argc-1 << ".\n";
+		//help(argv[0]);
 		return 1;
 	}
 
@@ -519,48 +553,48 @@ int main(int argc, char *argv[]){
 	while(index < argc){
 		if(strcmp(argv[index], "--src-dir") == 0){
 			if(index + 1 >= argc){
-				std::cout << " Error! Missing required argument to '--src-dir'!\n";
-				help(argv[0]);
-				return 1;
+				//std::cout << " Error! Missing required argument to '--src-dir'!\n";
+				//help(argv[0]);
+				return 2;
 			}
 			src_dir = std::string(argv[++index]);
 		}
 		else if(strcmp(argv[index], "--inc-dir") == 0){
 			if(index + 1 >= argc){
-				std::cout << " Error! Missing required argument to '--inc-dir'!\n";
-				help(argv[0]);
-				return 1;
+				//std::cout << " Error! Missing required argument to '--inc-dir'!\n";
+				//help(argv[0]);
+				return 3;
 			}
 			inc_dir = std::string(argv[++index]);
 		}
 		else if(strcmp(argv[index], "--dict-dir") == 0){
 			if(index + 1 >= argc){
-				std::cout << " Error! Missing required argument to '--dict-dir'!\n";
-				help(argv[0]);
-				return 1;
+				//std::cout << " Error! Missing required argument to '--dict-dir'!\n";
+				//help(argv[0]);
+				return 4;
 			}
 			dict_dir = std::string(argv[++index]);
 		}
 		else{ 
-			std::cout << " Error: Encountered unrecognized option '" << argv[index] << "'\n";
-			return 2;
+			//std::cout << " Error: Encountered unrecognized option '" << argv[index] << "'\n";
+			return 5;
 		}
 		index++;
 	}
 	
-	std::cout << " " << argv[0] << ": Generating root data structure file... ";
+	//std::cout << " " << argv[0] << ": Generating root data structure file... ";
 
 	StructureFile sfile;
 	if(!sfile.Open(inc_dir+"Structures.h", src_dir+"Structures.cpp", dict_dir+"LinkDef.h")){ 
-		std::cout << "failed\n  Error: Failed to open one of the output files!\n";
-		return 3;
+		//std::cout << "failed\n  Error: Failed to open one of the output files!\n";
+		return 6;
 	}
 	else if(!sfile.Process(std::string(argv[1]))){
-		std::cout << "failed\n  Error: Failed to load input definitions file " << argv[1] << "!\n";
-		return 4;
+		//std::cout << "failed\n  Error: Failed to load input definitions file " << argv[1] << "!\n";
+		return 7;
 	}
 	
-	std::cout << "done\n";
+	//std::cout << "done\n";
 
 	return 0;
 }

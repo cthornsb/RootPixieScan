@@ -18,6 +18,10 @@ setup
 # ROOT Files #
 ##############
 *.root
+
+# Dictionary Files #
+####################i
+.def.struct.bkp
 RootDict.cpp
 RootDict.h
 Structures.cpp

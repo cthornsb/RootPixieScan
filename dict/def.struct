@@ -171,7 +171,6 @@ LONG	Structure for detectors of type "ionchamber"
 BEGIN_TYPES
 vector:double	ion_dE	Ion-chamber delta E signal
 vector:double	ion_E	Ion-chamber E signal
-vector:double	ion_sum	Ion-chamber E + dE
 u_int	ion_mult	Multiplicity of the ion-chamber events
 
 # Trace output data types and names (must end with _wave)

@@ -5,7 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/pixie16/cthorns/PixieSuitePLD/
+PIXIE_SUITE_DIR = /home/cthorns/PixieSuitePLD
 
 # Set the hhirf directory
 #HHIRF_DIR = /usr/hhirf-intel64
@@ -185,15 +185,16 @@ endif
 
 #####################################################################
 
-all: directory $(DICT_OBJ_DIR)/$(DICT_SOURCE).so $(EXECUTABLE)
+all: directory dictionary $(EXECUTABLE)
 #	Create all directories, make all objects, and link executable
 
-dictionary: $(DICT_OBJ_DIR) $(DICT_OBJ_DIR)/$(DICT_SOURCE).so
+dictionary:
 #	Create root dictionary objects
+	@$(TOOL_DIR)/rcbuild.sh
 
 tools: $(HEX_READ) $(HIS_2_ROOT) $(HIS_READER) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
 
-.PHONY: clean tidy directory structures
+.PHONY: clean tidy directory
 
 .SECONDARY: $(DICT_DIR)/$(DICT_SOURCE).cpp $(ROOTOBJ)
 #	Want to keep the source files created by rootcint after compilation
@@ -201,7 +202,7 @@ tools: $(HEX_READ) $(HIS_2_ROOT) $(HIS_READER) $(RAW_2_ROOT) $(LDF_READER) $(RAW
 
 #####################################################################
 
-directory: $(OBJ_DIR) $(FORT_OBJ_DIR) $(C_OBJ_DIR) $(DICT_OBJ_DIR)
+directory: $(OBJ_DIR) $(FORT_OBJ_DIR) $(C_OBJ_DIR)
 # Setup the configuration directory
 	@if [ ! -d $(TOP_LEVEL)/config/default ]; then \
 		tar -xf $(TOP_LEVEL)/config.tar; \
@@ -234,13 +235,6 @@ $(C_OBJ_DIR):
 		mkdir $@; \
 	fi
 
-$(DICT_OBJ_DIR):
-#	Make root dictionary object file directory
-	@if [ ! -d $@ ]; then \
-		echo "Making directory: "$@; \
-		mkdir $@; \
-	fi
-
 ########################################################################
 
 $(FORT_OBJ_DIR)/%.o: $(FORT_DIR)/%.f
@@ -266,24 +260,6 @@ $(CTERMINAL_SOURCE_OBJ): $(CTERMINAL_SOURCE)
 $(SCAN_MAIN_OBJ): $(SCAN_MAIN)
 #	Main scan function
 	$(CC) -c $(CFLAGS) -DUSE_NCURSES -I$(POLL_INC_DIR) $< -o $@
-
-#####################################################################
-
-$(DICT_OBJ_DIR)/%.o: $(DICT_DIR)/%.cpp
-#	Compile rootcint source files
-	$(CC) -c $(CFLAGS) $< -o $@
-
-$(DICT_OBJ_DIR)/%.so: structures $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o
-#	Generate the root shared library (.so) for the dictionary
-	$(CC) -g -shared -Wl,-soname,lib$(DICT_SOURCE).so -o $(DICT_OBJ_DIR)/lib$(DICT_SOURCE).so $(C_OBJ_DIR)/Structures.o $(DICT_OBJ_DIR)/$(DICT_SOURCE).o -lc
-
-$(DICT_DIR)/%.cpp: $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
-#	Generate the dictionary source files using rootcint
-	@cd $(DICT_DIR); rootcint -f $@ -c $(INCLUDE_DIR)/$(STRUCT_FILE).h $(DICT_DIR)/LinkDef.h
-
-structures:
-#	Generate Structures.cpp/h and LinkDef.h if needed
-	@$(TOOL_DIR)/rcbuild.sh
 
 #####################################################################
 
@@ -336,9 +312,9 @@ install: tools
 
 #####################################################################
 
-tidy: clean_obj
+tidy: clean_obj clean_dict clean_tools
 
-clean: clean_obj clean_dict clean_tools
+clean: clean_obj
 
 clean_obj:
 	@echo "Cleaning up..."
@@ -351,7 +327,9 @@ endif
 clean_dict:
 	@echo "Removing ROOT dictionaries..."
 	@rm -f $(DICT_DIR)/$(DICT_SOURCE).cpp $(DICT_DIR)/$(DICT_SOURCE).h $(DICT_OBJ_DIR)/*.o  $(DICT_OBJ_DIR)/*.so
+	@rm -f $(STRUCT_FILE_OBJ) $(SOURCE_DIR)/Structures.cpp $(INCLUDE_DIR)/Structures.h $(DICT_DIR)/LinkDef.h
 	
 clean_tools:
 	@echo "Removing tools..."
-	@rm -f $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+	@rm -f $(TOOL_DIR)/rcbuild
+	@rm -f $(HEX_READ) $(HIS_2_ROOT) $(RAW_2_ROOT) $(LDF_READER) $(HIS_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
