@@ -192,7 +192,7 @@ dictionary:
 #	Create root dictionary objects
 	@$(TOOL_DIR)/rcbuild.sh
 
-tools: $(HEX_READ) $(HIS_2_ROOT) $(HIS_READER) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
+tools: directory $(HEX_READ) $(HIS_2_ROOT) $(HIS_READER) $(RAW_2_ROOT) $(LDF_READER) $(RAW_VIEWER) $(PULSE_VIEWER)
 
 .PHONY: clean tidy directory
 
