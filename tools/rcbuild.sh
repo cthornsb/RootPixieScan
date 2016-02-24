@@ -170,7 +170,7 @@ fi
 if [ $LEVEL_NEEDED -ge 4 ]; then
 	# Compile the new structures file
 	echo -n " [3/6] Building data structures object file... "
-	g++ -Wall -O2 `root-config --cflags` -c -o $OBJ_DIR/$STRUCT_OBJ -I$INC_DIR $SRC_DIR/$STRUCT_SOURCE
+	g++ -fPIC -Wall -O2 `root-config --cflags` -c -o $OBJ_DIR/$STRUCT_OBJ -I$INC_DIR $SRC_DIR/$STRUCT_SOURCE
 
 	# Check that g++ exited successfully
 	errStatus=$?
@@ -202,7 +202,7 @@ fi
 if [ $LEVEL_NEEDED -ge 2 ]; then
 	#	Compile rootcint source files
 	echo -n " [5/6] Building root dictionary object file... "
-	g++ -Wall -O2 `root-config --cflags` -c -o $DICT_OBJ_DIR/$DICT_OBJ $DICT_DIR/$DICT_SOURCE
+	g++ -fPIC -Wall -O2 `root-config --cflags` -c -o $DICT_OBJ_DIR/$DICT_OBJ $DICT_DIR/$DICT_SOURCE
 
 	# Check that g++ exited successfully
 	errStatus=$?
