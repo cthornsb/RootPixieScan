@@ -144,10 +144,11 @@ if [ $LEVEL_NEEDED -ge 5 ]; then
 		g++ -Wall -O2 -o $TOOL_DIR/$BUILDER_EXE -I$TOOL_INC_DIR $TOOL_SRC_DIR/$BUILDER_SRC
 
 		# Check that the executable built successfully
-		if [ $? -ne 0 ]; then
+		errStatus=$?
+		if [ $errStatus -ne 0 ]; then
 			echo "failed"
 			echo "  FATAL ERROR! Failed to build "$BUILDER_EXE"!"
-			exit $?
+			exit $errStatus
 		fi
 		echo "done"
 	fi
@@ -157,10 +158,11 @@ if [ $LEVEL_NEEDED -ge 5 ]; then
 	$TOOL_DIR/$BUILDER_EXE $DEF_FILE --src-dir $SRC_DIR/ --inc-dir $INC_DIR/ --dict-dir $DICT_DIR/
 
 	# Check that the executable exited successfully
-	if [ $? -ne 0 ]; then
+	errStatus=$?
+	if [ $errStatus -ne 0 ]; then
 		echo "failed"
-		echo "  FATAL ERROR! "$BUILDER_EXE" returned "$?
-		exit $?
+		echo "  FATAL ERROR! "$BUILDER_EXE" returned "$errStatus
+		exit $errStatus
 	fi
 	echo "done"
 fi
@@ -171,10 +173,11 @@ if [ $LEVEL_NEEDED -ge 4 ]; then
 	g++ -Wall -O2 `root-config --cflags` -c -o $OBJ_DIR/$STRUCT_OBJ -I$INC_DIR $SRC_DIR/$STRUCT_SOURCE
 
 	# Check that g++ exited successfully
-	if [ $? -ne 0 ]; then
+	errStatus=$?
+	if [ $errStatus -ne 0 ]; then
 		echo "failed"
-		echo "  FATAL ERROR! g++ (building "$STRUCT_OBJ") returned "$?
-		exit $?
+		echo "  FATAL ERROR! g++ (building "$STRUCT_OBJ") returned "$errStatus
+		exit $errStatus
 	fi
 	echo "done"
 fi
@@ -187,10 +190,11 @@ if [ $LEVEL_NEEDED -ge 3 ]; then
 	cd $TOP_LEVEL
 
 	# Check that rootcint exited successfully
-	if [ $? -ne 0 ]; then
+	errStatus=$?
+	if [ $errStatus -ne 0 ]; then
 		echo "failed"
-		echo "  FATAL ERROR! rootcint returned "$?
-		exit $?
+		echo "  FATAL ERROR! rootcint returned "$errStatus
+		exit $errStatus
 	fi
 	echo "done"
 fi
@@ -201,10 +205,11 @@ if [ $LEVEL_NEEDED -ge 2 ]; then
 	g++ -Wall -O2 `root-config --cflags` -c -o $DICT_OBJ_DIR/$DICT_OBJ $DICT_DIR/$DICT_SOURCE
 
 	# Check that g++ exited successfully
-	if [ $? -ne 0 ]; then
+	errStatus=$?
+	if [ $errStatus -ne 0 ]; then
 		echo "failed"
-		echo "  FATAL ERROR! g++ (building "$DICT_OBJ") returned "$?
-		exit $?
+		echo "  FATAL ERROR! g++ (building "$DICT_OBJ") returned "$errStatus
+		exit $errStatus
 	fi
 	echo "done"
 fi
@@ -215,10 +220,11 @@ if [ $LEVEL_NEEDED -ge 1 ]; then
 	g++ -g -shared -Wl,-soname,$DICT_SHARED -o $DICT_OBJ_DIR/$DICT_SHARED $OBJ_DIR/$STRUCT_OBJ $DICT_OBJ_DIR/$DICT_OBJ -lc
 
 	# Check that g++ exited successfully
-	if [ $? -ne 0 ]; then
-		echo "failed"
-		echo "  FATAL ERROR! g++ (building "$DICT_SHARED") returned "$?
-		exit $?
+	errStatus=$?
+	if [ $errStatus -ne 0 ]; then
+		echo "faile"
+		echo "  FATAL ERROR! g++ (building "$DICT_SHARED") returned "$errStatus
+		exit $errStatus
 	fi
 	echo "done"
 fi
