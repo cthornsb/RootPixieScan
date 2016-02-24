@@ -124,7 +124,7 @@ class DetectorDriver {
         if(use_damm){ histo.Plot(dammId, val1, val2, val3, name); }
     }
 
-    int ProcessEvent(const string &, RawEvent& rawev);
+    int ProcessEvent(RawEvent& rawev);
     int ThreshAndCal(ChanEvent *, RawEvent& rawev);
     bool Init(RawEvent& rawev);
     

@@ -5,20 +5,7 @@
 #####################################################################
 
 # Set the PixieSuite directory
-PIXIE_SUITE_DIR = /home/cthorns/PixieSuitePLD
-
-# Set the hhirf directory
-#HHIRF_DIR = /usr/hhirf-intel64
-HHIRF_DIR = /usr/hhirf
-
-# Set the ACQ2 library directory
-#ACQ2_LIBDIR = /usr/hhirf-intel64
-#ACQ2_LIBDIR = /usr/hhirf
-ACQ2_LIBDIR = /usr/acq2/lib
-
-# Flag for new readout system. Set to 0 for the classic scan
-# Switching this flag may require a full recompilation (make clean && make)
-NEW_READOUT = 1
+PIXIE_SUITE_DIR = /home/cory/Research/pixie16/PixieSuite
 
 # Flag for verbosity
 VERBOSE = 0
@@ -27,29 +14,18 @@ VERBOSE = 0
 
 FC = gfortran
 CC = g++
-LINKER =
+LINKER = g++
 
-ifeq ($(NEW_READOUT), 1)
-	LINKER = $(CC)
-else
-	LINKER = $(FC)
-endif
-
-FFLAGS = -g -fsecond-underscore
-CFLAGS = -g -fPIC -Wall -O3 -std=c++0x `root-config --cflags` -Iinclude -DREVF
-LDLIBS = -lm -lstdc++ -lgsl -lgslcblas `root-config --libs`
+CFLAGS = -g -fPIC -Wall -O3 -std=c++0x `root-config --cflags` -Iinclude -I$(PIXIE_SUITE_INC_DIR) -DREVF
+LDLIBS = -lm -lstdc++ -lgsl -lgslcblas `root-config --libs` -L$(PIXIE_SUITE_DIR)/exec/lib -lPixieScan
 LDFLAGS = `root-config --glibs`
 ROOT_INC = `root-config --incdir`
-
-ifeq ($(NEW_READOUT), 1)
-	LDLIBS += -lncurses
-else
-	LDLIBS += -lgfortran
-endif
 
 ifeq ($(VERBOSE), 1)
 	CFLAGS += -DVERBOSE
 endif
+
+PIXIE_SUITE_INC_DIR = $(PIXIE_SUITE_DIR)/exec/include
 
 # Directories
 TOP_LEVEL = $(shell pwd)
@@ -64,11 +40,7 @@ DICT_OBJ_DIR = $(DICT_DIR)/obj
 FORT_DIR = $(TOP_LEVEL)/scan
 FORT_OBJ_DIR = $(OBJ_DIR)/fortran
 
-POLL_INC_DIR = $(PIXIE_SUITE_DIR)/Poll/include
-POLL_SRC_DIR = $(PIXIE_SUITE_DIR)/Poll/source
-
-INTERFACE_INC_DIR = $(PIXIE_SUITE_DIR)/Interface/include
-INTERFACE_SRC_DIR = $(PIXIE_SUITE_DIR)/Interface/source
+POLL_INC_DIR = $(PIXIE_SUITE_DIR)/exec/include
 
 TOOL_DIR = $(TOP_LEVEL)/tools
 TOOL_SRC_DIR = $(TOOL_DIR)/src
@@ -95,26 +67,11 @@ PULSE_VIEWER_SRC = $(TOOL_SRC_DIR)/pulseViewer.cpp
 # Main executable
 EXECUTABLE = PixieLDF
 
-# Scan libraries
-LIBS = $(HHIRF_DIR)/scanorlib.a $(HHIRF_DIR)/orphlib.a\
-	   $(ACQ2_LIBDIR)/acqlib.a $(ACQ2_LIBDIR)/ipclib.a
-
-# FORTRAN
-FORTRAN =
-
 # C++ CORE
-SOURCES = Places.cpp ReadBuffData.RevD.cpp Trace.cpp EventProcessor.cpp MapFile.cpp TraceExtractor.cpp ChanEvent.cpp \
+SOURCES = Scanner.cpp Places.cpp Trace.cpp EventProcessor.cpp MapFile.cpp TraceExtractor.cpp ChanEvent.cpp \
 		  ChanIdentifier.cpp Correlator.cpp pugixml.cpp StatsData.cpp SsdProcessor.cpp TreeCorrelator.cpp \
 		  DetectorDriver.cpp ParseXml.cpp DetectorLibrary.cpp RandomPool.cpp DetectorSummary.cpp RawEvent.cpp \
 		   TimingInformation.cpp PlaceBuilder.cpp HisFile.cpp Plots.cpp PlotsRegister.cpp
-
-ifeq ($(NEW_READOUT), 1)
-	SOURCES += NewPixieStd.cpp
-else
-	FORTRAN += messlog.f mildatim.f scanor.f
-	SOURCES += PixieStd.cpp Initialize.cpp TracePlotter.cpp TraceFilterer.cpp
-	EXECUTABLE = OldPixieLDF	
-endif
 
 # ANALYZERS
 SOURCES += CfdAnalyzer.cpp
@@ -142,28 +99,7 @@ SOURCES += TriggerProcessor.cpp
 #SOURCES += ValidProcessor.cpp
 SOURCES += VandleProcessor.cpp
 
-FORTOBJ = $(addprefix $(FORT_OBJ_DIR)/,$(FORTRAN:.f=.o))
 OBJECTS = $(addprefix $(C_OBJ_DIR)/,$(SOURCES:.cpp=.o))
-
-# This is a special object file included from PixieSuite
-HRIBF_SOURCE = $(POLL_SRC_DIR)/hribf_buffers.cpp
-HRIBF_SOURCE_OBJ = $(C_OBJ_DIR)/hribf_buffers.o
-
-# This is a special object file included from PixieSuite
-SOCKET_SOURCE = $(POLL_SRC_DIR)/poll2_socket.cpp
-SOCKET_SOURCE_OBJ = $(C_OBJ_DIR)/poll2_socket.o
-
-# This is a special object file included from PixieSuite
-CTERMINAL_SOURCE = $(POLL_SRC_DIR)/CTerminal.cpp
-CTERMINAL_SOURCE_OBJ = $(C_OBJ_DIR)/CTerminal.o
-
-# This file is used to handle packing/unpacking of .his files
-HIS_FILE_SRC = $(SOURCE_DIR)/HisFile.cpp
-HIS_FILE_OBJ = $(C_OBJ_DIR)/HisFile.o
-
-# If UPAK is not used, we need a new main file
-SCAN_MAIN = $(SOURCE_DIR)/ScanMain.cpp
-SCAN_MAIN_OBJ = $(C_OBJ_DIR)/ScanMain.o
 
 # ROOT dictionary stuff
 DICT_SOURCE = RootDict
@@ -175,13 +111,6 @@ SFLAGS = $(addprefix -l,$(DICT_SOURCE))
 
 # Determine what to build
 TO_BUILD = $(OBJECTS)
-ifeq ($(NEW_READOUT), 1)
-	# New scan code
-	TO_BUILD += $(SCAN_MAIN_OBJ) $(HRIBF_SOURCE_OBJ) $(SOCKET_SOURCE_OBJ) $(CTERMINAL_SOURCE_OBJ)
-else
-	# Old scan code
-	TO_BUILD += $(FORTOBJ) $(LIBS)
-endif
 
 #####################################################################
 
@@ -221,13 +150,6 @@ $(OBJ_DIR):
 		mkdir $@; \
 	fi
 
-$(FORT_OBJ_DIR):
-#	Make fortran object file directory
-	@if [ ! -d $@ ]; then \
-		echo "Making directory: "$@; \
-		mkdir $@; \
-	fi
-
 $(C_OBJ_DIR):
 #	Make c++ object file directory
 	@if [ ! -d $@ ]; then \
@@ -237,29 +159,9 @@ $(C_OBJ_DIR):
 
 ########################################################################
 
-$(FORT_OBJ_DIR)/%.o: $(FORT_DIR)/%.f
-#	Compile fortran source files
-	$(FC) -c $(FFLAGS) $< -o $@
-
 $(C_OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp
 #	Compile C++ source files
 	$(CC) -c $(CFLAGS) $< -o $@
-
-$(HRIBF_SOURCE_OBJ): $(HRIBF_SOURCE)
-#	Compile hribf_buffers from PixieSuite
-	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
-
-$(SOCKET_SOURCE_OBJ): $(SOCKET_SOURCE)
-#	Compile poll2_socket from PixieSuite
-	$(CC) -c $(CFLAGS) -I$(POLL_INC_DIR) $< -o $@
-
-$(CTERMINAL_SOURCE_OBJ): $(CTERMINAL_SOURCE)
-#	Compile poll2_socket from PixieSuite
-	$(CC) -c $(CFLAGS) -DUSE_NCURSES -I$(POLL_INC_DIR) -I$(INTERFACE_INC_DIR) $< -o $@
-
-$(SCAN_MAIN_OBJ): $(SCAN_MAIN)
-#	Main scan function
-	$(CC) -c $(CFLAGS) -DUSE_NCURSES -I$(POLL_INC_DIR) $< -o $@
 
 #####################################################################
 
@@ -318,11 +220,7 @@ clean: clean_obj
 
 clean_obj:
 	@echo "Cleaning up..."
-ifeq ($(NEW_READOUT), 1)
-	@rm -f $(FORT_OBJ_DIR)/*.o $(C_OBJ_DIR)/*.o $(EXECUTABLE)
-else
-	@rm -f $(C_OBJ_DIR)/*.o ./$(EXECUTABLE)
-endif
+	@rm -f $(C_OBJ_DIR)/*.o $(EXECUTABLE)
 	
 clean_dict:
 	@echo "Removing ROOT dictionaries..."

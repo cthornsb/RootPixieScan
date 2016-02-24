@@ -18,6 +18,7 @@ setup
 # ROOT Files #
 ##############
 *.root
+*.pcm
 
 # Dictionary Files #
 ####################i

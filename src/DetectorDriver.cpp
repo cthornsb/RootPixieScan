@@ -441,7 +441,7 @@ bool DetectorDriver::OpenNewFile(){
   Currently, both RMS and MTC processing is available.  After all processing
   has occured, appropriate plotting routines are called.
 */
-int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){   
+int DetectorDriver::ProcessEvent(RawEvent& rawev){   
 	/*
 	  Begin the event processing looping over all the channels
 	  that fired in this particular event.
@@ -468,7 +468,7 @@ int DetectorDriver::ProcessEvent(const string &mode, RawEvent& rawev){
 		double energy = (*it)->GetCalEnergy();
 		
 		if(write_raw){
-			structure.Append((*it)->GetMod(), (*it)->GetChan(), time, energy);
+			structure.Append((*it)->event->modNum, (*it)->event->chanNum, time, energy);
 			has_event = true;
 		}
 		
@@ -615,7 +615,6 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 		} 
 		else if (!trace.HasValue("filterEnergy")) {
 			energy = chan->GetEnergy() + randoms->Get();
-			energy /= ChanEvent::pixieEnergyContraction;
 		}
 		if (trace.HasValue("phase") ) {
 			double phase = trace.GetValue("phase");
@@ -627,7 +626,6 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 		// add a random number to convert an integer value to a 
 		//   uniformly distributed floating point
 		energy = chan->GetEnergy() + randoms->Get();
-		energy /= ChanEvent::pixieEnergyContraction;
 	}
 	/*
 	  Set the calibrated energy for this channel
@@ -658,7 +656,7 @@ int DetectorDriver::ThreshAndCal(ChanEvent *chan, RawEvent& rawev)
 int DetectorDriver::PlotRaw(const ChanEvent *chan)
 {
 	int id = chan->GetID();
-	float energy = chan->GetEnergy() / ChanEvent::pixieEnergyContraction;
+	float energy = chan->GetEnergy();
 
 	plot(D_RAW_ENERGY + id, energy);
 	
